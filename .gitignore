@@ -1,0 +1,35 @@
+# Ignore environment variables
+.env
+*.env
+.env.*
+!.env.example
+
+# Ignore temporary and backup directories
+_backup_before_merge/
+_archived_lanh-sach-laundry-temp/
+lanh-sach-laundry-temp/
+
+# Ignore dependencies
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+env/
+dist/
+build/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.claude/
