@@ -268,18 +268,24 @@ def resend_verification(payload: ResendVerificationRequest):
     new_token = str(uuid.uuid4())
     supabase.table("users").update({"verification_token": new_token}).eq("id", user["id"]).execute()
     
-    verify_link = f"{settings.FRONTEND_URL}/verify-email?token={new_token}"
+    verify_link = f"{settings.FRONTEND_URL}/verify-account?token={new_token}"
     
     # Send verification email
-    send_template_email(
-        to_email=user["email"],
-        template_type="verify_account",
-        template_data={
-            "full_name": user["full_name"],
-            "role": user["role"].upper(),
-            "verify_link": verify_link
-        }
-    )
+    try:
+        send_template_email(
+            to_email=user["email"],
+            template_type="verify_account",
+            template_data={
+                "full_name": user["full_name"],
+                "role": user["role"].upper(),
+                "verify_link": verify_link
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Không thể gửi email xác thực: {str(e)}"
+        )
     
     return {"message": "Email xác thực mới đã được gửi."}
 
@@ -300,14 +306,20 @@ def forgot_password(payload: ForgotPasswordRequest):
     
     reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
     
-    send_template_email(
-        to_email=user["email"],
-        template_type="reset_password",
-        template_data={
-            "full_name": user["full_name"],
-            "reset_link": reset_link
-        }
-    )
+    try:
+        send_template_email(
+            to_email=user["email"],
+            template_type="reset_password",
+            template_data={
+                "full_name": user["full_name"],
+                "reset_link": reset_link
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Không thể gửi email đặt lại mật khẩu: {str(e)}"
+        )
     
     return {"message": "Email đặt lại mật khẩu đã được gửi."}
 
@@ -381,15 +393,19 @@ def register_staff_public(payload: PublicStaffRegisterRequest):
     new_user = response.data[0]
     
     # Send verification email
-    verify_link = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
-    send_template_email(
-        to_email=new_user["email"],
-        template_type="verify_account",
-        template_data={
-            "full_name": new_user["full_name"],
-            "role": "STAFF",
-            "verify_link": verify_link
-        }
-    )
+    verify_link = f"{settings.FRONTEND_URL}/verify-account?token={verification_token}"
+    try:
+        send_template_email(
+            to_email=new_user["email"],
+            template_type="verify_account",
+            template_data={
+                "full_name": new_user["full_name"],
+                "role": "STAFF",
+                "verify_link": verify_link
+            }
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send registration verification email: {str(e)}")
+        return {"message": "Đăng ký thành công, nhưng gửi email xác thực thất bại. Vui lòng liên hệ Admin."}
     
     return {"message": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực."}
