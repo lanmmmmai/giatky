@@ -5,6 +5,7 @@ export interface EmailTemplate {
   name: string;
   subject: string;
   body_html: string;
+  body_text?: string;
   variables?: string[];
   type: 'verify_account' | 'reset_password' | 'order_success' | 'announcement' | 'payroll';
   is_active: boolean;

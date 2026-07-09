@@ -7,10 +7,24 @@ from app.database import supabase
 
 router = APIRouter(prefix="/email", tags=["Email & Templates"])
 
+_template_columns_cache = None
+
+def get_template_columns_has_body_text() -> bool:
+    global _template_columns_cache
+    if _template_columns_cache is not None:
+        return _template_columns_cache
+    try:
+        supabase.table("email_templates").select("body_text").limit(1).execute()
+        _template_columns_cache = True
+    except Exception:
+        _template_columns_cache = False
+    return _template_columns_cache
+
 class EmailTemplateBase(BaseModel):
     name: str
     subject: str
     body_html: str
+    body_text: Optional[str] = None
     variables: Optional[List[str]] = Field(default_factory=list)
     type: str
     is_active: bool = True
@@ -22,6 +36,7 @@ class EmailTemplateUpdate(BaseModel):
     name: Optional[str] = None
     subject: Optional[str] = None
     body_html: Optional[str] = None
+    body_text: Optional[str] = None
     variables: Optional[List[str]] = None
     type: Optional[str] = None
     is_active: Optional[bool] = None
@@ -41,7 +56,11 @@ def create_email_template(payload: EmailTemplateCreate):
             detail=f"Template type '{payload.type}' đã tồn tại."
         )
         
-    response = supabase.table("email_templates").insert(payload.model_dump()).execute()
+    payload_dict = payload.model_dump()
+    if not get_template_columns_has_body_text():
+        payload_dict.pop("body_text", None)
+        
+    response = supabase.table("email_templates").insert(payload_dict).execute()
     if not response.data:
         raise HTTPException(status_code=500, detail="Không thể tạo email template.")
     return response.data[0]
@@ -51,6 +70,9 @@ def update_email_template(id: str, payload: EmailTemplateUpdate):
     update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="Không có dữ liệu cập nhật.")
+        
+    if not get_template_columns_has_body_text():
+        update_data.pop("body_text", None)
         
     response = supabase.table("email_templates").update(update_data).eq("id", id).execute()
     if not response.data:

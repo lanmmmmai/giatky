@@ -28,6 +28,10 @@ const Cms: React.FC = () => {
   const [editingTemplateId, setEditingTemplateId] = useState('');
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateBody, setTemplateBody] = useState('');
+  const [templateBodyText, setTemplateBodyText] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [templateType, setTemplateType] = useState('');
+  const [templateVariables, setTemplateVariables] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -84,6 +88,10 @@ const Cms: React.FC = () => {
     setEditingTemplateId(tmpl.id);
     setTemplateSubject(tmpl.subject);
     setTemplateBody(tmpl.body_html);
+    setTemplateBodyText(tmpl.body_text || '');
+    setTemplateName(tmpl.name);
+    setTemplateType(tmpl.type);
+    setTemplateVariables(tmpl.variables || []);
   };
 
   const handleSaveTemplate = async (e: React.FormEvent) => {
@@ -91,7 +99,8 @@ const Cms: React.FC = () => {
     try {
       await updateEmailTemplate(editingTemplateId, {
         subject: templateSubject,
-        body_html: templateBody
+        body_html: templateBody,
+        body_text: templateBodyText
       });
       addToast('Đã lưu mẫu email cập nhật.', 'success');
       setEditingTemplateId('');
@@ -99,6 +108,29 @@ const Cms: React.FC = () => {
     } catch (_) {
       addToast('Cập nhật mẫu email thất bại.', 'error');
     }
+  };
+
+  const handleCreateHtmlFromText = () => {
+    if (!templateBodyText.trim()) {
+      addToast('Vui lòng nhập Nội dung text thường trước.', 'warning');
+      return;
+    }
+    const formattedContent = templateBodyText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br />");
+      
+    const htmlTemplate = `<html>
+  <body style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+    <div style="max-width: 640px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #2563eb;">Giặt Ký</h2>
+      <div>${formattedContent}</div>
+    </div>
+  </body>
+</html>`;
+    setTemplateBody(htmlTemplate);
+    addToast('Đã sinh mã HTML từ nội dung text!', 'success');
   };
 
   return (
@@ -247,75 +279,184 @@ const Cms: React.FC = () => {
 
           {/* TAB 2: EMAIL TEMPLATES */}
           {activeTab === 'templates' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left list */}
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách các loại mẫu</h3>
-                {templates.map(tmpl => (
-                  <div key={tmpl.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-xs">{tmpl.name}</h4>
-                        <span className="text-[10px] font-mono text-slate-400">Loại: {tmpl.type}</span>
-                      </div>
-                      <button
-                        onClick={() => handleEditTemplate(tmpl)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit3 size={14} />
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-600 font-bold">Tiêu đề gửi: <span className="font-medium text-slate-500">{tmpl.subject}</span></p>
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-2">Biến hỗ trợ:</div>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {(tmpl.variables || []).map(v => (
-                        <span key={v} className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-slate-600">
-                          {`{{${v}}}`}
-                        </span>
-                      ))}
-                    </div>
+            editingTemplateId ? (
+              <div className="space-y-6">
+                {/* Header with cancel button */}
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Biên tập: {templateName}</h3>
+                    <span className="text-[10px] text-slate-400 font-mono">Loại: {templateType}</span>
                   </div>
-                ))}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingTemplateId('')}
+                    className="px-3.5 py-1.5 text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition-all"
+                  >
+                    Quay lại danh sách
+                  </button>
+                </div>
 
-              {/* Right editing */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-fit">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
-                  Biên tập nội dung email
-                </h3>
-                {editingTemplateId ? (
-                  <form onSubmit={handleSaveTemplate} className="space-y-4 pt-3 text-xs">
-                    <div className="space-y-1">
-                      <label className="font-semibold text-slate-600">Tiêu đề thư (Subject)</label>
-                      <input
-                        type="text"
-                        value={templateSubject}
-                        onChange={(e) => setTemplateSubject(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none"
-                        required
-                      />
+                <form onSubmit={handleSaveTemplate} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  {/* Editor Panel (2 cols) */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Card 1: Thông tin email */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><Mail size={16} /></span>
+                        <h4 className="font-bold text-slate-800 text-xs">Card 1: Thông tin email</h4>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-500">Loại template</label>
+                          <input
+                            type="text"
+                            value={templateType}
+                            disabled
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-500 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-600">Tiêu đề thư (Subject) *</label>
+                          <input
+                            type="text"
+                            value={templateSubject}
+                            onChange={(e) => setTemplateSubject(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                            placeholder="Nhập tiêu đề thư gửi..."
+                            required
+                          />
+                        </div>
+                      </div>
+                      {templateVariables.length > 0 && (
+                        <div className="pt-2">
+                          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Các biến được hỗ trợ:</div>
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {templateVariables.map(v => (
+                              <span key={v} className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-slate-600">
+                                {`{{${v}}}`}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <label className="font-semibold text-slate-600">Nội dung thư (HTML Format)</label>
-                      <textarea
-                        value={templateBody}
-                        onChange={(e) => setTemplateBody(e.target.value)}
-                        className="w-full p-3 border border-slate-200 rounded-xl outline-none min-h-60 font-mono text-[10px]"
-                        required
-                      />
+
+                    {/* Card 2: Nội dung text thường */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><ClipboardList size={16} /></span>
+                        <h4 className="font-bold text-slate-800 text-xs">Card 2: Nội dung text thường</h4>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-600">Nội dung văn bản</label>
+                        <p className="text-[10px] text-slate-400">Dùng cho người quản lý nhập nội dung dễ đọc. Hệ thống có thể dùng nội dung này làm bản text fallback khi gửi email.</p>
+                        <textarea
+                          value={templateBodyText}
+                          onChange={(e) => setTemplateBodyText(e.target.value)}
+                          className="w-full p-3 border border-slate-200 rounded-xl outline-none min-h-36 text-xs text-slate-700"
+                          placeholder={`Xin chào {{full_name}},\nChúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.\nVui lòng bấm vào link sau để đặt lại mật khẩu:\n{{reset_link}}\n\nTrân trọng,\nĐội ngũ Giặt Ký`}
+                        />
+                      </div>
                     </div>
+
+                    {/* Card 3: Nội dung HTML */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 bg-violet-50 text-violet-600 rounded-lg"><Globe size={16} /></span>
+                          <h4 className="font-bold text-slate-800 text-xs">Card 3: Nội dung HTML *</h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleCreateHtmlFromText}
+                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[11px] font-bold rounded-xl transition-all"
+                        >
+                          Tạo HTML từ text
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-slate-400">Dùng để tùy chỉnh giao diện email. Có thể dùng các biến như {"{{full_name}}"}, {"{{reset_link}}"}, {"{{verify_link}}"}.</p>
+                        <textarea
+                          value={templateBody}
+                          onChange={(e) => setTemplateBody(e.target.value)}
+                          className="w-full p-3 border border-slate-200 rounded-xl outline-none min-h-60 font-mono text-[10px]"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action row */}
                     <button
                       type="submit"
-                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-[0.99] transition-all"
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] transition-all"
                     >
-                      <Save size={14} /> Lưu mẫu email
+                      <Save size={16} /> Lưu mẫu email
                     </button>
-                  </form>
-                ) : (
-                  <div className="py-12 text-center text-xs text-slate-400 font-medium">Bấm vào biểu tượng sửa bên cạnh danh sách mẫu để chỉnh sửa.</div>
-                )}
+                  </div>
+
+                  {/* Preview Panel (1 col) */}
+                  <div className="space-y-4 lg:sticky lg:top-4">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><Eye size={16} /></span>
+                        <h4 className="font-bold text-slate-800 text-xs">Card 4: Xem trước email</h4>
+                      </div>
+                      
+                      <div className="border border-slate-100 rounded-xl overflow-hidden bg-slate-50 min-h-96">
+                        {templateBody.trim() ? (
+                          <iframe
+                            title="Email Preview"
+                            srcDoc={templateBody}
+                            className="w-full min-h-96 border-none bg-white"
+                            sandbox="allow-same-origin"
+                          />
+                        ) : (
+                          <div className="p-8 text-center text-slate-400 text-xs font-medium py-32 whitespace-pre-wrap">
+                            {templateBodyText ? templateBodyText : 'Chưa có nội dung xem trước'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </form>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách các loại mẫu</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {templates.map(tmpl => (
+                    <div key={tmpl.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 transition-colors flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start border-b border-slate-100 pb-2">
+                          <div>
+                            <h4 className="font-bold text-slate-800 text-xs">{tmpl.name}</h4>
+                            <span className="text-[10px] font-mono text-slate-400">Loại: {tmpl.type}</span>
+                          </div>
+                          <button
+                            onClick={() => handleEditTemplate(tmpl)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-600 font-bold">Tiêu đề gửi: <span className="font-medium text-slate-500">{tmpl.subject}</span></p>
+                      </div>
+                      
+                      <div className="pt-2">
+                        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Biến hỗ trợ:</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(tmpl.variables || []).map(v => (
+                            <span key={v} className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-slate-600">
+                              {`{{${v}}}`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
           )}
 
           {/* TAB 3: EMAIL LOGS */}
