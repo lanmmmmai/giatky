@@ -1,0 +1,11 @@
+{
+  "name": "giatky-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build -w lanh-sach-frontend"
+  }
+}
