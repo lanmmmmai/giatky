@@ -89,11 +89,14 @@ def get_users(current_user: dict = Depends(get_current_user)):
         if users_data:
             user_ids = [u["id"] for u in users_data]
             ub_data = []
-            for i in range(0, len(user_ids), 100):
-                chunk = user_ids[i:i+100]
-                ub_res = supabase.table("user_branches").select("user_id, branch_id, branches(name)").in_("user_id", chunk).execute()
-                if ub_res.data:
-                    ub_data.extend(ub_res.data)
+            try:
+                for i in range(0, len(user_ids), 100):
+                    chunk = user_ids[i:i+100]
+                    ub_res = supabase.table("user_branches").select("user_id, branch_id, branches(name)").in_("user_id", chunk).execute()
+                    if ub_res.data:
+                        ub_data.extend(ub_res.data)
+            except Exception as ub_err:
+                logger.warning(f"Failed to fetch user_branches (table may not exist yet): {ub_err}")
             
             # Map user_id to assigned branches list
             ub_map = {}
@@ -233,15 +236,18 @@ def create_staff(payload: StaffCreate, current_user: dict = Depends(get_current_
     new_user = response.data[0]
     
     # Insert assignments to user_branches
-    ub_inserts = [
-        {
-            "user_id": new_user["id"],
-            "branch_id": b_id,
-            "assigned_by": current_user["id"]
-        }
-        for b_id in branch_ids
-    ]
-    supabase.table("user_branches").insert(ub_inserts).execute()
+    try:
+        ub_inserts = [
+            {
+                "user_id": new_user["id"],
+                "branch_id": b_id,
+                "assigned_by": current_user["id"]
+            }
+            for b_id in branch_ids
+        ]
+        supabase.table("user_branches").insert(ub_inserts).execute()
+    except Exception as ub_err:
+        logger.warning(f"Failed to insert user_branches (table may not exist yet): {ub_err}")
     
     # Send verification email
     verify_link = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
@@ -276,15 +282,18 @@ def get_user_detail(id: str, current_user: dict = Depends(get_current_user)):
     user_rec = response.data[0]
     
     # Fetch assigned branches
-    ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
     assigned = []
-    for ub in (ub_res.data or []):
-        b_id = ub["branch_id"]
-        b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-        assigned.append({
-            "branch_id": b_id,
-            "branch_name": b_name
-        })
+    try:
+        ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
+        for ub in (ub_res.data or []):
+            b_id = ub["branch_id"]
+            b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
+            assigned.append({
+                "branch_id": b_id,
+                "branch_name": b_name
+            })
+    except Exception as ub_err:
+        logger.warning(f"Failed to fetch user_branches (table may not exist yet): {ub_err}")
     user_rec["assigned_branches"] = assigned
     
     return user_rec
@@ -326,12 +335,15 @@ def update_user(id: str, payload: UserUpdate, current_user: dict = Depends(get_c
                 
         if not authorized:
             # Check user_branches table
-            ub_check = supabase.table("user_branches").select("branch_id").eq("user_id", id).execute()
-            b_ids = [ub["branch_id"] for ub in (ub_check.data or [])]
-            if b_ids:
-                mgr_branch_res = supabase.table("branches").select("id").in_("id", b_ids).eq("manager_id", current_user["id"]).execute()
-                if mgr_branch_res.data:
-                    authorized = True
+            try:
+                ub_check = supabase.table("user_branches").select("branch_id").eq("user_id", id).execute()
+                b_ids = [ub["branch_id"] for ub in (ub_check.data or [])]
+                if b_ids:
+                    mgr_branch_res = supabase.table("branches").select("id").in_("id", b_ids).eq("manager_id", current_user["id"]).execute()
+                    if mgr_branch_res.data:
+                        authorized = True
+            except Exception as ub_err:
+                logger.warning(f"Failed to verify manager assignment via user_branches (table may not exist yet): {ub_err}")
                     
         if not authorized:
             raise HTTPException(status_code=403, detail="Tài khoản này không thuộc quyền quản lý của bạn.")
@@ -365,42 +377,51 @@ def update_user(id: str, payload: UserUpdate, current_user: dict = Depends(get_c
 
     # Update user_branches table if branch_ids list was supplied
     if branch_ids is not None:
-        # First delete all current assignments
-        supabase.table("user_branches").delete().eq("user_id", id).execute()
-        # Then insert the new ones
-        if branch_ids:
-            ub_inserts = [
-                {
-                    "user_id": id,
-                    "branch_id": b_id,
-                    "assigned_by": current_user["id"]
-                }
-                for b_id in branch_ids
-            ]
-            supabase.table("user_branches").insert(ub_inserts).execute()
+        try:
+            # First delete all current assignments
+            supabase.table("user_branches").delete().eq("user_id", id).execute()
+            # Then insert the new ones
+            if branch_ids:
+                ub_inserts = [
+                    {
+                        "user_id": id,
+                        "branch_id": b_id,
+                        "assigned_by": current_user["id"]
+                    }
+                    for b_id in branch_ids
+                ]
+                supabase.table("user_branches").insert(ub_inserts).execute()
+        except Exception as ub_err:
+            logger.warning(f"Failed to update user_branches mapping (table may not exist yet): {ub_err}")
             
         # Re-fetch the updated assigned branches to return in the response
-        ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
         assigned = []
-        for ub in (ub_res.data or []):
-            b_id = ub["branch_id"]
-            b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-            assigned.append({
-                "branch_id": b_id,
-                "branch_name": b_name
-            })
+        try:
+            ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
+            for ub in (ub_res.data or []):
+                b_id = ub["branch_id"]
+                b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
+                assigned.append({
+                    "branch_id": b_id,
+                    "branch_name": b_name
+                })
+        except Exception as ub_err:
+            logger.warning(f"Failed to fetch updated user_branches mapping (table may not exist yet): {ub_err}")
         updated_user["assigned_branches"] = assigned
     else:
         # Fetch current assigned branches
-        ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
         assigned = []
-        for ub in (ub_res.data or []):
-            b_id = ub["branch_id"]
-            b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-            assigned.append({
-                "branch_id": b_id,
-                "branch_name": b_name
-            })
+        try:
+            ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
+            for ub in (ub_res.data or []):
+                b_id = ub["branch_id"]
+                b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
+                assigned.append({
+                    "branch_id": b_id,
+                    "branch_name": b_name
+                })
+        except Exception as ub_err:
+            logger.warning(f"Failed to fetch current user_branches mapping (table may not exist yet): {ub_err}")
         updated_user["assigned_branches"] = assigned
 
     return updated_user
