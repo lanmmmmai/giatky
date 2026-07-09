@@ -32,7 +32,7 @@ const VerifyEmail: React.FC = () => {
     <div className="text-center space-y-6">
       <div className="text-center">
         <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white text-xl shadow-md mx-auto mb-4">
-          L
+          GK
         </div>
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">Xác Thực Tài Khoản</h2>
       </div>

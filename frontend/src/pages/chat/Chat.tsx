@@ -63,7 +63,7 @@ const Chat: React.FC = () => {
     setLoading(true);
     try {
       const data = await getChatRooms();
-      setRooms(data);
+      setRooms(Array.isArray(data) ? data : []);
     } catch (_) {
       addToast('Không thể tải phòng chat.', 'error');
     } finally {
@@ -74,7 +74,8 @@ const Chat: React.FC = () => {
   const loadUsers = async () => {
     try {
       const data = await getUsers();
-      setUsersList(data.filter(u => u.id !== user?.id && u.status === 'active'));
+      const safeUsers = Array.isArray(data) ? data : [];
+      setUsersList(safeUsers.filter(u => u.id !== user?.id && u.status === 'active'));
     } catch (_) {}
   };
 
@@ -82,7 +83,7 @@ const Chat: React.FC = () => {
     setMessagesLoading(true);
     try {
       const data = await getChatMessages(roomId);
-      setMessages(data);
+      setMessages(Array.isArray(data) ? data : []);
     } catch (_) {
       addToast('Không thể tải lịch sử tin nhắn.', 'error');
     } finally {

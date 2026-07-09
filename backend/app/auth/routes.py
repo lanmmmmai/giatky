@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 import uuid
 import logging
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 class LoginRequest(BaseModel):
     username_or_email: str
     password: str
+    expected_role: Literal["admin", "manager", "staff"]
 
 class GoogleLoginRequest(BaseModel):
     id_token: str
@@ -43,10 +44,19 @@ class PublicStaffRegisterRequest(BaseModel):
 
 @router.post("/login")
 def login(payload: LoginRequest):
-    # Query user by username or email
+    # Log parameters temporarily and safely
     val = payload.username_or_email.strip()
+    logger.info(f"[LOGIN DEBUG] username_or_email: {val}")
+    logger.info(f"[LOGIN DEBUG] expected_role: {payload.expected_role}")
+    print(f"[LOGIN DEBUG] username_or_email: {val}")
+    print(f"[LOGIN DEBUG] expected_role: {payload.expected_role}")
+    
+    # Query user by username or email
     response = supabase.table("users").select("*").or_(f"username.eq.{val},email.eq.{val}").execute()
     users = response.data
+    
+    logger.info(f"[LOGIN DEBUG] User found: {len(users) > 0}")
+    print(f"[LOGIN DEBUG] User found: {len(users) > 0}")
     
     if not users:
         raise HTTPException(
@@ -55,14 +65,29 @@ def login(payload: LoginRequest):
         )
         
     user = users[0]
+    logger.info(f"[LOGIN DEBUG] user.role: {user.get('role')}")
+    logger.info(f"[LOGIN DEBUG] user.status: {user.get('status')}")
+    print(f"[LOGIN DEBUG] user.role: {user.get('role')}")
+    print(f"[LOGIN DEBUG] user.status: {user.get('status')}")
     
+    p_hash = user.get("password_hash", "")
+    logger.info(f"[LOGIN DEBUG] password_hash startswith '$2b$': {p_hash.startswith('$2b$') if p_hash else False}")
+    print(f"[LOGIN DEBUG] password_hash startswith '$2b$': {p_hash.startswith('$2b$') if p_hash else False}")
+
     # Check password
-    if not verify_password(payload.password, user["password_hash"]):
+    if not verify_password(payload.password, p_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Tên đăng nhập hoặc mật khẩu không chính xác."
         )
         
+    # Check expected role
+    if user["role"] != payload.expected_role:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản không thuộc luồng đăng nhập này"
+        )
+
     # Check status
     if user["status"] == "pending_verification":
         raise HTTPException(

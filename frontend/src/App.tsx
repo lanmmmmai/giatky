@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
 import Login from './pages/auth/Login';
+import RoleLoginPage from './pages/auth/RoleLoginPage';
 import Register from './pages/auth/Register';
 import VerifyEmail from './pages/auth/VerifyEmail';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -26,6 +27,7 @@ import Services from './pages/services/Services';
 import Attendance from './pages/attendance/Attendance';
 import Payroll from './pages/payroll/Payroll';
 import Reports from './pages/reports/Reports';
+import RevenueReports from './pages/reports/RevenueReports';
 import Cms from './pages/cms/Cms';
 import Chat from './pages/chat/Chat';
 import Settings from './pages/settings/Settings';
@@ -48,7 +50,10 @@ const App: React.FC = () => {
         <Routes>
           {/* Public Auth routes */}
           <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/admin/login" element={<RoleLoginPage role="admin" />} />
+            <Route path="/manager/login" element={<RoleLoginPage role="manager" />} />
+            <Route path="/staff/login" element={<RoleLoginPage role="staff" />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -59,7 +64,7 @@ const App: React.FC = () => {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin']} loginPath="/admin/login">
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -69,8 +74,9 @@ const App: React.FC = () => {
             <Route path="orders" element={<Orders />} />
             <Route path="orders/create" element={<CreateOrder />} />
             <Route path="orders/:id" element={<OrderDetail />} />
-            <Route path="reports" element={<Reports />} />
+            <Route path="reports" element={<RevenueReports />} />
             <Route path="users" element={<Users />} />
+            <Route path="branches" element={<Branches />} />
             <Route path="payroll" element={<Payroll />} />
             <Route path="services" element={<Services />} />
             <Route path="cms" element={<Cms />} />
@@ -85,7 +91,7 @@ const App: React.FC = () => {
           <Route
             path="/manager"
             element={
-              <ProtectedRoute roles={['manager']}>
+              <ProtectedRoute roles={['manager']} loginPath="/manager/login">
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -96,6 +102,7 @@ const App: React.FC = () => {
             <Route path="orders" element={<Orders />} />
             <Route path="orders/create" element={<CreateOrder />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="reports" element={<RevenueReports />} />
             <Route path="staff" element={<Users />} />
             <Route path="services" element={<Services />} />
             <Route path="cms" element={<Cms />} />
@@ -110,7 +117,7 @@ const App: React.FC = () => {
           <Route
             path="/staff"
             element={
-              <ProtectedRoute roles={['staff']}>
+              <ProtectedRoute roles={['staff']} loginPath="/staff/login">
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -122,7 +129,7 @@ const App: React.FC = () => {
             <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="payroll" element={<Payroll />} />
-            <Route path="reports" element={<Reports />} />
+            <Route path="reports" element={<RevenueReports />} />
             <Route path="chat" element={<Chat />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="settings" element={<Settings />} />

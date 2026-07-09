@@ -41,8 +41,10 @@ const Reports: React.FC = () => {
           getBranches(),
           getUsers()
         ]);
-        setBranches(branchesData);
-        setStaffUsers(allUsers.filter(u => u.role === 'staff'));
+        const safeBranches = Array.isArray(branchesData) ? branchesData : [];
+        const safeUsers = Array.isArray(allUsers) ? allUsers : [];
+        setBranches(safeBranches);
+        setStaffUsers(safeUsers.filter(u => u.role === 'staff'));
       }
     } catch (_) {}
   };

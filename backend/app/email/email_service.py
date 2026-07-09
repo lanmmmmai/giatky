@@ -26,14 +26,20 @@ def log_email_to_db(to_email: str, subject: str, body_html: str, status: str, er
 
 def send_raw_email(to_email: str, subject: str, html_content: str, sent_by: Optional[str] = None) -> bool:
     """Send an email using SMTP. If SMTP configuration is missing, print to console."""
-    # Check if SMTP configuration is present
-    has_smtp = all([
-        settings.SMTP_HOST,
-        settings.SMTP_PORT,
-        settings.SMTP_USERNAME,
-        settings.SMTP_PASSWORD,
-        settings.SMTP_FROM_EMAIL
-    ])
+    smtp_host = settings.SMTP_HOST
+    smtp_port = int(settings.SMTP_PORT or 587)
+    smtp_user = settings.SMTP_USER or settings.SMTP_USERNAME
+    smtp_password = settings.SMTP_PASSWORD
+    from_email = settings.SMTP_FROM_EMAIL or smtp_user
+
+    # Log secure parameters without showing password
+    logger.info(f"Sending email to: {to_email}")
+    logger.info(f"SMTP host: {smtp_host}")
+    logger.info(f"SMTP port: {smtp_port}")
+    logger.info(f"SMTP user configured: {'yes' if smtp_user else 'no'}")
+    logger.info(f"SMTP password configured: {'yes' if smtp_password else 'no'}")
+
+    has_smtp = all([smtp_host, smtp_port, smtp_user, smtp_password])
     
     if not has_smtp:
         # Fallback to printing in console for local development
@@ -52,22 +58,24 @@ def send_raw_email(to_email: str, subject: str, html_content: str, sent_by: Opti
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
+        msg["From"] = f"{settings.SMTP_FROM_NAME} <{from_email}>"
         msg["To"] = to_email
 
         part = MIMEText(html_content, "html", "utf-8")
         msg.attach(part)
 
         # Connect and send
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.ehlo()
             server.starttls()
-            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_FROM_EMAIL, to_email, msg.as_string())
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(from_email, to_email, msg.as_string())
             
         log_email_to_db(to_email, subject, html_content, "sent", None, sent_by)
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+        logger.error(f"send_email failed: {repr(e)}", exc_info=True)
         log_email_to_db(to_email, subject, html_content, "failed", str(e), sent_by)
         return False
 

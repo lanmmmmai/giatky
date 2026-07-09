@@ -13,6 +13,7 @@ export interface User {
   phone?: string | null;
   hourly_rate?: number;
   manager_id?: string | null;
+  assigned_branches?: { branch_id: string; branch_name: string }[];
 }
 
 interface AuthState {
@@ -20,7 +21,7 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
-  login: (usernameOrEmail: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (usernameOrEmail: string, password: string, expectedRole: 'admin' | 'manager' | 'staff') => Promise<{ success: boolean; message?: string }>;
   loginWithGoogle: (idToken: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -47,12 +48,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
     loading: false,
     error: null,
 
-    login: async (usernameOrEmail, password) => {
+    login: async (usernameOrEmail, password, expectedRole) => {
       set({ loading: true, error: null });
       try {
         const response = await apiClient.post('/auth/login', {
           username_or_email: usernameOrEmail,
           password: password,
+          expected_role: expectedRole,
         });
         
         const { token, user } = response.data;

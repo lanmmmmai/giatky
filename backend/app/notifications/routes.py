@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from app.common.dependencies import get_current_user, require_role
@@ -35,7 +35,7 @@ def get_my_notifications(current_user: dict = Depends(get_current_user)):
     
     # We can fetch notifications and filter them locally or build a query
     # To keep it simple, query notifications from last 30 days and filter locally
-    thirty_days_ago = (datetime.utcnow() - type(datetime.utcnow().now() - datetime.utcnow().now())(days=30)).isoformat()
+    thirty_days_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
     response = supabase.table("notifications").select("*").gte("created_at", thirty_days_ago).order("created_at", desc=True).execute()
     all_notifs = response.data or []
     

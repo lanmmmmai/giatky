@@ -6,13 +6,14 @@ import { DASHBOARD_PATH, Role } from '../config/roleNav';
 interface ProtectedRouteProps {
   children: JSX.Element;
   roles?: Role[];
+  loginPath: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles, loginPath }) => {
   const { user, token } = useAuthStore();
 
   if (!token || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={loginPath} replace />;
   }
 
   if (roles && !roles.includes(user.role)) {

@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import { DASHBOARD_PATH } from '../../config/roleNav';
-import { Lock, User as UserIcon, LogIn, Chrome } from 'lucide-react';
+import { Lock, User as UserIcon, LogIn, AlertTriangle, LogOut } from 'lucide-react';
 
-const Login: React.FC = () => {
+interface RoleLoginPageProps {
+  role: 'admin' | 'manager' | 'staff';
+}
+
+const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuthStore();
+  const { login, logout, user, token } = useAuthStore();
   const { addToast } = useToastStore();
-  
+
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If user is already authenticated
+  useEffect(() => {
+    if (token && user) {
+      if (user.role === role) {
+        navigate(DASHBOARD_PATH[role], { replace: true });
+      }
+    }
+  }, [token, user, role, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,34 +35,76 @@ const Login: React.FC = () => {
     }
 
     setLoading(true);
-    const result = await login(usernameOrEmail, password, 'admin');
+    const result = await login(usernameOrEmail, password, role);
     setLoading(false);
 
     if (result.success) {
       addToast('Đăng nhập thành công!', 'success');
-      const role = useAuthStore.getState().user?.role;
-      navigate(role ? DASHBOARD_PATH[role] : '/');
+      navigate(DASHBOARD_PATH[role], { replace: true });
     } else {
       addToast(result.message || 'Đăng nhập thất bại.', 'error');
     }
   };
 
-  const handleMockGoogleLogin = async () => {
-    const email = prompt("Vui lòng nhập Email Google để kiểm thử:");
-    if (!email) return;
-    
-    setLoading(true);
-    const result = await loginWithGoogle(email);
-    setLoading(false);
-    
-    if (result.success) {
-      addToast('Đăng nhập bằng Google thành công!', 'success');
-      const role = useAuthStore.getState().user?.role;
-      navigate(role ? DASHBOARD_PATH[role] : '/');
-    } else {
-      addToast(result.message || 'Đăng nhập Google thất bại.', 'error');
+  const getRoleDetails = () => {
+    switch (role) {
+      case 'admin':
+        return {
+          title: 'Đăng nhập Admin',
+          desc: 'Khu vực quản trị hệ thống Giặt Ký',
+          placeholder: 'admin / admin@giatky.local'
+        };
+      case 'manager':
+        return {
+          title: 'Đăng nhập Manager',
+          desc: 'Khu vực quản lý cơ sở Giặt Ký',
+          placeholder: 'manager / manager@giatky.local'
+        };
+      case 'staff':
+        return {
+          title: 'Đăng nhập Staff',
+          desc: 'Khu vực nhân viên Giặt Ký',
+          placeholder: 'staff / staff@giatky.local'
+        };
     }
   };
+
+  const details = getRoleDetails();
+
+  if (token && user && user.role !== role) {
+    return (
+      <div className="text-center space-y-6 max-w-sm mx-auto my-auto p-6">
+        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm animate-pulse">
+          <AlertTriangle size={28} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-base font-bold text-slate-800">Xung đột quyền đăng nhập</h3>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Bạn hiện đang đăng nhập với quyền <span className="font-bold text-blue-600 capitalize">{user.role}</span>. 
+            Trang này dành riêng cho việc đăng nhập tài khoản <span className="font-bold text-blue-600 capitalize">{role}</span>.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2.5 pt-2">
+          <button
+            onClick={() => navigate(DASHBOARD_PATH[user.role], { replace: true })}
+            className="w-full h-10 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all btn-press"
+          >
+            Vào Dashboard {user.role.toUpperCase()}
+          </button>
+          <button
+            onClick={() => {
+              logout();
+              addToast('Đã đăng xuất tài khoản cũ.', 'info');
+            }}
+            className="w-full h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/10 btn-press"
+          >
+            <LogOut size={14} />
+            Đăng xuất để đăng nhập {role.toUpperCase()}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -60,7 +115,6 @@ const Login: React.FC = () => {
           background: 'radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.2), transparent 45%), radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.15), transparent 50%), #0b0f19'
         }}
       >
-        {/* Soft abstract decorative lines */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -72,39 +126,24 @@ const Login: React.FC = () => {
           </svg>
         </div>
 
-        {/* Top: Branding Tag */}
         <div className="relative z-10">
           <span className="px-3.5 py-1.5 bg-white/5 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-blue-200 border border-white/5 w-fit block">
-            Laundry Management System
+            Giặt Ký Laundry System
           </span>
         </div>
 
-        {/* Center/Middle: Intro Text and Badges */}
         <div className="relative z-10 space-y-5">
           <h2 className="text-2xl font-bold tracking-tight leading-tight text-slate-100">
-            Quản lý tiệm giặt<br />thông minh & tối ưu
+            Hệ thống đăng nhập<br />riêng biệt từng vai trò
           </h2>
           <p className="text-xs text-slate-400 font-medium max-w-xs leading-relaxed">
-            Theo dõi đơn hàng, quản lý nhân viên, chấm công ca trực và phân tích báo cáo doanh thu trong một nền tảng hợp nhất.
+            Đảm bảo tính bảo mật và định tuyến chính xác đến khu vực làm việc của Admin, Quản lý cơ sở và Nhân viên ca trực.
           </p>
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Đơn hàng realtime
-            </span>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Chấm công chính xác
-            </span>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Báo cáo doanh thu
-            </span>
-          </div>
         </div>
 
-        {/* Bottom: Slogan Card */}
         <div className="relative z-10 bg-white/5 backdrop-blur-lg border border-white/5 rounded-2xl p-4 flex items-center gap-3 max-w-sm">
           <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
-            L
+            GK
           </div>
           <div>
             <h4 className="font-bold text-xs tracking-wide text-slate-200">Giặt Ký</h4>
@@ -116,10 +155,10 @@ const Login: React.FC = () => {
       {/* Right form panel */}
       <div className="w-full lg:w-[47.5%] bg-white p-8 sm:p-12 flex flex-col justify-between">
         
-        {/* Header Branding (Visible on Mobile only) */}
+        {/* Header Branding (Mobile only) */}
         <div className="lg:hidden flex items-center gap-2 pb-6 border-b border-slate-100 mb-6">
           <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-md">
-            L
+            GK
           </div>
           <div>
             <h4 className="font-bold text-xs text-slate-800">Giặt Ký</h4>
@@ -128,15 +167,15 @@ const Login: React.FC = () => {
         </div>
 
         <div className="my-auto space-y-6">
-          {/* Logo & Headline */}
+          {/* Headline */}
           <div className="space-y-3">
-            <div className="hidden lg:flex w-12 h-12 rounded-2xl bg-blue-600 text-white items-center justify-center font-bold text-base shadow-md shadow-blue-500/10">
-              L
+            <div className="hidden lg:flex w-12 h-12 rounded-2xl bg-blue-600 text-white items-center justify-center font-bold text-base shadow-md">
+              GK
             </div>
             <div>
-              <h3 className="hidden lg:block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Giặt Ký</h3>
-              <h2 className="text-xl font-bold text-slate-850 tracking-tight mt-1">Đăng nhập hệ thống</h2>
-              <p className="text-xs font-semibold text-slate-400 mt-1">Hệ thống quản lý chuyên nghiệp, tinh gọn</p>
+              <h3 className="hidden lg:block text-[10px] font-bold text-slate-450 uppercase tracking-widest">Giặt Ký</h3>
+              <h2 className="text-xl font-bold text-slate-850 tracking-tight mt-1">{details.title}</h2>
+              <p className="text-xs font-semibold text-slate-400 mt-1">{details.desc}</p>
             </div>
           </div>
 
@@ -150,10 +189,10 @@ const Login: React.FC = () => {
                 <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} strokeWidth={1.5} />
                 <input
                   type="text"
-                  placeholder="admin / admin@lanhsach.com"
+                  placeholder={details.placeholder}
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-105 rounded-xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -165,7 +204,7 @@ const Login: React.FC = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Mật khẩu
                 </label>
-                <Link to="/forgot-password" className="text-[10px] text-blue-600 hover:underline font-semibold">
+                <Link to="/forgot-password" className="text-[10px] text-blue-650 hover:underline font-semibold">
                   Quên mật khẩu?
                 </Link>
               </div>
@@ -176,7 +215,7 @@ const Login: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-105 rounded-xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -185,30 +224,13 @@ const Login: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-4 text-center"
               disabled={loading}
             >
               <LogIn size={13} strokeWidth={1.5} />
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="relative flex items-center justify-center py-1">
-            <div className="border-t border-slate-100 w-full"></div>
-            <span className="absolute bg-white px-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hoặc</span>
-          </div>
-
-          {/* Google Button */}
-          <button
-            onClick={handleMockGoogleLogin}
-            type="button"
-            className="w-full h-11 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all btn-press"
-            disabled={loading}
-          >
-            <Chrome size={14} className="text-red-500" strokeWidth={1.5} />
-            Tiếp tục với Google
-          </button>
         </div>
 
         {/* Footnote */}
@@ -226,4 +248,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default RoleLoginPage;

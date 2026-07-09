@@ -139,9 +139,9 @@ const Branches: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 pb-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800">Cơ sở chi nhánh</h2>
-          <p className="text-xs text-slate-500">Quản lý mạng lưới địa điểm giặt sấy của hệ thống Lành Sạch Laundry</p>
+          <p className="text-xs text-slate-500">Quản lý mạng lưới địa điểm giặt sấy của hệ thống Giặt Ký</p>
         </div>
-        {user?.role === 'admin' && (
+        {(user?.role === 'admin' || user?.role === 'manager') && (
           <button
             onClick={() => setCreateModalOpen(true)}
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
@@ -235,7 +235,7 @@ const Branches: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-600">Tên chi nhánh *</label>
                 <input
                   type="text"
-                  placeholder="Lành Sạch Quận 1"
+                  placeholder="Giặt Ký Quận 1"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
@@ -265,19 +265,21 @@ const Branches: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Gán quản lý (Manager)</label>
-                <select
-                  value={managerId}
-                  onChange={(e) => setManagerId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
-                >
-                  <option value="">Không gán / Chọn sau</option>
-                  {managers.map(m => (
-                    <option key={m.id} value={m.id}>{m.full_name}</option>
-                  ))}
-                </select>
-              </div>
+              {user?.role === 'admin' && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600">Gán quản lý (Manager)</label>
+                  <select
+                    value={managerId}
+                    onChange={(e) => setManagerId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                  >
+                    <option value="">Không gán / Chọn sau</option>
+                    {managers.map(m => (
+                      <option key={m.id} value={m.id}>{m.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -307,7 +309,7 @@ const Branches: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-600">Tên chi nhánh *</label>
                 <input
                   type="text"
-                  placeholder="Lành Sạch Quận 1"
+                  placeholder="Giặt Ký Quận 1"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
@@ -338,21 +340,23 @@ const Branches: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Quản lý (Manager)</label>
-                  <select
-                    value={editManagerId}
-                    onChange={(e) => setEditManagerId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
-                  >
-                    <option value="">Không gán</option>
-                    {managers.map(m => (
-                      <option key={m.id} value={m.id}>{m.full_name}</option>
-                    ))}
-                  </select>
-                </div>
+                {user?.role === 'admin' ? (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600">Quản lý (Manager)</label>
+                    <select
+                      value={editManagerId}
+                      onChange={(e) => setEditManagerId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                    >
+                      <option value="">Không gán</option>
+                      {managers.map(m => (
+                        <option key={m.id} value={m.id}>{m.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
 
-                <div className="space-y-1">
+                <div className={`space-y-1 ${user?.role !== 'admin' ? 'col-span-2' : ''}`}>
                   <label className="text-xs font-semibold text-slate-600">Trạng thái vận hành</label>
                   <select
                     value={editStatus}

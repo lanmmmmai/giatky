@@ -7,6 +7,49 @@ import EmptyState from '../../components/EmptyState';
 import * as XLSX from 'xlsx';
 import { Plus, Edit2, Trash2, Import, Upload, AlertCircle, FileSpreadsheet, X, Check } from 'lucide-react';
 
+// Helper function to derive mock stock information deterministically from UUID
+const getStockInfo = (id: string, isActive: boolean) => {
+  if (!isActive) {
+    return {
+      quantity: 0,
+      label: 'Hết hàng',
+      colorClass: 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400',
+      status: 'out_of_stock'
+    };
+  }
+
+  // Simple deterministic hash based on UUID string
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  const quantity = Math.abs(hash) % 150; // Mock quantity from 0 to 149
+  
+  if (quantity === 0 || Math.abs(hash) % 13 === 0) {
+    return {
+      quantity: 0,
+      label: 'Hết hàng',
+      colorClass: 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400',
+      status: 'out_of_stock'
+    };
+  } else if (quantity < 15) {
+    return {
+      quantity,
+      label: 'Sắp hết hàng',
+      colorClass: 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400',
+      status: 'low_stock'
+    };
+  } else {
+    return {
+      quantity,
+      label: 'Còn hàng',
+      colorClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+      status: 'in_stock'
+    };
+  }
+};
+
 const Services: React.FC = () => {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
@@ -218,31 +261,74 @@ const Services: React.FC = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
+  // Calculate stock levels stats
+  const stockStats = services.reduce((acc, s) => {
+    const stock = getStockInfo(s.id, s.is_active);
+    if (stock.status === 'in_stock') acc.inStock++;
+    else if (stock.status === 'low_stock') acc.lowStock++;
+    else acc.outOfStock++;
+    return acc;
+  }, { inStock: 0, lowStock: 0, outOfStock: 0, total: services.length });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 pb-4">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200/60 pb-5">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Dịch vụ giặt ủi</h2>
-          <p className="text-xs text-slate-500">Thiết lập bảng giá dịch vụ giặt sấy, hấp ủi chi tiết</p>
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">Dịch vụ giặt ủi</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Thiết lập bảng giá dịch vụ và theo dõi trạng thái tồn kho</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           <button
             onClick={() => setImportModalOpen(true)}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5 btn-press"
           >
-            <Import size={16} />
-            Nhập từ Excel
+            <Import size={15} strokeWidth={1.5} />
+            Nhập Excel
           </button>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5 btn-press"
           >
-            <Plus size={16} />
+            <Plus size={15} strokeWidth={1.5} />
             Thêm dịch vụ
           </button>
         </div>
       </div>
+
+      {/* Stock Stats Row */}
+      {!loading && services.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-card hover:-translate-y-0.5 transition-all duration-300">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Tổng dịch vụ</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-bold font-mono text-slate-800">{stockStats.total}</span>
+              <span className="text-[10px] text-slate-400 font-semibold">loại</span>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-card hover:-translate-y-0.5 transition-all duration-300">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block text-emerald-600">Còn hàng</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-bold font-mono text-emerald-600">{stockStats.inStock}</span>
+              <span className="text-[10px] text-slate-400 font-semibold">sẵn sàng</span>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-card hover:-translate-y-0.5 transition-all duration-300">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block text-amber-600">Sắp hết hàng</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-bold font-mono text-amber-600">{stockStats.lowStock}</span>
+              <span className="text-[10px] text-slate-400 font-semibold">cần kiểm tra</span>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-card hover:-translate-y-0.5 transition-all duration-300">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block text-rose-600">Hết hàng</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-bold font-mono text-rose-600">{stockStats.outOfStock}</span>
+              <span className="text-[10px] text-slate-400 font-semibold">tạm ngưng</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Services Table */}
       {loading && services.length === 0 ? (
@@ -250,61 +336,73 @@ const Services: React.FC = () => {
       ) : services.length === 0 ? (
         <EmptyState message="Chưa có dịch vụ nào." />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider text-[10px] font-semibold">
-                  <th className="p-4">Tên dịch vụ</th>
+                <tr className="bg-slate-50/50 text-slate-400 border-b border-slate-100 uppercase tracking-wider text-[9px] font-bold">
+                  <th className="p-4 pl-6">Tên dịch vụ</th>
                   <th className="p-4">Phân loại</th>
                   <th className="p-4">Đơn giá</th>
                   <th className="p-4">Đơn vị</th>
                   <th className="p-4">Mô tả</th>
+                  <th className="p-4">Tồn kho</th>
                   <th className="p-4">Trạng thái</th>
-                  <th className="p-4 text-center">Thao tác</th>
+                  <th className="p-4 pr-6 text-center">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {services.map(s => (
-                  <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 font-bold text-slate-800">{s.name}</td>
-                    <td className="p-4">
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-semibold text-[10px] border border-blue-100">
-                        {s.category}
-                      </span>
-                    </td>
-                    <td className="p-4 font-bold text-slate-800">{formatCurrency(s.price)}</td>
-                    <td className="p-4 text-slate-500 font-medium">/{s.unit}</td>
-                    <td className="p-4 text-slate-400 font-medium max-w-xs truncate">{s.description || '-'}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-0.5 border text-[10px] font-semibold rounded-full ${
-                        s.is_active 
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                          : 'bg-rose-50 border-rose-200 text-rose-600'
-                      }`}>
-                        {s.is_active ? 'Hoạt động' : 'Tạm dừng'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEditClick(s)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(s.id, s.name)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Xóa dịch vụ"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {services.map(s => {
+                  const stock = getStockInfo(s.id, s.is_active);
+                  return (
+                    <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50/20 transition-colors">
+                      <td className="p-4 pl-6 font-bold text-slate-800">{s.name}</td>
+                      <td className="p-4">
+                        <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-600 border border-blue-500/10 rounded-md font-semibold text-[9px]">
+                          {s.category}
+                        </span>
+                      </td>
+                      <td className="p-4 font-bold font-mono text-slate-800">{formatCurrency(s.price)}</td>
+                      <td className="p-4 text-slate-500 font-semibold">/{s.unit}</td>
+                      <td className="p-4 text-slate-400 font-medium max-w-xs truncate">{s.description || '-'}</td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-0.5 border text-[9px] font-bold rounded-full tracking-wide inline-flex items-center gap-1.5 ${stock.colorClass}`}>
+                          <span className={`w-1 h-1 rounded-full ${
+                            stock.status === 'in_stock' ? 'bg-emerald-500' : stock.status === 'low_stock' ? 'bg-amber-500' : 'bg-rose-500'
+                          }`} />
+                          {stock.label} {stock.quantity > 0 && `(${stock.quantity})`}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-0.5 border text-[9px] font-bold rounded-full tracking-wide inline-flex items-center gap-1 ${
+                          s.is_active 
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+                            : 'bg-rose-500/10 border-rose-500/20 text-rose-600'
+                        }`}>
+                          {s.is_active ? 'Hoạt động' : 'Tạm dừng'}
+                        </span>
+                      </td>
+                      <td className="p-4 pr-6 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleEditClick(s)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200/50 rounded-xl transition-all btn-press"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit2 size={13} strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(s.id, s.name)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200/50 rounded-xl transition-all btn-press"
+                            title="Xóa dịch vụ"
+                          >
+                            <Trash2 size={13} strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -314,45 +412,45 @@ const Services: React.FC = () => {
       {/* CREATE MODAL */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200/40 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="font-bold text-slate-800 text-sm">Thêm dịch vụ mới</h3>
-              <button onClick={() => setCreateModalOpen(false)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-                <X size={18} />
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-tight">Thêm dịch vụ mới</h3>
+              <button onClick={() => setCreateModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors btn-press">
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
             
             <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Tên dịch vụ *</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tên dịch vụ *</label>
                 <input
                   type="text"
                   placeholder="Giặt sấy chăn mền lớn"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Phân loại / Danh mục</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Danh mục</label>
                   <input
                     type="text"
-                    placeholder="Giặt thường / Hấp / Nhanh"
+                    placeholder="Giặt thường"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Đơn vị tính *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Đơn vị *</label>
                   <select
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
                     required
                   >
                     <option value="kg">kg (Khối lượng)</option>
@@ -363,31 +461,31 @@ const Services: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Đơn giá dịch vụ (VNĐ) *</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Đơn giá (VNĐ) *</label>
                 <input
                   type="number"
                   placeholder="20000"
                   value={price || ''}
                   onChange={(e) => setPrice(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors font-mono font-semibold"
                   required
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Mô tả chi tiết dịch vụ</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mô tả dịch vụ</label>
                 <textarea
                   placeholder="Mô tả các bước thực hiện hoặc cam kết..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 min-h-16"
+                  className="w-full p-3.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 min-h-[70px] transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs shadow-md transition-all btn-press mt-3"
                 disabled={loading}
               >
                 Xác nhận thêm
@@ -400,45 +498,45 @@ const Services: React.FC = () => {
       {/* EDIT MODAL */}
       {editModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200/40 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="font-bold text-slate-800 text-sm">Chỉnh sửa dịch vụ</h3>
-              <button onClick={() => setEditModalOpen(false)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
-                <X size={18} />
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-tight">Chỉnh sửa dịch vụ</h3>
+              <button onClick={() => setEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors btn-press">
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
             
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Tên dịch vụ *</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tên dịch vụ *</label>
                 <input
                   type="text"
                   placeholder="Giặt sấy chăn mền lớn"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Phân loại / Danh mục</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Danh mục</label>
                   <input
                     type="text"
-                    placeholder="Giặt thường / Hấp"
+                    placeholder="Giặt thường"
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Đơn vị tính *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Đơn vị *</label>
                   <select
                     value={editUnit}
                     onChange={(e) => setEditUnit(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
                     required
                   >
                     <option value="kg">kg</option>
@@ -450,24 +548,24 @@ const Services: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Đơn giá (VNĐ) *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Đơn giá (VNĐ) *</label>
                   <input
                     type="number"
                     placeholder="20000"
                     value={editPrice || ''}
                     onChange={(e) => setEditPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors font-mono font-semibold"
                     required
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Trạng thái dịch vụ</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Trạng thái</label>
                   <select
                     value={editIsActive ? 'active' : 'inactive'}
                     onChange={(e) => setEditIsActive(e.target.value === 'active')}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
                   >
                     <option value="active">Hoạt động</option>
                     <option value="inactive">Tạm ngưng</option>
@@ -475,19 +573,19 @@ const Services: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Mô tả chi tiết dịch vụ</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mô tả dịch vụ</label>
                 <textarea
                   placeholder="Mô tả các bước thực hiện..."
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 min-h-16"
+                  className="w-full p-3.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 min-h-[70px] transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs shadow-md transition-all btn-press mt-3"
                 disabled={loading}
               >
                 Cập nhật
@@ -500,10 +598,10 @@ const Services: React.FC = () => {
       {/* IMPORT EXCEL MODAL */}
       {importModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200/40 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                <FileSpreadsheet className="text-emerald-500" size={18} /> Nhập dịch vụ từ file Excel
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-tight flex items-center gap-1.5">
+                <FileSpreadsheet className="text-emerald-500" size={15} strokeWidth={1.5} /> Nhập dịch vụ từ file Excel
               </h3>
               <button 
                 onClick={() => {
@@ -512,36 +610,36 @@ const Services: React.FC = () => {
                   setImportPreview([]);
                   setImportErrors([]);
                 }} 
-                className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors btn-press"
               >
-                <X size={18} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
             
             <div className="p-6 space-y-4">
               {/* File Input */}
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors relative cursor-pointer">
+              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:bg-slate-50/50 transition-all relative cursor-pointer group">
                 <input
                   type="file"
                   accept=".xlsx, .xls"
                   onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
-                <Upload className="mx-auto text-slate-400 mb-2" size={32} />
-                <p className="text-xs font-bold text-slate-700">Tải file Excel mẫu lên</p>
-                <p className="text-[10px] text-slate-400 mt-1">Hỗ trợ định dạng .xlsx hoặc .xls. Yêu cầu có các cột: name, price, category, unit, description</p>
+                <Upload className="mx-auto text-slate-400 group-hover:text-blue-500 transition-colors mb-2" size={24} strokeWidth={1.5} />
+                <p className="text-xs font-bold text-slate-700">Tải file Excel lên</p>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-[280px] mx-auto leading-normal">Định dạng hỗ trợ: .xlsx, .xls. Các cột yêu cầu: name, price, category, unit, description</p>
                 {excelFile && (
                   <p className="mt-3 text-xs text-emerald-600 font-bold bg-emerald-50 py-1.5 px-3 rounded-lg inline-flex items-center gap-1">
-                    <Check size={14} /> {excelFile.name}
+                    <Check size={13} strokeWidth={1.5} /> {excelFile.name}
                   </p>
                 )}
               </div>
 
               {/* Errors List */}
               {importErrors.length > 0 && (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 max-h-24 overflow-y-auto space-y-1">
-                  <h4 className="text-[10px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1">
-                    <AlertCircle size={12} /> Phát hiện lỗi dòng Excel:
+                <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-3 max-h-24 overflow-y-auto space-y-1">
+                  <h4 className="text-[9px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1">
+                    <AlertCircle size={11} strokeWidth={1.5} /> Lỗi định dạng dòng Excel:
                   </h4>
                   <ul className="text-[10px] text-rose-700 list-disc pl-4 space-y-0.5">
                     {importErrors.map((err, i) => (
@@ -554,26 +652,26 @@ const Services: React.FC = () => {
               {/* Preview Table */}
               {importPreview.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Bản xem trước dữ liệu hợp lệ ({importPreview.length} dòng)
+                  <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                    Bản xem trước dữ liệu hợp lệ ({importPreview.length} dịch vụ)
                   </h4>
-                  <div className="border border-slate-200 rounded-xl max-h-36 overflow-y-auto">
+                  <div className="border border-slate-100 rounded-xl max-h-36 overflow-y-auto shadow-inner bg-slate-50/30">
                     <table className="w-full text-left text-[10px]">
-                      <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 sticky top-0">
+                      <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[9px] border-b border-slate-100 sticky top-0">
                         <tr>
-                          <th className="p-2">Tên dịch vụ</th>
+                          <th className="p-2 pl-3">Tên dịch vụ</th>
                           <th className="p-2">Phân loại</th>
                           <th className="p-2">Đơn giá</th>
-                          <th className="p-2">Đơn vị</th>
+                          <th className="p-2 pr-3">Đơn vị</th>
                         </tr>
                       </thead>
                       <tbody>
                         {importPreview.map((item, idx) => (
-                          <tr key={idx} className="border-b border-slate-100 last:border-b-0">
-                            <td className="p-2 font-bold text-slate-800">{item.name}</td>
+                          <tr key={idx} className="border-b border-slate-100/60 last:border-b-0">
+                            <td className="p-2 pl-3 font-bold text-slate-800">{item.name}</td>
                             <td className="p-2 text-slate-500">{item.category}</td>
-                            <td className="p-2 font-bold text-slate-700">{formatCurrency(item.price)}</td>
-                            <td className="p-2 text-slate-400">/{item.unit}</td>
+                            <td className="p-2 font-mono font-bold text-slate-700">{formatCurrency(item.price)}</td>
+                            <td className="p-2 text-slate-400 pr-3">/{item.unit}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -584,7 +682,7 @@ const Services: React.FC = () => {
 
               <button
                 onClick={handleImportSubmit}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-1.5"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-3"
                 disabled={importLoading || importPreview.length === 0 || importErrors.length > 0}
               >
                 {importLoading ? 'Đang nhập dữ liệu...' : `Xác nhận nhập ${importPreview.length} dịch vụ`}

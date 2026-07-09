@@ -16,6 +16,7 @@ from app.notifications.routes import router as notifications_router
 from app.email.routes import router as email_router
 from app.seo.routes import router as seo_router
 from app.chat.routes import router as chat_router
+from app.revenue_reports.routes import router as revenue_reports_router
 
 # Configure logging
 logging.basicConfig(
@@ -33,15 +34,13 @@ app = FastAPI(
 )
 
 # CORS configuration
-# Allow requests from local Vite server and production Vercel domains
-origins = [
+# Allow requests from local Vite server and production domains
+allowed_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    settings.FRONTEND_URL
 ]
-
-# Clean up empty values and set origins
-allowed_origins = [o for o in origins if o]
+if settings.FRONTEND_URL and settings.FRONTEND_URL not in allowed_origins:
+    allowed_origins.append(settings.FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,6 +63,7 @@ app.include_router(notifications_router)
 app.include_router(email_router)
 app.include_router(seo_router)
 app.include_router(chat_router)
+app.include_router(revenue_reports_router)
 
 # Custom exception handler for validation/uncaught errors
 @app.exception_handler(Exception)
@@ -71,7 +71,13 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Uncaught exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Đã xảy ra lỗi hệ thống. Vui lòng liên hệ Admin."}
+        content={"detail": f"Đã xảy ra lỗi hệ thống: {str(exc)}. Vui lòng liên hệ Admin."},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
     )
 
 @app.get("/")

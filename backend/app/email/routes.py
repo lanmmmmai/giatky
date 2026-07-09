@@ -77,3 +77,29 @@ def get_email_logs():
             del log_copy["users"]
         formatted.append(log_copy)
     return formatted
+
+from app.common.dependencies import get_current_user
+from app.email.email_service import send_raw_email
+
+class EmailTestRequest(BaseModel):
+    to_email: str
+
+@router.post("/test", dependencies=[Depends(require_role(["admin"]))])
+def test_email(payload: EmailTestRequest, current_user: dict = Depends(get_current_user)):
+    subject = "Kiểm tra gửi mail Giặt Ký"
+    body = "Nếu bạn nhận được email này, cấu hình SMTP của Giặt Ký đã hoạt động."
+    
+    success = send_raw_email(
+        to_email=payload.to_email,
+        subject=subject,
+        html_content=body,
+        sent_by=current_user["id"]
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail="Gửi email thử nghiệm thất bại. Vui lòng kiểm tra cấu hình SMTP trong file .env."
+        )
+        
+    return {"message": "Email thử nghiệm đã được gửi thành công!"}

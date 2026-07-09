@@ -27,15 +27,18 @@ const Users: React.FC = () => {
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [branchIds, setBranchIds] = useState<string[]>([]);
   const [hourlyRate, setHourlyRate] = useState<number>(0);
   const [selectedManagerId, setSelectedManagerId] = useState('');
 
   // Edit form state
   const [editingUserId, setEditingUserId] = useState('');
+  const [editUserRole, setEditUserRole] = useState<'manager' | 'staff'>('staff');
   const [editFullName, setEditFullName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editHourlyRate, setEditHourlyRate] = useState<number>(0);
   const [editBranchId, setEditBranchId] = useState('');
+  const [editBranchIds, setEditBranchIds] = useState<string[]>([]);
   const [editManagerId, setEditManagerId] = useState('');
 
   useEffect(() => {
@@ -46,7 +49,7 @@ const Users: React.FC = () => {
   const loadBranches = async () => {
     try {
       const data = await getBranches();
-      setBranches(data);
+      setBranches(Array.isArray(data) ? data : []);
     } catch (_) {}
   };
 
@@ -54,7 +57,7 @@ const Users: React.FC = () => {
     setLoading(true);
     try {
       const data = await getUsers();
-      setUsersList(data);
+      setUsersList(Array.isArray(data) ? data : []);
     } catch (_) {
       addToast('Không thể tải danh sách tài khoản.', 'error');
     } finally {
@@ -69,6 +72,7 @@ const Users: React.FC = () => {
     setPassword('');
     setPhone('');
     setBranchId('');
+    setBranchIds([]);
     setHourlyRate(0);
     setSelectedManagerId('');
   };
@@ -80,6 +84,11 @@ const Users: React.FC = () => {
       return;
     }
 
+    if (roleToCreate === 'staff' && branchIds.length === 0) {
+      addToast('Vui lòng chọn ít nhất một cơ sở làm việc.', 'warning');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -88,9 +97,17 @@ const Users: React.FC = () => {
         username,
         password: password || undefined,
         phone: phone || undefined,
-        branch_id: branchId || undefined,
-        hourly_rate: hourlyRate,
-        manager_id: selectedManagerId || undefined
+        ...(roleToCreate === 'staff' ? {
+          branch_id: branchIds[0] || undefined,
+          branch_ids: branchIds,
+          hourly_rate: hourlyRate,
+          manager_id: selectedManagerId || undefined
+        } : {
+          branch_id: undefined,
+          branch_ids: undefined,
+          hourly_rate: 0,
+          manager_id: undefined
+        })
       };
 
       let result;
@@ -100,7 +117,11 @@ const Users: React.FC = () => {
         result = await createStaff(payload);
       }
 
-      addToast(`Đã tạo tài khoản ${roleToCreate} thành công! Mật khẩu tạm thời: ${result.temporary_password}`, 'success');
+      if (result.email_sent) {
+        addToast(`Đã tạo tài khoản ${roleToCreate === 'manager' ? 'Quản lý' : 'Nhân viên'} thành công! Mật khẩu tạm thời: ${result.temporary_password}`, 'success');
+      } else {
+        addToast(`Tài khoản đã tạo nhưng gửi email thất bại. Mật khẩu tạm thời: ${result.temporary_password}`, 'warning');
+      }
       setCreateModalOpen(false);
       resetCreateForm();
       loadUsers();
@@ -113,24 +134,43 @@ const Users: React.FC = () => {
 
   const handleEditClick = (u: User) => {
     setEditingUserId(u.id);
+    setEditUserRole(u.role as any);
     setEditFullName(u.full_name || '');
     setEditPhone(u.phone || '');
     setEditHourlyRate(u.hourly_rate || 0);
     setEditBranchId(u.branch_id || '');
+    
+    // Map assigned branches
+    const currentBranchIds = u.assigned_branches?.map(b => b.branch_id) || (u.branch_id ? [u.branch_id] : []);
+    setEditBranchIds(currentBranchIds);
+    
     setEditManagerId(u.manager_id || '');
     setEditModalOpen(true);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editUserRole === 'staff' && editBranchIds.length === 0) {
+      addToast('Vui lòng chọn ít nhất một cơ sở làm việc.', 'warning');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
         full_name: editFullName,
         phone: editPhone || undefined,
-        hourly_rate: editHourlyRate,
-        branch_id: editBranchId || undefined,
-        manager_id: editManagerId || undefined
+        ...(editUserRole === 'staff' ? {
+          hourly_rate: editHourlyRate,
+          branch_id: editBranchIds[0] || undefined,
+          branch_ids: editBranchIds,
+          manager_id: editManagerId || undefined
+        } : {
+          hourly_rate: 0,
+          branch_id: undefined,
+          branch_ids: undefined,
+          manager_id: undefined
+        })
       };
 
       await updateUser(editingUserId, payload);
@@ -268,10 +308,22 @@ const Users: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-4 text-slate-500 font-medium">
-                        {(u as any).branches?.name || 'Chưa gán'}
+                        {u.role === 'staff' ? (
+                          u.assigned_branches && u.assigned_branches.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {u.assigned_branches.map((ab: any) => (
+                                <span key={ab.branch_id} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                  {ab.branch_name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            (u as any).branches?.name || 'Chưa gán'
+                          )
+                        ) : '-'}
                       </td>
                       <td className="p-4 font-bold text-slate-800">
-                        {u.role === 'admin' ? '-' : formatCurrency(u.hourly_rate || 0)}
+                        {u.role === 'staff' ? formatCurrency(u.hourly_rate || 0) : '-'}
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusBadges}`}>
@@ -404,43 +456,97 @@ const Users: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Mật khẩu (Tùy chọn)</label>
-                  <input
-                    type="password"
-                    placeholder="Mặc định tự sinh"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Mức lương giờ (VNĐ)</label>
-                  <input
-                    type="number"
-                    value={hourlyRate || ''}
-                    onChange={(e) => setHourlyRate(Number(e.target.value))}
-                    placeholder="25000"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600">Mật khẩu (Tùy chọn)</label>
+                <input
+                  type="password"
+                  placeholder="Mặc định tự sinh"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Cơ sở gán làm việc *</label>
-                <select
-                  value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
-                  required
-                >
-                  <option value="">Chọn chi nhánh</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
+              {roleToCreate === 'staff' && (
+                <>
+                  <div className={user?.role === 'admin' ? "grid grid-cols-2 gap-3" : "space-y-1"}>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-600">Mức lương giờ (VNĐ) *</label>
+                      <input
+                        type="number"
+                        value={hourlyRate || ''}
+                        onChange={(e) => setHourlyRate(Number(e.target.value))}
+                        placeholder="25000"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                    {user?.role === 'admin' && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-600">Manager phụ trách</label>
+                        <select
+                          value={selectedManagerId}
+                          onChange={(e) => setSelectedManagerId(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                        >
+                          <option value="">Chọn Manager</option>
+                          {usersList.filter(u => u.role === 'manager').map(m => (
+                            <option key={m.id} value={m.id}>{m.full_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">Cơ sở gán làm việc *</label>
+                    <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 max-h-32 overflow-y-auto space-y-2">
+                      {branches.map(b => {
+                        const isChecked = branchIds.includes(b.id);
+                        return (
+                          <label key={b.id} className="flex items-center gap-2.5 text-xs text-slate-700 font-medium cursor-pointer hover:text-slate-900 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setBranchIds(prev => [...prev, b.id]);
+                                } else {
+                                  setBranchIds(prev => prev.filter(id => id !== b.id));
+                                }
+                              }}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {b.name}
+                          </label>
+                        );
+                      })}
+                      {branches.length === 0 && (
+                        <div className="text-slate-400 text-[11px] text-center py-2">Không có cơ sở khả dụng</div>
+                      )}
+                    </div>
+                    {branchIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {branchIds.map(id => {
+                          const bName = branches.find(b => b.id === id)?.name || id;
+                          return (
+                            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                              {bName}
+                              <button
+                                type="button"
+                                onClick={() => setBranchIds(prev => prev.filter(x => x !== id))}
+                                className="text-blue-500 hover:text-blue-700 transition-colors ml-1"
+                              >
+                                <X size={10} />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <button
                 type="submit"
@@ -479,7 +585,7 @@ const Users: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
+                <div className={`space-y-1 ${editUserRole === 'manager' ? 'col-span-2' : ''}`}>
                   <label className="text-xs font-semibold text-slate-600">Số điện thoại</label>
                   <input
                     type="text"
@@ -489,32 +595,88 @@ const Users: React.FC = () => {
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Lương/Giờ (VNĐ) *</label>
-                  <input
-                    type="number"
-                    value={editHourlyRate || ''}
-                    onChange={(e) => setEditHourlyRate(Number(e.target.value))}
-                    placeholder="25000"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
+                {editUserRole === 'staff' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-600">Lương/Giờ (VNĐ) *</label>
+                    <input
+                      type="number"
+                      value={editHourlyRate || ''}
+                      onChange={(e) => setEditHourlyRate(Number(e.target.value))}
+                      placeholder="25000"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Cơ sở làm việc</label>
-                <select
-                  value={editBranchId}
-                  onChange={(e) => setEditBranchId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
-                >
-                  <option value="">Không gán</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
+              {editUserRole === 'staff' && (
+                <>
+                  {user?.role === 'admin' && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-600">Manager phụ trách</label>
+                      <select
+                        value={editManagerId}
+                        onChange={(e) => setEditManagerId(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                      >
+                        <option value="">Chọn Manager</option>
+                        {usersList.filter(u => u.role === 'manager').map(m => (
+                          <option key={m.id} value={m.id}>{m.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-600">Cơ sở làm việc *</label>
+                    <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 max-h-32 overflow-y-auto space-y-2">
+                      {branches.map(b => {
+                        const isChecked = editBranchIds.includes(b.id);
+                        return (
+                          <label key={b.id} className="flex items-center gap-2.5 text-xs text-slate-700 font-medium cursor-pointer hover:text-slate-900 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditBranchIds(prev => [...prev, b.id]);
+                                } else {
+                                  setEditBranchIds(prev => prev.filter(id => id !== b.id));
+                                }
+                              }}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {b.name}
+                          </label>
+                        );
+                      })}
+                      {branches.length === 0 && (
+                        <div className="text-slate-400 text-[11px] text-center py-2">Không có cơ sở khả dụng</div>
+                      )}
+                    </div>
+                    {editBranchIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {editBranchIds.map(id => {
+                          const bName = branches.find(b => b.id === id)?.name || id;
+                          return (
+                            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                              {bName}
+                              <button
+                                type="button"
+                                onClick={() => setEditBranchIds(prev => prev.filter(x => x !== id))}
+                                className="text-blue-500 hover:text-blue-700 transition-colors ml-1"
+                              >
+                                <X size={10} />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <button
                 type="submit"

@@ -167,7 +167,7 @@ const OrderDetail: React.FC = () => {
         
         {/* Printable Invoice Header (Visible only when printing) */}
         <div className="hidden print:block col-span-full border-b border-dashed border-slate-300 pb-4 text-center space-y-1">
-          <h1 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Lành Sạch Laundry</h1>
+          <h1 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Giặt Ký</h1>
           <p className="text-xs text-slate-500">Sạch Thơm Tinh Tươm - Giao Nhận Tận Nơi</p>
           <p className="text-[10px] text-slate-400">Điện thoại liên hệ: {order.customer_phone_snapshot}</p>
           <h2 className="text-sm font-bold text-slate-800 pt-2">HÓA ĐƠN BIÊN NHẬN GIẶT LÀ ({order.order_code})</h2>
