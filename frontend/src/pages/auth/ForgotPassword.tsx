@@ -19,9 +19,13 @@ const ForgotPassword: React.FC = () => {
 
     setLoading(true);
     try {
-      await apiClient.post('/auth/forgot-password', { email });
+      const res = await apiClient.post('/auth/forgot-password', { email });
       setSubmitted(true);
-      addToast('Yêu cầu đã được gửi! Vui lòng kiểm tra email của bạn.', 'success');
+      if (res.data?.email_status === 'failed') {
+        addToast(res.data.message, 'warning');
+      } else {
+        addToast('Yêu cầu đã được gửi! Vui lòng kiểm tra email của bạn.', 'success');
+      }
     } catch (err: any) {
       addToast(err.response?.data?.detail || 'Gửi yêu cầu thất bại.', 'error');
     } finally {

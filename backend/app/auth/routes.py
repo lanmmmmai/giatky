@@ -281,13 +281,18 @@ def resend_verification(payload: ResendVerificationRequest):
                 "verify_link": verify_link
             }
         )
+        return {"message": "Email xác thực mới đã được gửi."}
     except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Không thể gửi email xác thực: {str(e)}"
-        )
-    
-    return {"message": "Email xác thực mới đã được gửi."}
+        logger.warning(f"Failed to send resend verification email: {str(e)}")
+        print("\n" + "="*80)
+        print(" [VERIFY ACCOUNT MOCK - EMAIL SENDING FAILED]")
+        print(f" Verify Link: {verify_link}")
+        print("="*80 + "\n")
+        return {
+            "message": "Không thể gửi email xác thực thật, nhưng link kích hoạt đã được tạo (xem log console/terminal).",
+            "verify_link_local": verify_link,
+            "email_status": "failed"
+        }
 
 @router.post("/forgot-password")
 def forgot_password(payload: ForgotPasswordRequest):
@@ -315,13 +320,18 @@ def forgot_password(payload: ForgotPasswordRequest):
                 "reset_link": reset_link
             }
         )
+        return {"message": "Email đặt lại mật khẩu đã được gửi."}
     except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Không thể gửi email đặt lại mật khẩu: {str(e)}"
-        )
-    
-    return {"message": "Email đặt lại mật khẩu đã được gửi."}
+        logger.warning(f"Failed to send reset password email: {str(e)}")
+        print("\n" + "="*80)
+        print(" [RESET PASSWORD MOCK - EMAIL SENDING FAILED]")
+        print(f" Reset Link: {reset_link}")
+        print("="*80 + "\n")
+        return {
+            "message": "Không thể gửi email đặt lại mật khẩu thật, nhưng link khôi phục đã được tạo (xem log console/terminal).",
+            "reset_link_local": reset_link,
+            "email_status": "failed"
+        }
 
 @router.post("/reset-password")
 def reset_password(payload: ResetPasswordRequest):
