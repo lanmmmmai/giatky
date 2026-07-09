@@ -161,26 +161,42 @@ def create_manager(payload: ManagerCreate, current_user: dict = Depends(get_curr
     new_user = response.data[0]
     
     # Send verification email
-    verify_link = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
-    email_sent = send_template_email(
-        to_email=new_user["email"],
-        template_type="verify_account",
-        template_data={
-            "full_name": new_user["full_name"],
-            "role": "MANAGER",
-            "verify_link": verify_link
-        },
-        sent_by=current_user["id"]
-    )
+    verify_link = f"{settings.FRONTEND_URL}/verify-account?token={verification_token}"
+    email_status = "sent"
+    email_error = None
+    try:
+        send_template_email(
+            to_email=new_user["email"],
+            template_type="verify_account",
+            template_data={
+                "full_name": new_user["full_name"],
+                "role": "MANAGER",
+                "verify_link": verify_link
+            },
+            sent_by=current_user["id"]
+        )
+    except Exception as e:
+        email_status = "failed"
+        email_error = str(e)
+        logger.warning(f"Failed to send manager verification email: {str(e)}")
     
-    # Print random password to logs for local developer ease
     logger.info(f"Created manager {new_user['email']} with temp password: {raw_password}")
     
-    return {
-        "user": new_user,
-        "temporary_password": raw_password,
-        "email_sent": email_sent
-    }
+    if email_status == "failed":
+        return {
+            "user": new_user,
+            "temporary_password": raw_password,
+            "message": "Tài khoản đã tạo nhưng gửi email xác thực thất bại",
+            "email_status": "failed",
+            "error": email_error
+        }
+    else:
+        return {
+            "user": new_user,
+            "temporary_password": raw_password,
+            "message": "Tạo tài khoản thành công. Email xác thực đã được gửi.",
+            "email_status": "sent"
+        }
 
 @router.post("/staff", dependencies=[Depends(require_role(["admin", "manager"]))])
 def create_staff(payload: StaffCreate, current_user: dict = Depends(get_current_user)):
@@ -250,24 +266,42 @@ def create_staff(payload: StaffCreate, current_user: dict = Depends(get_current_
         logger.warning(f"Failed to insert user_branches (table may not exist yet): {ub_err}")
     
     # Send verification email
-    verify_link = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
-    email_sent = send_template_email(
-        to_email=new_user["email"],
-        template_type="verify_account",
-        template_data={
-            "full_name": new_user["full_name"],
-            "role": "STAFF",
-            "verify_link": verify_link
-        },
-        sent_by=current_user["id"]
-    )
+    verify_link = f"{settings.FRONTEND_URL}/verify-account?token={verification_token}"
+    email_status = "sent"
+    email_error = None
+    try:
+        send_template_email(
+            to_email=new_user["email"],
+            template_type="verify_account",
+            template_data={
+                "full_name": new_user["full_name"],
+                "role": "STAFF",
+                "verify_link": verify_link
+            },
+            sent_by=current_user["id"]
+        )
+    except Exception as e:
+        email_status = "failed"
+        email_error = str(e)
+        logger.warning(f"Failed to send staff verification email: {str(e)}")
     
     logger.info(f"Created staff {new_user['email']} with password: {payload.password}")
-    return {
-        "user": new_user,
-        "temporary_password": payload.password,
-        "email_sent": email_sent
-    }
+    
+    if email_status == "failed":
+        return {
+            "user": new_user,
+            "temporary_password": payload.password,
+            "message": "Tài khoản đã tạo nhưng gửi email xác thực thất bại",
+            "email_status": "failed",
+            "error": email_error
+        }
+    else:
+        return {
+            "user": new_user,
+            "temporary_password": payload.password,
+            "message": "Tạo tài khoản thành công. Email xác thực đã được gửi.",
+            "email_status": "sent"
+        }
 
 @router.get("/{id}")
 def get_user_detail(id: str, current_user: dict = Depends(get_current_user)):

@@ -18,7 +18,13 @@ class Settings(BaseSettings):
     SMTP_USERNAME: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_FROM_EMAIL: Optional[str] = None
-    SMTP_FROM_NAME: str = "Lành Sạch Laundry"
+    SMTP_FROM_NAME: str = "Giặt Ký"
+
+    # Brevo configurations
+    BREVO_API_KEY: Optional[str] = None
+    BREVO_API_URL: str = "https://api.brevo.com/v3/smtp/email"
+    MAIL_FROM_EMAIL: str = "noreply@giatky.site"
+    MAIL_FROM_NAME: str = "Giặt Ký"
 
     GOOGLE_CLIENT_ID: Optional[str] = None
     FRONTEND_URL: str = "http://localhost:5173"

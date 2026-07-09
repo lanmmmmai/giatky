@@ -86,20 +86,29 @@ class EmailTestRequest(BaseModel):
 
 @router.post("/test", dependencies=[Depends(require_role(["admin"]))])
 def test_email(payload: EmailTestRequest, current_user: dict = Depends(get_current_user)):
+    from app.config import settings
+    configured = "yes" if settings.BREVO_API_KEY else "no"
+    from_email = settings.MAIL_FROM_EMAIL or "noreply@giatky.site"
+    print(f"[EMAIL TEST LOG] Brevo API configured: {configured}")
+    print(f"[EMAIL TEST LOG] From email: {from_email}")
+
     subject = "Kiểm tra gửi mail Giặt Ký"
-    body = "Nếu bạn nhận được email này, cấu hình SMTP của Giặt Ký đã hoạt động."
+    body = "<p>Nếu bạn nhận được email này, Brevo Transactional Email của Giặt Ký đã hoạt động.</p>"
     
-    success = send_raw_email(
-        to_email=payload.to_email,
-        subject=subject,
-        html_content=body,
-        sent_by=current_user["id"]
-    )
-    
-    if not success:
+    try:
+        send_raw_email(
+            to_email=payload.to_email,
+            subject=subject,
+            html_content=body,
+            sent_by=current_user["id"]
+        )
+        return {
+            "message": "Email test đã được gửi",
+            "provider": "brevo",
+            "result": {"status": "success", "to": payload.to_email}
+        }
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="Gửi email thử nghiệm thất bại. Vui lòng kiểm tra cấu hình SMTP trong file .env."
+            detail=f"Gửi email thử nghiệm thất bại: {str(e)}"
         )
-        
-    return {"message": "Email thử nghiệm đã được gửi thành công!"}
