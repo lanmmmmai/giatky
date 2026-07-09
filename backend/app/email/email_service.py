@@ -8,6 +8,20 @@ from app.database import supabase
 
 logger = logging.getLogger("app.email")
 
+_columns_cache = None
+
+def get_email_logs_columns() -> bool:
+    global _columns_cache
+    if _columns_cache is not None:
+        return _columns_cache
+    try:
+        # A quick query to check if the 'provider' column exists without throwing logger errors
+        supabase.table("email_logs").select("provider").limit(1).execute()
+        _columns_cache = True
+    except Exception:
+        _columns_cache = False
+    return _columns_cache
+
 def log_email_to_db(to_email: str, subject: str, body_html: str, status: str, error_message: Optional[str] = None, sent_by: Optional[str] = None, provider: str = "brevo", provider_message_id: Optional[str] = None):
     """Log email details into the email_logs table."""
     try:
@@ -19,14 +33,13 @@ def log_email_to_db(to_email: str, subject: str, body_html: str, status: str, er
             "error_message": error_message,
             "sent_by": sent_by
         }
-        try:
+        if get_email_logs_columns():
             supabase.table("email_logs").insert({
                 **insert_data,
                 "provider": provider,
                 "provider_message_id": provider_message_id
             }).execute()
-        except Exception:
-            # Fallback if provider and provider_message_id columns do not exist in schema
+        else:
             supabase.table("email_logs").insert(insert_data).execute()
     except Exception as e:
         logger.error(f"Failed to log email to database: {str(e)}")
@@ -38,12 +51,10 @@ def send_raw_email(to_email: str, subject: str, html_content: str, sent_by: Opti
     from_email = settings.MAIL_FROM_EMAIL or "noreply@giatky.site"
     from_name = settings.MAIL_FROM_NAME or "Giặt Ký"
 
-    # Log secure parameters without showing full key
-    masked_key = f"{brevo_key[:8]}...{brevo_key[-4:]}" if brevo_key else "None"
     logger.info(f"Sending email to: {to_email}")
     logger.info(f"Subject: {subject}")
     logger.info(f"Brevo API URL: {brevo_url}")
-    logger.info(f"Brevo API Key configured: {masked_key}")
+    logger.info(f"Brevo API Key configured: {'yes' if brevo_key else 'no'}")
 
     if not brevo_key:
         err_msg = "BREVO_API_KEY is missing in settings"
@@ -83,7 +94,11 @@ def send_raw_email(to_email: str, subject: str, html_content: str, sent_by: Opti
         logger.info(f"Brevo API response status code: {status_code}")
 
         if status_code >= 400:
-            err_msg = f"Brevo API returned error status: {status_code} - {response.text}"
+            if status_code == 401 or "unrecognised IP address" in response.text or "unauthorised" in response.text.lower():
+                err_msg = "Brevo đã chặn IP gửi mail. Vui lòng thêm IP backend vào Authorized IPs trong Brevo."
+            else:
+                err_msg = f"Brevo API returned error status: {status_code} - {response.text}"
+                
             logger.error(err_msg)
             log_email_to_db(to_email, subject, html_content, "failed", err_msg, sent_by)
             raise RuntimeError(err_msg)
@@ -104,9 +119,11 @@ def send_raw_email(to_email: str, subject: str, html_content: str, sent_by: Opti
         )
         return True
     except Exception as e:
-        err_msg = f"Exception occurred while calling Brevo API: {str(e)}"
-        logger.error(err_msg, exc_info=True)
-        log_email_to_db(to_email, subject, html_content, "failed", err_msg, sent_by)
+        err_msg = str(e)
+        # Avoid redundant logging if already logged in error block
+        if "Brevo đã chặn IP" not in err_msg and "Brevo API returned error" not in err_msg:
+            logger.error(f"Exception occurred while calling Brevo API: {err_msg}", exc_info=True)
+            log_email_to_db(to_email, subject, html_content, "failed", err_msg, sent_by)
         raise RuntimeError(err_msg)
 
 def send_template_email(to_email: str, template_type: str, template_data: Dict[str, Any], sent_by: Optional[str] = None) -> bool:

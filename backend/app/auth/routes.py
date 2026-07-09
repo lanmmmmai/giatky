@@ -323,15 +323,31 @@ def forgot_password(payload: ForgotPasswordRequest):
         return {"message": "Email đặt lại mật khẩu đã được gửi."}
     except Exception as e:
         logger.warning(f"Failed to send reset password email: {str(e)}")
-        print("\n" + "="*80)
-        print(" [RESET PASSWORD MOCK - EMAIL SENDING FAILED]")
-        print(f" Reset Link: {reset_link}")
-        print("="*80 + "\n")
-        return {
-            "message": "Không thể gửi email đặt lại mật khẩu thật, nhưng link khôi phục đã được tạo (xem log console/terminal).",
-            "reset_link_local": reset_link,
-            "email_status": "failed"
-        }
+        
+        # Check environment: dev if FRONTEND_URL is localhost / 127.0.0.1
+        is_dev = "localhost" in settings.FRONTEND_URL or "127.0.0.1" in settings.FRONTEND_URL
+        err_str = str(e)
+        
+        if "Brevo đã chặn IP" in err_str or "401" in err_str or "unauthorised" in err_str.lower() or "unrecognised ip" in err_str.lower():
+            friendly_msg = "Brevo đã chặn IP gửi mail. Vui lòng thêm IP backend vào Authorized IPs trong Brevo."
+        else:
+            friendly_msg = f"Không thể gửi email đặt lại mật khẩu: {err_str}"
+
+        if is_dev:
+            print("\n" + "="*80)
+            print(" [RESET PASSWORD MOCK - EMAIL SENDING FAILED]")
+            print(f" Reset Link: {reset_link}")
+            print("="*80 + "\n")
+            return {
+                "message": friendly_msg,
+                "reset_link_local": reset_link,
+                "email_status": "failed"
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=friendly_msg
+            )
 
 @router.post("/reset-password")
 def reset_password(payload: ResetPasswordRequest):

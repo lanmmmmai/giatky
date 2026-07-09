@@ -84,17 +84,21 @@ Dự án được xây dựng theo mô hình **production-ready**, phân quyền
 
 ## 4. Cấu hình các dịch vụ mở rộng (Production)
 
-### 4.1 Cấu hình SMTP gửi Mail thật
-Trong file `.env` của backend, điền thông tin SMTP (Ví dụ: Gmail App Password hoặc Resend API Key) để gửi email kích hoạt tài khoản thật cho Manager/Staff và gửi hóa đơn cho khách hàng:
+### 4.1 Cấu hình Brevo Transactional Email API
+Ứng dụng sử dụng **Brevo Transactional Email API** để gửi email tự động (như email kích hoạt tài khoản Manager/Staff, khôi phục mật khẩu).
+Trong file `.env` của backend, điền thông tin:
 ```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=email-cua-ban@gmail.com
-SMTP_PASSWORD=mat-khau-ung-dung-gmail
-SMTP_FROM_EMAIL=email-cua-ban@gmail.com
-SMTP_FROM_NAME="Lành Sạch Laundry"
+BREVO_API_KEY=xkeysib-your-api-key
+BREVO_API_URL=https://api.brevo.com/v3/smtp/email
+MAIL_FROM_EMAIL=noreply@giatky.site
+MAIL_FROM_NAME="Giặt Ký"
 ```
-*Lưu ý: Nếu không cấu hình SMTP, backend khi chạy local sẽ tự động in nội dung email kích hoạt kèm link xác thực ra màn hình terminal để bạn click kích hoạt kiểm thử.*
+
+#### Lưu ý quan trọng về Bảo mật IP (Brevo Authorized IPs)
+Brevo mặc định kích hoạt bảo mật và chặn các yêu cầu gửi email từ IP chưa được xác thực (trả về lỗi `401 Unauthorized`).
+1. **Chạy dưới Local**: Bạn cần truy cập **[Brevo Security - Authorized IPs](https://app.brevo.com/security/authorised_ips)** và thêm IP hiện tại của bạn là **`42.112.95.247`** vào danh sách whitelist.
+2. **Deploy lên Production (Ví dụ: Render)**: Khi deploy backend lên Render (hoặc các dịch vụ cloud), bạn cần lấy danh sách Outbound IP addresses của dịch vụ đó (ví dụ Render Outbound IPs) và thêm vào danh sách **Authorized IPs** trong cấu hình Brevo để tránh bị chặn.
+
 
 ### 4.2 Cấu hình đăng nhập bằng Google (Google OAuth)
 1.  Truy cập Google Cloud Console, tạo dự án và tạo mã credentials **OAuth Client ID** loại Web Application.
