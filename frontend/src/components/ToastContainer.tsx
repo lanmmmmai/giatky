@@ -14,14 +14,14 @@ const ToastContainer: React.FC = () => {
           success: <CheckCircle2 className="text-emerald-500 flex-shrink-0" size={20} />,
           error: <XCircle className="text-rose-500 flex-shrink-0" size={20} />,
           warning: <AlertTriangle className="text-amber-500 flex-shrink-0" size={20} />,
-          info: <Info className="text-blue-500 flex-shrink-0" size={20} />,
+          info: <Info className="text-primary flex-shrink-0" size={20} />,
         }[toast.type];
 
         const bgClass = {
           success: 'bg-emerald-50 border-emerald-200 text-emerald-950',
           error: 'bg-rose-50 border-rose-200 text-rose-950',
           warning: 'bg-amber-50 border-amber-200 text-amber-950',
-          info: 'bg-blue-50 border-blue-200 text-blue-950',
+          info: 'bg-primary/10 border-primary/20 text-blue-950',
         }[toast.type];
 
         return (

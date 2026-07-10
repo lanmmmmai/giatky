@@ -118,7 +118,7 @@ const Attendance: React.FC = () => {
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-card space-y-6 flex flex-col justify-between">
             <div className="text-center space-y-2">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Thời gian hiện tại</h3>
-              <div className="text-3xl font-mono font-bold text-blue-600 tracking-wider">
+              <div className="text-3xl font-mono font-bold text-primary tracking-wider">
                 {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
               <div className="text-xs font-medium text-slate-500">
@@ -158,7 +158,7 @@ const Attendance: React.FC = () => {
                 placeholder="Ví dụ: Đi muộn do kẹt xe, nhận ca bàn giao..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-slate-50 focus:bg-white"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-slate-50 focus:bg-white"
                 disabled={actionLoading}
               />
             </div>
@@ -199,7 +199,7 @@ const Attendance: React.FC = () => {
                 <select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                 >
                   <option value="">Tất cả cơ sở</option>
                   {branches.map(b => (
@@ -213,7 +213,7 @@ const Attendance: React.FC = () => {
                 <select
                   value={selectedStaff}
                   onChange={(e) => setSelectedStaff(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                 >
                   <option value="">Tất cả nhân viên</option>
                   {staffUsers.map(st => (
@@ -253,7 +253,7 @@ const Attendance: React.FC = () => {
                   <tbody>
                     {records.map(rec => {
                       const statColors = {
-                        checked_in: 'bg-blue-50 text-blue-600 border-blue-200',
+                        checked_in: 'bg-primary/10 text-primary border-primary/20',
                         completed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
                         missing_checkout: 'bg-rose-50 text-rose-600 border-rose-200'
                       }[rec.status] || 'bg-slate-50 text-slate-500';

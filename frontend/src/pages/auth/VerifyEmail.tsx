@@ -31,7 +31,7 @@ const VerifyEmail: React.FC = () => {
   return (
     <div className="text-center space-y-6">
       <div className="text-center">
-        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white text-xl shadow-md mx-auto mb-4">
+        <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-white text-xl shadow-md mx-auto mb-4">
           GK
         </div>
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">Xác Thực Tài Khoản</h2>
@@ -40,7 +40,7 @@ const VerifyEmail: React.FC = () => {
       <div className="py-4 flex flex-col items-center justify-center">
         {status === 'loading' && (
           <div className="space-y-4">
-            <Loader2 className="animate-spin text-blue-600 mx-auto" size={48} />
+            <Loader2 className="animate-spin text-primary mx-auto" size={48} />
             <p className="text-sm text-slate-500 font-medium">{message}</p>
           </div>
         )}
@@ -65,7 +65,7 @@ const VerifyEmail: React.FC = () => {
       {status !== 'loading' && (
         <Link
           to="/login"
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm inline-block shadow-md transition-all active:scale-[0.99]"
+          className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm inline-block shadow-md transition-all active:scale-[0.99]"
         >
           Quay lại Đăng nhập
         </Link>

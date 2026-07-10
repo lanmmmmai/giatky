@@ -137,7 +137,7 @@ const Reports: React.FC = () => {
       {/* Filter panel */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center gap-1.5 text-slate-600 text-xs font-bold border-b border-slate-100 pb-2">
-          <Filter size={16} className="text-blue-500" />
+          <Filter size={16} className="text-primary" />
           Bộ lọc nâng cao
         </div>
 
@@ -245,7 +245,7 @@ const Reports: React.FC = () => {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Doanh thu phát sinh</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{formatCurrency(report.summary.total_revenue)}</h4>
               </div>
-              <CircleDollarSign size={20} className="text-blue-500" />
+              <CircleDollarSign size={20} className="text-primary" />
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -288,7 +288,7 @@ const Reports: React.FC = () => {
             {/* Service Sales Performance Chart */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                <Briefcase size={14} className="text-blue-500" /> Doanh thu theo dịch vụ giặt sấy
+                <Briefcase size={14} className="text-primary" /> Doanh thu theo dịch vụ giặt sấy
               </h3>
               {report.revenue_by_service.length > 0 ? (
                 <div className="h-64">
@@ -314,7 +314,7 @@ const Reports: React.FC = () => {
             {/* Staff efficiency chart */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                <Users size={14} className="text-blue-500" /> Hiệu suất doanh thu theo nhân viên
+                <Users size={14} className="text-primary" /> Hiệu suất doanh thu theo nhân viên
               </h3>
               {report.revenue_by_staff.length > 0 ? (
                 <div className="h-64">

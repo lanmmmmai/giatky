@@ -195,14 +195,14 @@ const Chat: React.FC = () => {
       <aside className="w-80 border-r border-slate-200 flex flex-col justify-between flex-shrink-0 bg-slate-50/50">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
           <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-            <MessageSquare size={18} className="text-blue-600" /> Kênh trò chuyện
+            <MessageSquare size={18} className="text-primary" /> Kênh trò chuyện
           </h3>
           <button
             onClick={() => {
               setRoomType('direct');
               setCreateModalOpen(true);
             }}
-            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
+            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-primary transition-colors"
             title="Tạo phòng chat mới"
           >
             <Plus size={18} />
@@ -222,12 +222,12 @@ const Chat: React.FC = () => {
                   onClick={() => setActiveRoom(r)}
                   className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 border ${
                     isActive 
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                      ? 'bg-primary border-primary text-white shadow-md'
                       : 'bg-white hover:bg-slate-50 border-slate-200/65 text-slate-700'
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
-                    isActive ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-600'
+                    isActive ? 'bg-blue-700 text-white' : 'bg-primary/15 text-primary'
                   }`}>
                     {r.display_name[0].toUpperCase()}
                   </div>
@@ -287,7 +287,7 @@ const Chat: React.FC = () => {
                         )}
                         <div className={`p-3 rounded-2xl text-xs leading-5 border ${
                           isMine 
-                            ? 'bg-blue-600 border-blue-600 text-white rounded-tr-none shadow-md'
+                            ? 'bg-primary border-primary text-white rounded-tr-none shadow-md'
                             : 'bg-white border-slate-200 text-slate-800 rounded-tl-none shadow-sm'
                         }`}>
                           <p>{m.message}</p>
@@ -310,11 +310,11 @@ const Chat: React.FC = () => {
                 placeholder="Nhập nội dung tin nhắn và ấn Enter để gửi..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 transition-all bg-slate-50 focus:bg-white"
+                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary transition-all bg-slate-50 focus:bg-white"
               />
               <button
                 type="submit"
-                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all active:scale-95 flex-shrink-0"
+                className="p-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl shadow-md transition-all active:scale-95 flex-shrink-0"
               >
                 <Send size={16} />
               </button>
@@ -335,7 +335,7 @@ const Chat: React.FC = () => {
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                <Users className="text-blue-500" size={18} /> Tạo cuộc hội thoại mới
+                <Users className="text-primary" size={18} /> Tạo cuộc hội thoại mới
               </h3>
               <button onClick={() => setCreateModalOpen(false)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
                 <X size={18} />
@@ -354,7 +354,7 @@ const Chat: React.FC = () => {
                     }}
                     className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
                       roomType === 'direct' 
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        ? 'bg-primary border-primary text-white shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -368,7 +368,7 @@ const Chat: React.FC = () => {
                     }}
                     className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
                       roomType === 'group' 
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        ? 'bg-primary border-primary text-white shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -385,7 +385,7 @@ const Chat: React.FC = () => {
                     placeholder="Nhóm giặt ngày ca tối, ca sáng..."
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                     required
                   />
                 </div>
@@ -412,11 +412,11 @@ const Chat: React.FC = () => {
                             }
                           }}
                           className={`p-2 rounded-lg cursor-pointer text-xs font-medium flex items-center justify-between transition-colors ${
-                            isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'
+                            isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-slate-50 text-slate-700'
                           }`}
                         >
                           <span>{u.full_name} ({u.role.toUpperCase()})</span>
-                          {isSelected && <span className="text-[10px] font-bold text-blue-600">✓</span>}
+                          {isSelected && <span className="text-[10px] font-bold text-primary">✓</span>}
                         </div>
                       );
                     })
@@ -426,7 +426,7 @@ const Chat: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
                 disabled={selectedUserIds.length === 0}
               >
                 Tạo trò chuyện

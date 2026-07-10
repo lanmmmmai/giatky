@@ -212,7 +212,7 @@ const CreateOrder: React.FC = () => {
           {/* Customer info card */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <User size={16} className="text-blue-500" /> Thông tin khách hàng
+              <User size={16} className="text-primary" /> Thông tin khách hàng
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -225,7 +225,7 @@ const CreateOrder: React.FC = () => {
                     placeholder="Nhập SĐT để tự động tra cứu thành viên..."
                     value={customerPhone}
                     onChange={handlePhoneChange}
-                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-blue-500 transition-all outline-none"
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-primary transition-all outline-none"
                     required
                   />
                 </div>
@@ -240,7 +240,7 @@ const CreateOrder: React.FC = () => {
                     placeholder="Nguyễn Văn A"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-blue-500 transition-all outline-none"
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-primary transition-all outline-none"
                     required
                   />
                 </div>
@@ -257,7 +257,7 @@ const CreateOrder: React.FC = () => {
                     placeholder="email@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-blue-500 transition-all outline-none"
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-primary transition-all outline-none"
                   />
                 </div>
               </div>
@@ -271,7 +271,7 @@ const CreateOrder: React.FC = () => {
                     placeholder="Số nhà, tên đường, phường..."
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-blue-500 transition-all outline-none"
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:border-primary transition-all outline-none"
                   />
                 </div>
               </div>
@@ -281,7 +281,7 @@ const CreateOrder: React.FC = () => {
           {/* Service grid selection */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <ShoppingCart size={16} className="text-blue-500" /> Danh mục dịch vụ khả dụng
+              <ShoppingCart size={16} className="text-primary" /> Danh mục dịch vụ khả dụng
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -292,14 +292,14 @@ const CreateOrder: React.FC = () => {
                   <div
                     key={srv.id}
                     onClick={() => handleAddService(srv)}
-                    className="p-3 border border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50/20 cursor-pointer transition-all space-y-1.5"
+                    className="p-3 border border-slate-200 rounded-xl hover:border-primary hover:bg-primary/10/20 cursor-pointer transition-all space-y-1.5"
                   >
-                    <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-bold uppercase rounded-md tracking-wider">
+                    <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[9px] font-bold uppercase rounded-md tracking-wider">
                       {srv.category}
                     </span>
                     <h4 className="text-xs font-bold text-slate-800 line-clamp-1">{srv.name}</h4>
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-blue-600 font-bold">{formatCurrency(srv.price)}</span>
+                      <span className="text-primary font-bold">{formatCurrency(srv.price)}</span>
                       <span className="text-slate-400 font-medium">/{srv.unit}</span>
                     </div>
                   </div>
@@ -314,7 +314,7 @@ const CreateOrder: React.FC = () => {
           {/* Order Details & Cart */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <ShoppingCart size={16} className="text-blue-500" /> Chi tiết đơn hàng
+              <ShoppingCart size={16} className="text-primary" /> Chi tiết đơn hàng
             </h3>
 
             {/* Branch selector */}
@@ -331,7 +331,7 @@ const CreateOrder: React.FC = () => {
                 <select
                   value={branchId}
                   onChange={(e) => setBranchId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:border-primary outline-none"
                   required
                 >
                   <option value="">Chọn cơ sở nhận đồ</option>
@@ -350,7 +350,7 @@ const CreateOrder: React.FC = () => {
                   type="date"
                   value={expectedReturnDate}
                   onChange={(e) => setExpectedReturnDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
               <div className="space-y-1.5">
@@ -359,7 +359,7 @@ const CreateOrder: React.FC = () => {
                   type="time"
                   value={expectedReturnTime}
                   onChange={(e) => setExpectedReturnTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -451,7 +451,7 @@ const CreateOrder: React.FC = () => {
               )}
               <div className="flex justify-between text-sm font-bold text-slate-800 border-t border-slate-200 pt-2">
                 <span>Tổng cộng:</span>
-                <span className="text-blue-600">{formatCurrency(totalAmount)}</span>
+                <span className="text-primary">{formatCurrency(totalAmount)}</span>
               </div>
             </div>
 
@@ -509,14 +509,14 @@ const CreateOrder: React.FC = () => {
                 placeholder="Ghi chú về quần áo, vết bẩn..."
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
-                className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 min-h-16"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary min-h-16"
               />
             </div>
 
             {/* Submit button */}
             <button
               type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99]"
+              className="w-full py-3 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99]"
               disabled={loading || selectedItems.length === 0}
             >
               {loading ? 'Đang gửi yêu cầu tạo...' : 'Xác nhận tạo đơn'}

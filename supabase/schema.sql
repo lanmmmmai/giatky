@@ -1,5 +1,5 @@
 -- ============================================================
---  LÀNH SẠCH LAUNDRY — SUPABASE DATABASE SCHEMA
+--  GIẶT KÝ — SUPABASE DATABASE SCHEMA
 -- ============================================================
 
 -- Bật extension uuid-ossp (nếu cần)

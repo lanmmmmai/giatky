@@ -146,7 +146,7 @@ const Cms: React.FC = () => {
         <button
           onClick={() => setActiveTab('seo')}
           className={`flex items-center gap-1.5 px-6 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === 'seo' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            activeTab === 'seo' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           <Globe size={16} /> Tối ưu SEO Domain
@@ -154,7 +154,7 @@ const Cms: React.FC = () => {
         <button
           onClick={() => setActiveTab('templates')}
           className={`flex items-center gap-1.5 px-6 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === 'templates' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            activeTab === 'templates' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           <Mail size={16} /> Mẫu email tự động
@@ -162,7 +162,7 @@ const Cms: React.FC = () => {
         <button
           onClick={() => setActiveTab('logs')}
           className={`flex items-center gap-1.5 px-6 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === 'logs' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            activeTab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           <ClipboardList size={16} /> Lịch sử gửi email
@@ -194,7 +194,7 @@ const Cms: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleEditSeo(s)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                           >
                             <Edit3 size={14} />
                           </button>
@@ -265,7 +265,7 @@ const Cms: React.FC = () => {
 
                     <button
                       type="submit"
-                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-[0.99] transition-all"
+                      className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-[0.99] transition-all"
                     >
                       <Save size={14} /> Lưu cấu hình
                     </button>
@@ -302,7 +302,7 @@ const Cms: React.FC = () => {
                     {/* Card 1: Thông tin email */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                       <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><Mail size={16} /></span>
+                        <span className="p-1.5 bg-primary/10 text-primary rounded-lg"><Mail size={16} /></span>
                         <h4 className="font-bold text-slate-800 text-xs">Card 1: Thông tin email</h4>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -321,7 +321,7 @@ const Cms: React.FC = () => {
                             type="text"
                             value={templateSubject}
                             onChange={(e) => setTemplateSubject(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                             placeholder="Nhập tiêu đề thư gửi..."
                             required
                           />
@@ -369,7 +369,7 @@ const Cms: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleCreateHtmlFromText}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[11px] font-bold rounded-xl transition-all"
+                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/15 text-primary text-[11px] font-bold rounded-xl transition-all"
                         >
                           Tạo HTML từ text
                         </button>
@@ -388,7 +388,7 @@ const Cms: React.FC = () => {
                     {/* Action row */}
                     <button
                       type="submit"
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] transition-all"
+                      className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] transition-all"
                     >
                       <Save size={16} /> Lưu mẫu email
                     </button>
@@ -425,7 +425,7 @@ const Cms: React.FC = () => {
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách các loại mẫu</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {templates.map(tmpl => (
-                    <div key={tmpl.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-blue-400 transition-colors flex flex-col justify-between">
+                    <div key={tmpl.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 hover:border-primary transition-colors flex flex-col justify-between">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start border-b border-slate-100 pb-2">
                           <div>
@@ -434,7 +434,7 @@ const Cms: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleEditTemplate(tmpl)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                           >
                             <Edit3 size={14} />
                           </button>

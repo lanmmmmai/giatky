@@ -357,7 +357,7 @@ const RevenueReports: React.FC = () => {
             <select
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl text-xs outline-none transition-all"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary rounded-xl text-xs outline-none transition-all"
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
@@ -371,7 +371,7 @@ const RevenueReports: React.FC = () => {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl text-xs outline-none transition-all"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary rounded-xl text-xs outline-none transition-all"
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>Tháng {m}</option>
@@ -384,7 +384,7 @@ const RevenueReports: React.FC = () => {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl text-xs outline-none transition-all"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary rounded-xl text-xs outline-none transition-all"
           >
             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -485,7 +485,7 @@ const RevenueReports: React.FC = () => {
                             value={day === 1 ? getCellValue(rep, 'opening_cash') : cellOpening}
                             onChange={(e) => handleCellChange(rep.report_date, 'opening_cash', e.target.value)}
                             disabled={day > 1 || isReadOnly || isSaving}
-                            className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-blue-500 outline-none transition-all ${
+                            className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
                               day > 1 || isReadOnly ? 'border-transparent font-semibold bg-amber-50/20' : 'border-slate-200'
                             }`}
                           />
@@ -517,7 +517,7 @@ const RevenueReports: React.FC = () => {
                           value={getCellValue(rep, 'expense_amount')}
                           onChange={(e) => handleCellChange(rep.report_date, 'expense_amount', e.target.value)}
                           disabled={isReadOnly || isSaving}
-                          className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-blue-500 outline-none transition-all ${
+                          className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
                             isReadOnly ? 'border-transparent' : 'border-slate-200'
                           }`}
                         />
@@ -530,7 +530,7 @@ const RevenueReports: React.FC = () => {
                           onChange={(e) => handleCellChange(rep.report_date, 'expense_description', e.target.value)}
                           placeholder={cellExpense > 0 ? "Nhập lý do chi..." : "Lý do chi..."}
                           disabled={isReadOnly || isSaving}
-                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-blue-500 outline-none transition-all ${
+                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
                             isReadOnly ? 'border-transparent' : 'border-slate-200'
                           }`}
                         />
@@ -547,7 +547,7 @@ const RevenueReports: React.FC = () => {
                           onChange={(e) => handleCellChange(rep.report_date, 'note', e.target.value)}
                           placeholder="Ghi chú ngày..."
                           disabled={isReadOnly || isSaving}
-                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-blue-500 outline-none transition-all ${
+                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
                             isReadOnly ? 'border-transparent' : 'border-slate-200'
                           }`}
                         />
@@ -558,7 +558,7 @@ const RevenueReports: React.FC = () => {
                           {rep.id ? (
                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                               rep.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                              rep.status === 'submitted' ? 'bg-blue-100 text-blue-700' :
+                              rep.status === 'submitted' ? 'bg-primary/15 text-primary' :
                               rep.status === 'rejected' ? 'bg-rose-100 text-rose-700' :
                               'bg-slate-100 text-slate-700'
                             }`}>
@@ -589,7 +589,7 @@ const RevenueReports: React.FC = () => {
                               <button
                                 onClick={() => handleSubmitRow(rep.id!, rep.report_date)}
                                 title="Gửi duyệt báo cáo"
-                                className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center justify-center"
+                                className="p-1 bg-primary hover:bg-primary-dark text-white rounded-lg transition-all flex items-center justify-center"
                               >
                                 <Send size={11} />
                               </button>

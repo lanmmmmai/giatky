@@ -129,7 +129,7 @@ const OrderDetail: React.FC = () => {
               <h2 className="text-xl font-bold text-slate-800">Đơn hàng: {order.order_code}</h2>
               <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
                 {
-                  new: 'bg-blue-50 text-blue-600 border-blue-200',
+                  new: 'bg-primary/10 text-primary border-primary/20',
                   washing: 'bg-cyan-50 text-cyan-600 border-cyan-200',
                   drying: 'bg-purple-50 text-purple-600 border-purple-200',
                   ready: 'bg-amber-50 text-amber-600 border-amber-200',
@@ -281,7 +281,7 @@ const OrderDetail: React.FC = () => {
               )}
               <div className="flex justify-between text-sm font-bold text-slate-800 border-t border-slate-100 pt-2">
                 <span>Tổng phải trả:</span>
-                <span className="text-blue-600 text-base">{formatCurrency(order.total_amount)}</span>
+                <span className="text-primary text-base">{formatCurrency(order.total_amount)}</span>
               </div>
               <div className="flex justify-between text-slate-600 border-t border-slate-50 pt-2 font-medium">
                 <span>Khách đã trả:</span>
@@ -328,7 +328,7 @@ const OrderDetail: React.FC = () => {
                       disabled={updating}
                       className={`py-2 px-3 rounded-xl text-[11px] font-bold text-center border transition-all ${
                         isCurrent 
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                          ? 'bg-primary border-primary text-white shadow-sm'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
                       }`}
                     >
@@ -352,7 +352,7 @@ const OrderDetail: React.FC = () => {
                 <select
                   value={payStatus}
                   onChange={(e) => setPayStatus(e.target.value as any)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-primary bg-white"
                   disabled={updating}
                 >
                   <option value="unpaid">Chưa trả</option>
@@ -366,7 +366,7 @@ const OrderDetail: React.FC = () => {
                 <select
                   value={payMethod}
                   onChange={(e) => setPayMethod(e.target.value as any)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-primary bg-white"
                   disabled={updating}
                 >
                   <option value="none">Chưa thu</option>
@@ -383,7 +383,7 @@ const OrderDetail: React.FC = () => {
                   value={payAmount || ''}
                   onChange={(e) => setPayAmount(Number(e.target.value))}
                   placeholder="0"
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-primary"
                   disabled={updating}
                 />
               </div>

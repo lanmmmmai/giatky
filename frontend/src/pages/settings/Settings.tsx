@@ -100,7 +100,7 @@ const SettingsPage: React.FC = () => {
         {/* Profile Card (Left) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-card space-y-6 h-fit text-center">
           <div className="space-y-3">
-            <div className="w-24 h-24 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-3xl shadow-inner mx-auto overflow-hidden">
+            <div className="w-24 h-24 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-3xl shadow-inner mx-auto overflow-hidden">
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -115,8 +115,8 @@ const SettingsPage: React.FC = () => {
 
           <div className="border-t border-slate-100 pt-4 text-xs space-y-2 text-left font-medium text-slate-600">
             <div className="flex items-center gap-2">
-              <Award size={14} className="text-blue-500" />
-              <span>Vai trò: <strong className="text-blue-600 uppercase font-mono">{user?.role}</strong></span>
+              <Award size={14} className="text-primary" />
+              <span>Vai trò: <strong className="text-primary uppercase font-mono">{user?.role}</strong></span>
             </div>
             <div className="flex items-center gap-2">
               <BadgeCheck size={14} className="text-emerald-500" />
@@ -136,7 +136,7 @@ const SettingsPage: React.FC = () => {
           {/* Edit profile form */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <UserIcon size={16} className="text-blue-500" /> Cập nhật thông tin cá nhân
+              <UserIcon size={16} className="text-primary" /> Cập nhật thông tin cá nhân
             </h3>
 
             <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
@@ -147,7 +147,7 @@ const SettingsPage: React.FC = () => {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
                     required
                     disabled={profileLoading}
                   />
@@ -158,7 +158,7 @@ const SettingsPage: React.FC = () => {
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
                     disabled={profileLoading}
                   />
                 </div>
@@ -171,14 +171,14 @@ const SettingsPage: React.FC = () => {
                   placeholder="https://example.com/avatar.jpg"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
                   disabled={profileLoading}
                 />
               </div>
 
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.99]"
+                className="px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.99]"
                 disabled={profileLoading}
               >
                 {profileLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -189,7 +189,7 @@ const SettingsPage: React.FC = () => {
           {/* Change password form */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <Lock size={16} className="text-blue-500" /> Thay đổi mật khẩu
+              <Lock size={16} className="text-primary" /> Thay đổi mật khẩu
             </h3>
 
             <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
@@ -200,7 +200,7 @@ const SettingsPage: React.FC = () => {
                   placeholder="••••••••"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
                   required
                   disabled={pwdLoading}
                 />
@@ -214,7 +214,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
                     required
                     disabled={pwdLoading}
                   />
@@ -226,7 +226,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
                     required
                     disabled={pwdLoading}
                   />
@@ -235,7 +235,7 @@ const SettingsPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.99]"
+                className="px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.99]"
                 disabled={pwdLoading}
               >
                 {pwdLoading ? 'Đang thực hiện đổi...' : 'Đổi mật khẩu'}

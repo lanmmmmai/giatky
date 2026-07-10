@@ -56,7 +56,7 @@ const Dashboard: React.FC = () => {
       {/* Welcome Banner */}
       <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-7 relative overflow-hidden shadow-sm">
         <div className="relative z-10 space-y-2 max-w-xl">
-          <span className="inline-block px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[9px] font-bold uppercase tracking-wider text-blue-400">
+          <span className="inline-block px-2.5 py-1 bg-primary/100/10 border border-primary/20 rounded-full text-[9px] font-bold uppercase tracking-wider text-secondary">
             Hệ thống quản trị
           </span>
           <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100">Xin chào, {user?.full_name}!</h2>
@@ -80,7 +80,7 @@ const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Doanh thu hôm nay</span>
             <h3 className="text-xl font-bold font-mono tracking-tight text-slate-800">{formatCurrency(data.revenue_today)}</h3>
           </div>
-          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
             <CircleDollarSign size={20} strokeWidth={1.5} />
           </div>
         </div>
@@ -90,7 +90,7 @@ const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Doanh thu tháng này</span>
             <h3 className="text-xl font-bold font-mono tracking-tight text-slate-800">{formatCurrency(data.revenue_month)}</h3>
           </div>
-          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
             <TrendingUp size={20} strokeWidth={1.5} />
           </div>
         </div>
@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Đơn hàng mới hôm nay</span>
             <h3 className="text-xl font-bold font-mono tracking-tight text-slate-800">{data.orders_today_count} đơn</h3>
           </div>
-          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
             <ShoppingBag size={20} strokeWidth={1.5} />
           </div>
         </div>
@@ -110,7 +110,7 @@ const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Đang xử lý (Giặt/Sấy)</span>
             <h3 className="text-xl font-bold font-mono tracking-tight text-slate-800">{data.orders_processing_count} đơn</h3>
           </div>
-          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+          <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
             <Clock size={20} strokeWidth={1.5} />
           </div>
         </div>
@@ -200,7 +200,7 @@ const Dashboard: React.FC = () => {
                 data.active_staff.map(st => (
                   <div key={st.id} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-b-0">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/15 flex items-center justify-center font-bold text-xs">
                         {st.full_name[0].toUpperCase()}
                       </div>
                       <span className="text-xs font-semibold text-slate-700">{st.full_name}</span>
@@ -218,7 +218,7 @@ const Dashboard: React.FC = () => {
             <h3 className="font-bold text-slate-800 text-xs tracking-tight uppercase">Thao tác nhanh</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Link to={`${base}/orders/create`} className="p-4 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-2xl text-center space-y-2 group transition-all btn-press">
-                <ShoppingBag className="mx-auto text-blue-600 group-hover:scale-110 transition-transform" size={20} strokeWidth={1.5} />
+                <ShoppingBag className="mx-auto text-primary group-hover:scale-110 transition-transform" size={20} strokeWidth={1.5} />
                 <h4 className="text-xs font-semibold text-slate-700">Tạo đơn hàng</h4>
               </Link>
               <Link to={`${base}/staff`} className="p-4 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-2xl text-center space-y-2 group transition-all btn-press">
@@ -252,7 +252,7 @@ const Dashboard: React.FC = () => {
             </div>
             <Link
               to={`${base}/attendance`}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition-all btn-press flex items-center gap-2"
+              className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-md transition-all btn-press flex items-center gap-2"
             >
               <Clock size={14} strokeWidth={1.5} />
               Đến trang chấm công
@@ -265,7 +265,7 @@ const Dashboard: React.FC = () => {
       <div className="bg-white rounded-3xl border border-slate-100 shadow-card overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/20">
           <h3 className="font-bold text-slate-800 text-xs tracking-tight uppercase">Đơn hàng mới nhận</h3>
-          <Link to={`${base}/orders`} className="text-xs text-blue-600 hover:text-blue-800 font-semibold transition-colors">Xem tất cả</Link>
+          <Link to={`${base}/orders`} className="text-xs text-primary hover:text-primary-dark font-semibold transition-colors">Xem tất cả</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
               ) : (
                 data.recent_orders.map(order => {
                   const statusColors = {
-                    new: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400',
+                    new: 'bg-primary/100/10 text-primary border-primary/20 dark:text-secondary',
                     washing: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 dark:text-cyan-400',
                     drying: 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400',
                     ready: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
 
                   return (
                     <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50/20 transition-colors">
-                      <td className="p-4 pl-6 font-bold text-blue-600 font-mono tracking-tight">
+                      <td className="p-4 pl-6 font-bold text-primary font-mono tracking-tight">
                         <Link to={`${base}/orders/${order.id}`} className="hover:underline">{order.order_code}</Link>
                       </td>
                       <td className="p-4 font-semibold text-slate-700">

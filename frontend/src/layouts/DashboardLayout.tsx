@@ -76,7 +76,7 @@ const DashboardLayout: React.FC = () => {
         {/* Brand Logo */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/60">
           <Link to={base} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white text-xs shadow-[0_4px_12px_rgba(37,99,235,0.3)] relative overflow-hidden">
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center font-bold text-white text-xs shadow-[0_8px_24px_rgba(108,99,255,0.24)] relative overflow-hidden">
               <span className="relative z-10 font-mono tracking-tighter">GK</span>
             </div>
             <span className="font-semibold text-xs tracking-[0.2em] text-slate-100">GIẶT KÝ</span>
@@ -111,7 +111,7 @@ const DashboardLayout: React.FC = () => {
               <Link
                 key={item.fullPath}
                 to={item.fullPath}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 btn-press border ${isActive ? 'bg-blue-600 text-white border-blue-500 shadow-[0_4px_12px_rgba(37,99,235,0.25)]' : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 btn-press border ${isActive ? 'bg-primary text-white border-primary shadow-[0_10px_24px_rgba(108,99,255,0.22)]' : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement, { strokeWidth: 1.5, size: 16 }) : item.icon}
@@ -171,7 +171,7 @@ const DashboardLayout: React.FC = () => {
                     <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                       <h3 className="font-bold text-slate-800 text-xs tracking-tight">Thông báo</h3>
                       {unreadCount > 0 && (
-                        <span className="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">{unreadCount} chưa đọc</span>
+                        <span className="text-[10px] text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">{unreadCount} chưa đọc</span>
                       )}
                     </div>
                     <div className="max-h-64 overflow-y-auto my-1">
@@ -185,10 +185,10 @@ const DashboardLayout: React.FC = () => {
                               handleMarkRead(n.id);
                               setNotifsOpen(false);
                             }}
-                            className={`px-4 py-2.5 border-b border-slate-50 last:border-b-0 cursor-pointer transition-colors hover:bg-slate-50/50 flex flex-col gap-0.5 ${!n.is_read ? 'bg-blue-50/30' : ''}`}
+                            className={`px-4 py-2.5 border-b border-slate-50 last:border-b-0 cursor-pointer transition-colors hover:bg-slate-50/50 flex flex-col gap-0.5 ${!n.is_read ? 'bg-primary/10/30' : ''}`}
                           >
                             <div className="flex justify-between items-start">
-                              <h4 className={`text-xs font-semibold ${!n.is_read ? 'text-blue-900 font-bold' : 'text-slate-700'}`}>{n.title}</h4>
+                              <h4 className={`text-xs font-semibold ${!n.is_read ? 'text-primary-dark font-bold' : 'text-slate-700'}`}>{n.title}</h4>
                               <span className="text-[9px] text-slate-400 font-mono">
                                 {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
@@ -202,7 +202,7 @@ const DashboardLayout: React.FC = () => {
                       <Link
                         to={`${base}/notifications`}
                         onClick={() => setNotifsOpen(false)}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold inline-block pb-0.5"
+                        className="text-xs text-primary hover:text-primary-dark font-semibold inline-block pb-0.5"
                       >
                         Xem tất cả thông báo
                       </Link>

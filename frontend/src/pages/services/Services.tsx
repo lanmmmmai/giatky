@@ -288,7 +288,7 @@ const Services: React.FC = () => {
           </button>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5 btn-press"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1.5 btn-press"
           >
             <Plus size={15} strokeWidth={1.5} />
             Thêm dịch vụ
@@ -358,7 +358,7 @@ const Services: React.FC = () => {
                     <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50/20 transition-colors">
                       <td className="p-4 pl-6 font-bold text-slate-800">{s.name}</td>
                       <td className="p-4">
-                        <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-600 border border-blue-500/10 rounded-md font-semibold text-[9px]">
+                        <span className="px-2.5 py-0.5 bg-primary/100/10 text-primary border border-primary/10 rounded-md font-semibold text-[9px]">
                           {s.category}
                         </span>
                       </td>
@@ -386,7 +386,7 @@ const Services: React.FC = () => {
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleEditClick(s)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200/50 rounded-xl transition-all btn-press"
+                            className="p-2 text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20/50 rounded-xl transition-all btn-press"
                             title="Chỉnh sửa"
                           >
                             <Edit2 size={13} strokeWidth={1.5} />
@@ -428,7 +428,7 @@ const Services: React.FC = () => {
                   placeholder="Giặt sấy chăn mền lớn"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   required
                 />
               </div>
@@ -441,7 +441,7 @@ const Services: React.FC = () => {
                     placeholder="Giặt thường"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   />
                 </div>
 
@@ -450,7 +450,7 @@ const Services: React.FC = () => {
                   <select
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
                     required
                   >
                     <option value="kg">kg (Khối lượng)</option>
@@ -468,7 +468,7 @@ const Services: React.FC = () => {
                   placeholder="20000"
                   value={price || ''}
                   onChange={(e) => setPrice(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors font-mono font-semibold"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors font-mono font-semibold"
                   required
                 />
               </div>
@@ -479,13 +479,13 @@ const Services: React.FC = () => {
                   placeholder="Mô tả các bước thực hiện hoặc cam kết..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 min-h-[70px] transition-colors"
+                  className="w-full p-3.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 min-h-[70px] transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs shadow-md transition-all btn-press mt-3"
+                className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-xs shadow-md transition-all btn-press mt-3"
                 disabled={loading}
               >
                 Xác nhận thêm
@@ -514,7 +514,7 @@ const Services: React.FC = () => {
                   placeholder="Giặt sấy chăn mền lớn"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
+                  className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   required
                 />
               </div>
@@ -527,7 +527,7 @@ const Services: React.FC = () => {
                     placeholder="Giặt thường"
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors"
                   />
                 </div>
 
@@ -536,7 +536,7 @@ const Services: React.FC = () => {
                   <select
                     value={editUnit}
                     onChange={(e) => setEditUnit(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
                     required
                   >
                     <option value="kg">kg</option>
@@ -555,7 +555,7 @@ const Services: React.FC = () => {
                     placeholder="20000"
                     value={editPrice || ''}
                     onChange={(e) => setEditPrice(Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors font-mono font-semibold"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors font-mono font-semibold"
                     required
                   />
                 </div>
@@ -565,7 +565,7 @@ const Services: React.FC = () => {
                   <select
                     value={editIsActive ? 'active' : 'inactive'}
                     onChange={(e) => setEditIsActive(e.target.value === 'active')}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 transition-colors cursor-pointer"
                   >
                     <option value="active">Hoạt động</option>
                     <option value="inactive">Tạm ngưng</option>
@@ -579,13 +579,13 @@ const Services: React.FC = () => {
                   placeholder="Mô tả các bước thực hiện..."
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full p-3.5 border border-slate-200 focus:border-blue-500 rounded-xl text-xs outline-none bg-slate-50/50 min-h-[70px] transition-colors"
+                  className="w-full p-3.5 border border-slate-200 focus:border-primary rounded-xl text-xs outline-none bg-slate-50/50 min-h-[70px] transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs shadow-md transition-all btn-press mt-3"
+                className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-xs shadow-md transition-all btn-press mt-3"
                 disabled={loading}
               >
                 Cập nhật
@@ -625,7 +625,7 @@ const Services: React.FC = () => {
                   onChange={handleFileChange}
                   className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
-                <Upload className="mx-auto text-slate-400 group-hover:text-blue-500 transition-colors mb-2" size={24} strokeWidth={1.5} />
+                <Upload className="mx-auto text-slate-400 group-hover:text-primary transition-colors mb-2" size={24} strokeWidth={1.5} />
                 <p className="text-xs font-bold text-slate-700">Tải file Excel lên</p>
                 <p className="text-[10px] text-slate-400 mt-1 max-w-[280px] mx-auto leading-normal">Định dạng hỗ trợ: .xlsx, .xls. Các cột yêu cầu: name, price, category, unit, description</p>
                 {excelFile && (

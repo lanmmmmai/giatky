@@ -126,7 +126,7 @@ const Payroll: React.FC = () => {
         {user?.role !== 'staff' && (
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-card space-y-4 h-fit">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-1">
-              <PlusCircle size={14} className="text-blue-500" /> Tính lương tháng mới
+              <PlusCircle size={14} className="text-primary" /> Tính lương tháng mới
             </h3>
 
             <form onSubmit={handleGenerate} className="space-y-4">
@@ -174,7 +174,7 @@ const Payroll: React.FC = () => {
               <button
                 type="submit"
                 disabled={actionLoading}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-1.5"
               >
                 <CircleDollarSign size={16} />
                 Tính lương tự động
@@ -279,7 +279,7 @@ const Payroll: React.FC = () => {
                           <td className="p-4 font-bold text-slate-700">
                             {pr.total_hours} giờ
                           </td>
-                          <td className="p-4 font-extrabold text-blue-600">
+                          <td className="p-4 font-extrabold text-primary">
                             {formatCurrency(pr.total_salary)}
                           </td>
                           <td className="p-4">

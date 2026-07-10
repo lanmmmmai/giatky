@@ -121,7 +121,7 @@ const Orders: React.FC = () => {
         </div>
         <Link
           to={`${base}/orders/create`}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
         >
           <Plus size={16} />
           Tạo đơn hàng mới
@@ -138,12 +138,12 @@ const Orders: React.FC = () => {
               placeholder="Tìm theo số điện thoại khách hàng..."
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:bg-white focus:border-blue-500 transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:bg-white focus:border-primary transition-all"
             />
           </div>
           <button
             type="submit"
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+            className="px-5 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
           >
             Tìm kiếm
           </button>
@@ -219,7 +219,7 @@ const Orders: React.FC = () => {
               <tbody>
                 {orders.map(order => {
                   const statusColors = {
-                    new: 'bg-blue-50 text-blue-600 border-blue-200',
+                    new: 'bg-primary/10 text-primary border-primary/20',
                     washing: 'bg-cyan-50 text-cyan-600 border-cyan-200',
                     drying: 'bg-purple-50 text-purple-600 border-purple-200',
                     ready: 'bg-amber-50 text-amber-600 border-amber-200',
@@ -250,7 +250,7 @@ const Orders: React.FC = () => {
 
                   return (
                     <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      <td className="p-4 font-bold text-blue-600">
+                      <td className="p-4 font-bold text-primary">
                         <Link to={`${base}/orders/${order.id}`} className="hover:underline">{order.order_code}</Link>
                       </td>
                       <td className="p-4">
@@ -283,7 +283,7 @@ const Orders: React.FC = () => {
                         <div className="flex items-center justify-center gap-2">
                           <Link
                             to={`${base}/orders/${order.id}`}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                             title="Xem chi tiết"
                           >
                             <Eye size={16} />

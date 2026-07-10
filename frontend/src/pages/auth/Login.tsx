@@ -74,7 +74,7 @@ const Login: React.FC = () => {
 
         {/* Top: Branding Tag */}
         <div className="relative z-10">
-          <span className="px-3.5 py-1.5 bg-white/5 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-blue-200 border border-white/5 w-fit block">
+          <span className="px-3.5 py-1.5 bg-white/5 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-secondary border border-white/5 w-fit block">
             Laundry Management System
           </span>
         </div>
@@ -103,12 +103,12 @@ const Login: React.FC = () => {
 
         {/* Bottom: Slogan Card */}
         <div className="relative z-10 bg-white/5 backdrop-blur-lg border border-white/5 rounded-2xl p-4 flex items-center gap-3 max-w-sm">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
+          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shadow-md">
             L
           </div>
           <div>
             <h4 className="font-bold text-xs tracking-wide text-slate-200">Giặt Ký</h4>
-            <p className="text-[8px] text-blue-300 uppercase tracking-widest font-bold mt-0.5">Sạch Thơm Tin Tưởng</p>
+            <p className="text-[8px] text-secondary uppercase tracking-widest font-bold mt-0.5">Sạch Thơm Tin Tưởng</p>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ const Login: React.FC = () => {
         
         {/* Header Branding (Visible on Mobile only) */}
         <div className="lg:hidden flex items-center gap-2 pb-6 border-b border-slate-100 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shadow-md">
+          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-md">
             L
           </div>
           <div>
@@ -130,7 +130,7 @@ const Login: React.FC = () => {
         <div className="my-auto space-y-6">
           {/* Logo & Headline */}
           <div className="space-y-3">
-            <div className="hidden lg:flex w-12 h-12 rounded-2xl bg-blue-600 text-white items-center justify-center font-bold text-base shadow-md shadow-blue-500/10">
+            <div className="hidden lg:flex w-12 h-12 rounded-2xl bg-primary text-white items-center justify-center font-bold text-base shadow-md shadow-primary/20">
               L
             </div>
             <div>
@@ -153,7 +153,7 @@ const Login: React.FC = () => {
                   placeholder="admin / admin@lanhsach.com"
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 rounded-xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -165,7 +165,7 @@ const Login: React.FC = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Mật khẩu
                 </label>
-                <Link to="/forgot-password" className="text-[10px] text-blue-600 hover:underline font-semibold">
+                <Link to="/forgot-password" className="text-[10px] text-primary hover:underline font-semibold">
                   Quên mật khẩu?
                 </Link>
               </div>
@@ -176,7 +176,7 @@ const Login: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 rounded-xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -185,7 +185,7 @@ const Login: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
+              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
               disabled={loading}
             >
               <LogIn size={13} strokeWidth={1.5} />
@@ -215,7 +215,7 @@ const Login: React.FC = () => {
         <div className="text-center pt-6 lg:pt-0">
           <p className="text-[11px] text-slate-400 font-medium">
             Nhân viên mới?{' '}
-            <Link to="/register" className="text-blue-600 hover:underline font-semibold">
+            <Link to="/register" className="text-primary hover:underline font-semibold">
               Gửi yêu cầu đăng ký ca
             </Link>
           </p>

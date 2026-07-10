@@ -1,6 +1,6 @@
-# Lành Sạch Laundry - Hệ thống quản lý tiệm giặt ký
+# Giặt Ký - Hệ thống quản lý tiệm giặt ký
 
-Hệ thống quản lý chuyên nghiệp, tinh gọn dành riêng cho chuỗi tiệm giặt ký / giặt sấy **Lành Sạch Laundry**.
+Hệ thống quản lý chuyên nghiệp, tinh gọn dành riêng cho chuỗi tiệm giặt ký / giặt sấy **Giặt Ký**.
 Dự án được xây dựng theo mô hình **production-ready**, phân quyền chặt chẽ cho 3 vai trò: **Chủ Tiệm (Admin)**, **Quản Lý Cơ Sở (Manager)**, và **Nhân Viên (Staff)**.
 
 ---

@@ -54,7 +54,7 @@ const Notifications: React.FC = () => {
         {notifications.some(n => !n.is_read) && (
           <button
             onClick={handleReadAll}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
           >
             <CheckSquare size={16} />
             Đánh dấu đọc tất cả
@@ -71,14 +71,14 @@ const Notifications: React.FC = () => {
         <div className="space-y-3 max-w-2xl mx-auto animate-in fade-in duration-200">
           {notifications.map(n => {
             const icons = {
-              order: <FileText size={18} className="text-blue-500" />,
+              order: <FileText size={18} className="text-primary" />,
               system: <Bell size={18} className="text-indigo-500" />,
               payroll: <CheckSquare size={18} className="text-emerald-500" />,
               announcement: <Bell size={18} className="text-amber-500" />,
               chat: <MessageSquare size={18} className="text-cyan-500" />
             }[n.type] || <Bell size={18} className="text-slate-500" />;
 
-            const bgClass = n.is_read ? 'bg-white border-slate-200' : 'bg-blue-50/50 border-blue-200 shadow-sm';
+            const bgClass = n.is_read ? 'bg-white border-slate-200' : 'bg-primary/10/50 border-primary/20 shadow-sm';
 
             return (
               <div
@@ -92,7 +92,7 @@ const Notifications: React.FC = () => {
                 
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between items-start">
-                    <h4 className={`text-xs font-bold ${n.is_read ? 'text-slate-700' : 'text-blue-900'}`}>{n.title}</h4>
+                    <h4 className={`text-xs font-bold ${n.is_read ? 'text-slate-700' : 'text-primary-dark'}`}>{n.title}</h4>
                     <span className="text-[10px] text-slate-400 font-medium">
                       {new Date(n.created_at).toLocaleString('vi-VN')}
                     </span>
@@ -101,7 +101,7 @@ const Notifications: React.FC = () => {
                 </div>
 
                 {!n.is_read && (
-                  <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" />
+                  <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2" />
                 )}
               </div>
             );

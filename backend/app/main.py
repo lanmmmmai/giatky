@@ -27,8 +27,8 @@ logging.basicConfig(
 logger = logging.getLogger("app.main")
 
 app = FastAPI(
-    title="Lành Sạch Laundry API",
-    description="Hệ thống quản lý chuỗi tiệm giặt ký Lành Sạch Laundry",
+    title="Giặt Ký API",
+    description="Hệ thống quản lý chuỗi tiệm giặt ký Giặt Ký",
     version="2.0.0",
     docs_url="/docs"
 )

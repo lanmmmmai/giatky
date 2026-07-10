@@ -58,7 +58,7 @@ const ForgotPassword: React.FC = () => {
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all outline-none"
                 required
               />
             </div>
@@ -66,7 +66,7 @@ const ForgotPassword: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99]"
+            className="w-full py-3.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99]"
             disabled={loading}
           >
             <Send size={16} />
@@ -74,7 +74,7 @@ const ForgotPassword: React.FC = () => {
           </button>
         </form>
       ) : (
-        <div className="bg-blue-50 border border-blue-200 text-blue-950 p-4 rounded-xl text-center text-sm leading-relaxed">
+        <div className="bg-primary/10 border border-primary/20 text-blue-950 p-4 rounded-xl text-center text-sm leading-relaxed">
           Đường dẫn khôi phục mật khẩu đã được gửi đến email <strong>{email}</strong>. Vui lòng kiểm tra hộp thư đến (và thư rác) để hoàn tất.
         </div>
       )}

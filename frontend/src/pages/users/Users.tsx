@@ -228,7 +228,7 @@ const Users: React.FC = () => {
             setRoleToCreate('staff');
             setCreateModalOpen(true);
           }}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
         >
           <Plus size={16} />
           Tạo tài khoản mới
@@ -259,7 +259,7 @@ const Users: React.FC = () => {
                 {usersList.map(u => {
                   const roleBadges = {
                     admin: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                    manager: 'bg-blue-50 text-blue-700 border-blue-200',
+                    manager: 'bg-primary/10 text-primary border-primary/20',
                     staff: 'bg-cyan-50 text-cyan-700 border-cyan-200'
                   }[u.role] || 'bg-slate-50 text-slate-500 border-slate-200';
 
@@ -335,7 +335,7 @@ const Users: React.FC = () => {
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleEditClick(u)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                               title="Chỉnh sửa thông tin"
                             >
                               <Edit2 size={14} />
@@ -387,7 +387,7 @@ const Users: React.FC = () => {
                       onClick={() => setRoleToCreate('manager')}
                       className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
                         roleToCreate === 'manager' 
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                          ? 'bg-primary border-primary text-white shadow-sm'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
@@ -399,7 +399,7 @@ const Users: React.FC = () => {
                     onClick={() => setRoleToCreate('staff')}
                     className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
                       roleToCreate === 'staff' 
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        ? 'bg-primary border-primary text-white shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -415,7 +415,7 @@ const Users: React.FC = () => {
                   placeholder="Nguyễn Văn A"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   required
                 />
               </div>
@@ -428,7 +428,7 @@ const Users: React.FC = () => {
                     placeholder="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                     required
                   />
                 </div>
@@ -439,7 +439,7 @@ const Users: React.FC = () => {
                     placeholder="0987654321"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -451,7 +451,7 @@ const Users: React.FC = () => {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   required
                 />
               </div>
@@ -463,7 +463,7 @@ const Users: React.FC = () => {
                   placeholder="Mặc định tự sinh"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
 
@@ -477,7 +477,7 @@ const Users: React.FC = () => {
                         value={hourlyRate || ''}
                         onChange={(e) => setHourlyRate(Number(e.target.value))}
                         placeholder="25000"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                         required
                       />
                     </div>
@@ -487,7 +487,7 @@ const Users: React.FC = () => {
                         <select
                           value={selectedManagerId}
                           onChange={(e) => setSelectedManagerId(e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                         >
                           <option value="">Chọn Manager</option>
                           {usersList.filter(u => u.role === 'manager').map(m => (
@@ -515,7 +515,7 @@ const Users: React.FC = () => {
                                   setBranchIds(prev => prev.filter(id => id !== b.id));
                                 }
                               }}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              className="rounded border-slate-300 text-primary focus:ring-blue-500"
                             />
                             {b.name}
                           </label>
@@ -530,12 +530,12 @@ const Users: React.FC = () => {
                         {branchIds.map(id => {
                           const bName = branches.find(b => b.id === id)?.name || id;
                           return (
-                            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/15">
                               {bName}
                               <button
                                 type="button"
                                 onClick={() => setBranchIds(prev => prev.filter(x => x !== id))}
-                                className="text-blue-500 hover:text-blue-700 transition-colors ml-1"
+                                className="text-primary hover:text-primary transition-colors ml-1"
                               >
                                 <X size={10} />
                               </button>
@@ -550,7 +550,7 @@ const Users: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
                 disabled={loading}
               >
                 Xác nhận tạo
@@ -579,7 +579,7 @@ const Users: React.FC = () => {
                   placeholder="Nguyễn Văn A"
                   value={editFullName}
                   onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   required
                 />
               </div>
@@ -592,7 +592,7 @@ const Users: React.FC = () => {
                     placeholder="0987654321"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   />
                 </div>
                 {editUserRole === 'staff' && (
@@ -603,7 +603,7 @@ const Users: React.FC = () => {
                       value={editHourlyRate || ''}
                       onChange={(e) => setEditHourlyRate(Number(e.target.value))}
                       placeholder="25000"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                       required
                     />
                   </div>
@@ -618,7 +618,7 @@ const Users: React.FC = () => {
                       <select
                         value={editManagerId}
                         onChange={(e) => setEditManagerId(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                       >
                         <option value="">Chọn Manager</option>
                         {usersList.filter(u => u.role === 'manager').map(m => (
@@ -645,7 +645,7 @@ const Users: React.FC = () => {
                                   setEditBranchIds(prev => prev.filter(id => id !== b.id));
                                 }
                               }}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              className="rounded border-slate-300 text-primary focus:ring-blue-500"
                             />
                             {b.name}
                           </label>
@@ -660,12 +660,12 @@ const Users: React.FC = () => {
                         {editBranchIds.map(id => {
                           const bName = branches.find(b => b.id === id)?.name || id;
                           return (
-                            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/15">
                               {bName}
                               <button
                                 type="button"
                                 onClick={() => setEditBranchIds(prev => prev.filter(x => x !== id))}
-                                className="text-blue-500 hover:text-blue-700 transition-colors ml-1"
+                                className="text-primary hover:text-primary transition-colors ml-1"
                               >
                                 <X size={10} />
                               </button>
@@ -680,7 +680,7 @@ const Users: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
                 disabled={loading}
               >
                 Cập nhật thay đổi

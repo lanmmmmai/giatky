@@ -144,7 +144,7 @@ const Branches: React.FC = () => {
         {(user?.role === 'admin' || user?.role === 'manager') && (
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
           >
             <Plus size={16} />
             Tạo cơ sở mới
@@ -198,7 +198,7 @@ const Branches: React.FC = () => {
                 <div className="flex justify-end gap-2 border-t border-slate-50 pt-3">
                   <button
                     onClick={() => handleEditClick(b)}
-                    className="p-1.5 text-blue-600 hover:bg-blue-50 border border-slate-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
+                    className="p-1.5 text-primary hover:bg-primary/10 border border-slate-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
                   >
                     <Edit2 size={12} />
                     Sửa
@@ -238,7 +238,7 @@ const Branches: React.FC = () => {
                   placeholder="Giặt Ký Quận 1"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   required
                 />
               </div>
@@ -250,7 +250,7 @@ const Branches: React.FC = () => {
                   placeholder="123 Trần Hưng Đạo, P. Nguyễn Cư Trinh..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
 
@@ -261,7 +261,7 @@ const Branches: React.FC = () => {
                   placeholder="028 1234 5678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
 
@@ -271,7 +271,7 @@ const Branches: React.FC = () => {
                   <select
                     value={managerId}
                     onChange={(e) => setManagerId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                   >
                     <option value="">Không gán / Chọn sau</option>
                     {managers.map(m => (
@@ -283,7 +283,7 @@ const Branches: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
                 disabled={loading}
               >
                 Tạo mới
@@ -312,7 +312,7 @@ const Branches: React.FC = () => {
                   placeholder="Giặt Ký Quận 1"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                   required
                 />
               </div>
@@ -324,7 +324,7 @@ const Branches: React.FC = () => {
                   placeholder="123 Trần Hưng Đạo..."
                   value={editAddress}
                   onChange={(e) => setEditAddress(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
 
@@ -335,7 +335,7 @@ const Branches: React.FC = () => {
                   placeholder="028 1234 5678"
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
                 />
               </div>
 
@@ -346,7 +346,7 @@ const Branches: React.FC = () => {
                     <select
                       value={editManagerId}
                       onChange={(e) => setEditManagerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                     >
                       <option value="">Không gán</option>
                       {managers.map(m => (
@@ -361,7 +361,7 @@ const Branches: React.FC = () => {
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
                   >
                     <option value="active">Hoạt động</option>
                     <option value="inactive">Tạm ngưng</option>
@@ -371,7 +371,7 @@ const Branches: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
                 disabled={loading}
               >
                 Lưu thay đổi
