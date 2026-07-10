@@ -277,7 +277,7 @@ const Reports: React.FC = () => {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Giá trị trung bình đơn</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{formatCurrency(report.summary.average_order_value)}</h4>
               </div>
-              <TrendingUp size={20} className="text-cyan-500" />
+              <TrendingUp size={20} className="text-secondary" />
             </div>
             
           </div>

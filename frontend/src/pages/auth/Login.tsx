@@ -93,7 +93,7 @@ const Login: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Đơn hàng realtime
             </span>
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Chấm công chính xác
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span> Chấm công chính xác
             </span>
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Báo cáo doanh thu
@@ -135,7 +135,7 @@ const Login: React.FC = () => {
             </div>
             <div>
               <h3 className="hidden lg:block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Giặt Ký</h3>
-              <h2 className="text-xl font-bold text-slate-850 tracking-tight mt-1">Đăng nhập hệ thống</h2>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-1">Đăng nhập hệ thống</h2>
               <p className="text-xs font-semibold text-slate-400 mt-1">Hệ thống quản lý chuyên nghiệp, tinh gọn</p>
             </div>
           </div>

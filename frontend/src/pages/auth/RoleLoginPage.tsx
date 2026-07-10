@@ -173,8 +173,8 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
               GK
             </div>
             <div>
-              <h3 className="hidden lg:block text-[10px] font-bold text-slate-450 uppercase tracking-widest">Giặt Ký</h3>
-              <h2 className="text-xl font-bold text-slate-850 tracking-tight mt-1">{details.title}</h2>
+              <h3 className="hidden lg:block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Giặt Ký</h3>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-1">{details.title}</h2>
               <p className="text-xs font-semibold text-slate-400 mt-1">{details.desc}</p>
             </div>
           </div>

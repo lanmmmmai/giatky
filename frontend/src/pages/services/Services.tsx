@@ -358,7 +358,7 @@ const Services: React.FC = () => {
                     <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50/20 transition-colors">
                       <td className="p-4 pl-6 font-bold text-slate-800">{s.name}</td>
                       <td className="p-4">
-                        <span className="px-2.5 py-0.5 bg-primary/100/10 text-primary border border-primary/10 rounded-md font-semibold text-[9px]">
+                        <span className="px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/10 rounded-md font-semibold text-[9px]">
                           {s.category}
                         </span>
                       </td>

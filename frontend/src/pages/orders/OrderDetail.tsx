@@ -130,7 +130,7 @@ const OrderDetail: React.FC = () => {
               <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
                 {
                   new: 'bg-primary/10 text-primary border-primary/20',
-                  washing: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+                  washing: 'bg-secondary/10 text-secondary border-secondary/20',
                   drying: 'bg-purple-50 text-purple-600 border-purple-200',
                   ready: 'bg-amber-50 text-amber-600 border-amber-200',
                   delivered: 'bg-emerald-50 text-emerald-600 border-emerald-200',

@@ -227,13 +227,13 @@ const Chat: React.FC = () => {
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
-                    isActive ? 'bg-blue-700 text-white' : 'bg-primary/15 text-primary'
+                    isActive ? 'bg-primary-dark text-white' : 'bg-primary/15 text-primary'
                   }`}>
                     {r.display_name[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-xs truncate leading-5">{r.display_name}</h4>
-                    <p className={`text-[10px] truncate ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] truncate ${isActive ? 'text-primary/20' : 'text-slate-400'}`}>
                       {r.last_message ? `${r.last_message.sender_name}: ${r.last_message.message}` : 'Chưa có tin nhắn nào.'}
                     </p>
                   </div>

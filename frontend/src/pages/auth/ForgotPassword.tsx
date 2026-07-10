@@ -74,7 +74,7 @@ const ForgotPassword: React.FC = () => {
           </button>
         </form>
       ) : (
-        <div className="bg-primary/10 border border-primary/20 text-blue-950 p-4 rounded-xl text-center text-sm leading-relaxed">
+        <div className="bg-primary/10 border border-primary/20 text-primary-dark p-4 rounded-xl text-center text-sm leading-relaxed">
           Đường dẫn khôi phục mật khẩu đã được gửi đến email <strong>{email}</strong>. Vui lòng kiểm tra hộp thư đến (và thư rác) để hoàn tất.
         </div>
       )}

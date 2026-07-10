@@ -21,7 +21,7 @@ const ToastContainer: React.FC = () => {
           success: 'bg-emerald-50 border-emerald-200 text-emerald-950',
           error: 'bg-rose-50 border-rose-200 text-rose-950',
           warning: 'bg-amber-50 border-amber-200 text-amber-950',
-          info: 'bg-primary/10 border-primary/20 text-blue-950',
+          info: 'bg-primary/10 border-primary/20 text-primary-dark',
         }[toast.type];
 
         return (

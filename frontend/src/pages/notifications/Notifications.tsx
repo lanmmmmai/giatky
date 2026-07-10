@@ -75,7 +75,7 @@ const Notifications: React.FC = () => {
               system: <Bell size={18} className="text-indigo-500" />,
               payroll: <CheckSquare size={18} className="text-emerald-500" />,
               announcement: <Bell size={18} className="text-amber-500" />,
-              chat: <MessageSquare size={18} className="text-cyan-500" />
+              chat: <MessageSquare size={18} className="text-secondary" />
             }[n.type] || <Bell size={18} className="text-slate-500" />;
 
             const bgClass = n.is_read ? 'bg-white border-slate-200' : 'bg-primary/10/50 border-primary/20 shadow-sm';

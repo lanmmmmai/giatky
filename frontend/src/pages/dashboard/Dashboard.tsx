@@ -56,7 +56,7 @@ const Dashboard: React.FC = () => {
       {/* Welcome Banner */}
       <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-7 relative overflow-hidden shadow-sm">
         <div className="relative z-10 space-y-2 max-w-xl">
-          <span className="inline-block px-2.5 py-1 bg-primary/100/10 border border-primary/20 rounded-full text-[9px] font-bold uppercase tracking-wider text-secondary">
+          <span className="inline-block px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-full text-[9px] font-bold uppercase tracking-wider text-secondary">
             Hệ thống quản trị
           </span>
           <h2 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100">Xin chào, {user?.full_name}!</h2>
@@ -226,7 +226,7 @@ const Dashboard: React.FC = () => {
                 <h4 className="text-xs font-semibold text-slate-700">Quản lý Staff</h4>
               </Link>
               <Link to={`${base}/services`} className="p-4 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-2xl text-center space-y-2 group transition-all btn-press">
-                <Briefcase className="mx-auto text-cyan-600 group-hover:scale-110 transition-transform" size={20} strokeWidth={1.5} />
+                <Briefcase className="mx-auto text-secondary group-hover:scale-110 transition-transform" size={20} strokeWidth={1.5} />
                 <h4 className="text-xs font-semibold text-slate-700">Dịch vụ</h4>
               </Link>
               <Link to={`${base}/cms`} className="p-4 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-2xl text-center space-y-2 group transition-all btn-press">
@@ -288,8 +288,8 @@ const Dashboard: React.FC = () => {
               ) : (
                 data.recent_orders.map(order => {
                   const statusColors = {
-                    new: 'bg-primary/100/10 text-primary border-primary/20 dark:text-secondary',
-                    washing: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 dark:text-cyan-400',
+                    new: 'bg-primary/10 text-primary border-primary/20 dark:text-secondary',
+                    washing: 'bg-secondary/100/10 text-secondary border-secondary/20 dark:text-secondary',
                     drying: 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400',
                     ready: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
                     delivered: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400',

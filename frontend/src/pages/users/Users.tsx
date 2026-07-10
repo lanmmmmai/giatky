@@ -260,7 +260,7 @@ const Users: React.FC = () => {
                   const roleBadges = {
                     admin: 'bg-indigo-50 text-indigo-700 border-indigo-200',
                     manager: 'bg-primary/10 text-primary border-primary/20',
-                    staff: 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                    staff: 'bg-secondary/10 text-secondary border-secondary/20'
                   }[u.role] || 'bg-slate-50 text-slate-500 border-slate-200';
 
                   const roleNames = {
@@ -515,7 +515,7 @@ const Users: React.FC = () => {
                                   setBranchIds(prev => prev.filter(id => id !== b.id));
                                 }
                               }}
-                              className="rounded border-slate-300 text-primary focus:ring-blue-500"
+                              className="rounded border-slate-300 text-primary focus:ring-primary"
                             />
                             {b.name}
                           </label>
@@ -645,7 +645,7 @@ const Users: React.FC = () => {
                                   setEditBranchIds(prev => prev.filter(id => id !== b.id));
                                 }
                               }}
-                              className="rounded border-slate-300 text-primary focus:ring-blue-500"
+                              className="rounded border-slate-300 text-primary focus:ring-primary"
                             />
                             {b.name}
                           </label>
