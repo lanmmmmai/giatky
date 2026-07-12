@@ -11,7 +11,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   subMessage = "Hệ thống hiện chưa có bản ghi nào khớp với điều kiện lọc."
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white p-6 shadow-sm">
+    <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 rounded-[20px] bg-white p-6 shadow-sm">
       <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
         <Inbox size={24} className="text-slate-400" />
       </div>

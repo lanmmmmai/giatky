@@ -236,19 +236,22 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
 
     # 5. Send order success email
     if customer.get("email"):
-        send_template_email(
-            to_email=customer["email"],
-            template_type="order_success",
-            template_data={
-                "full_name": customer["full_name"],
-                "order_code": order_code,
-                "branch_name": branch_name,
-                "total_amount": "{:,}".format(total_amount),
-                "payment_status": "Đã thanh toán" if payload.payment_status == "paid" else "Chưa thanh toán",
-                "expected_return_at": payload.expected_return_at.strftime("%H:%M %d/%m/%Y") if payload.expected_return_at else "Liên hệ sau"
-            },
-            sent_by=current_user["id"]
-        )
+        try:
+            send_template_email(
+                to_email=customer["email"],
+                template_type="order_success",
+                template_data={
+                    "full_name": customer["full_name"],
+                    "order_code": order_code,
+                    "branch_name": branch_name,
+                    "total_amount": "{:,}".format(total_amount),
+                    "payment_status": "Đã thanh toán" if payload.payment_status == "paid" else "Chưa thanh toán",
+                    "expected_return_at": payload.expected_return_at.strftime("%H:%M %d/%m/%Y") if payload.expected_return_at else "Liên hệ sau"
+                },
+                sent_by=current_user["id"]
+            )
+        except Exception as e:
+            logger.error(f"Failed to send order success email: {str(e)}")
 
     return order
 

@@ -326,7 +326,7 @@ const RevenueReports: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top action header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card">
         <div>
           <h1 className="text-lg font-bold text-slate-800 tracking-tight">
             Báo cáo doanh thu tháng {selectedMonth}/{selectedYear}
@@ -340,7 +340,7 @@ const RevenueReports: React.FC = () => {
           {reports.length > 0 && (
             <button
               onClick={handleExportExcel}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10"
             >
               <Download size={14} />
               Xuất Excel
@@ -350,14 +350,14 @@ const RevenueReports: React.FC = () => {
       </div>
 
       {/* Filters Panel */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap gap-4 items-center">
+      <div className="bg-white p-4 rounded-[20px] border border-[#ECECEC] shadow-card flex flex-wrap gap-4 items-center">
         {user?.role !== 'staff' && (
           <div className="flex flex-col gap-1 w-full sm:w-48">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cơ sở</label>
             <select
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary rounded-xl text-xs outline-none transition-all"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs outline-none transition-all"
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
@@ -371,7 +371,7 @@ const RevenueReports: React.FC = () => {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary rounded-xl text-xs outline-none transition-all"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs outline-none transition-all"
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>Tháng {m}</option>
@@ -384,7 +384,7 @@ const RevenueReports: React.FC = () => {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary rounded-xl text-xs outline-none transition-all"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs outline-none transition-all"
           >
             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -394,7 +394,7 @@ const RevenueReports: React.FC = () => {
       </div>
 
       {/* Spreadsheet Grid Container */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden">
         {loading ? (
           <div className="p-20 flex justify-center">
             <LoadingSpinner />
@@ -475,7 +475,7 @@ const RevenueReports: React.FC = () => {
                     return (
                       <tr
                         key={rep.report_date}
-                        className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-xs text-slate-700"
+                        className="border-b border-slate-100 hover:bg-primary/5 transition-colors text-xs text-slate-700"
                       >
                         <td className="text-center p-2 border-r border-slate-150 bg-slate-50/30">{day}</td>
                         <td className="text-center p-2 border-r border-slate-150 font-medium">{String(day).padStart(2, '0')}/{String(selectedMonth).padStart(2, '0')}</td>
@@ -485,7 +485,7 @@ const RevenueReports: React.FC = () => {
                             value={day === 1 ? getCellValue(rep, 'opening_cash') : cellOpening}
                             onChange={(e) => handleCellChange(rep.report_date, 'opening_cash', e.target.value)}
                             disabled={day > 1 || isReadOnly || isSaving}
-                            className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
+                            className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all ${
                               day > 1 || isReadOnly ? 'border-transparent font-semibold bg-amber-50/20' : 'border-slate-200'
                             }`}
                           />
@@ -517,7 +517,7 @@ const RevenueReports: React.FC = () => {
                           value={getCellValue(rep, 'expense_amount')}
                           onChange={(e) => handleCellChange(rep.report_date, 'expense_amount', e.target.value)}
                           disabled={isReadOnly || isSaving}
-                          className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
+                          className={`w-full px-2 py-1 text-right bg-transparent rounded border focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all ${
                             isReadOnly ? 'border-transparent' : 'border-slate-200'
                           }`}
                         />
@@ -530,7 +530,7 @@ const RevenueReports: React.FC = () => {
                           onChange={(e) => handleCellChange(rep.report_date, 'expense_description', e.target.value)}
                           placeholder={cellExpense > 0 ? "Nhập lý do chi..." : "Lý do chi..."}
                           disabled={isReadOnly || isSaving}
-                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
+                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all ${
                             isReadOnly ? 'border-transparent' : 'border-slate-200'
                           }`}
                         />
@@ -547,7 +547,7 @@ const RevenueReports: React.FC = () => {
                           onChange={(e) => handleCellChange(rep.report_date, 'note', e.target.value)}
                           placeholder="Ghi chú ngày..."
                           disabled={isReadOnly || isSaving}
-                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-primary outline-none transition-all ${
+                          className={`w-full px-2 py-1 bg-transparent rounded border focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all ${
                             isReadOnly ? 'border-transparent' : 'border-slate-200'
                           }`}
                         />
@@ -652,7 +652,7 @@ const RevenueReports: React.FC = () => {
 
       {rejectModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-100 shadow-2xl space-y-4">
+          <div className="bg-white rounded-[24px] p-6 max-w-md w-full border border-slate-100 shadow-2xl space-y-4">
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Từ chối duyệt báo cáo</h3>
             <p className="text-xs text-slate-400">
               Vui lòng nhập lý do từ chối báo cáo này.
@@ -662,19 +662,19 @@ const RevenueReports: React.FC = () => {
               onChange={(e) => setRejectReasonText(e.target.value)}
               placeholder="Nhập lý do từ chối..."
               rows={3}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 rounded-xl text-xs outline-none transition-all resize-none font-medium"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 rounded-2xl text-xs outline-none transition-all resize-none font-medium"
             />
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setRejectModalOpen(false)}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 border border-slate-200 hover:bg-primary/5 text-slate-600 rounded-2xl text-xs font-semibold transition-all"
               >
                 Hủy
               </button>
               <button
                 onClick={handleRejectRow}
                 disabled={!rejectReasonText.trim()}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-450 text-white rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-450 text-white rounded-2xl text-xs font-semibold transition-all"
               >
                 Xác nhận từ chối
               </button>

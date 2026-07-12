@@ -7,6 +7,7 @@ import {
   Bell,
   LogOut,
   Menu,
+  Search,
   X,
   User as UserIcon
 } from 'lucide-react';
@@ -70,25 +71,29 @@ const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50/50 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[#F7F8FC] text-[#222222]">
       {/* Sidebar for Desktop */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-slate-400 flex flex-col border-r border-slate-800/40 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:flex-shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-72 p-4 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:flex-shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-full bg-white text-slate-500 flex flex-col rounded-[28px] border border-white shadow-card overflow-hidden">
         {/* Brand Logo */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/60">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100">
           <Link to={base} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center font-bold text-white text-xs shadow-[0_8px_24px_rgba(108,99,255,0.24)] relative overflow-hidden">
+            <div className="w-10 h-10 rounded-[20px] bg-primary flex items-center justify-center font-bold text-white text-xs shadow-[0_12px_26px_rgba(108,99,255,0.26)] relative overflow-hidden">
               <span className="relative z-10 font-mono tracking-tighter">GK</span>
             </div>
-            <span className="font-semibold text-xs tracking-[0.2em] text-slate-100">GIẶT KÝ</span>
+            <div>
+              <span className="font-bold text-sm tracking-tight text-slate-900 block">Giặt Ký</span>
+              <span className="text-[9px] uppercase tracking-[0.18em] text-slate-400 font-bold">Dashboard</span>
+            </div>
           </Link>
-          <button className="md:hidden text-slate-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+          <button className="md:hidden text-slate-400 hover:text-primary" onClick={() => setSidebarOpen(false)}>
             <X size={18} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* User Card */}
-        <div className="p-4 border-b border-slate-800/60 bg-slate-950/20 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/50 flex items-center justify-center font-bold overflow-hidden shadow-inner relative">
+        <div className="m-4 p-4 rounded-[20px] bg-primary-light border border-primary/10 flex items-center gap-3">
+          <div className="w-11 h-11 rounded-[20px] bg-white text-primary border border-primary/10 flex items-center justify-center font-bold overflow-hidden shadow-sm relative">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
             ) : (
@@ -96,22 +101,22 @@ const DashboardLayout: React.FC = () => {
             )}
           </div>
           <div className="overflow-hidden">
-            <h4 className="font-semibold text-xs truncate text-slate-200 leading-tight">{user.full_name}</h4>
-            <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono font-medium block mt-1">
+            <h4 className="font-bold text-xs truncate text-slate-900 leading-tight">{user.full_name}</h4>
+            <span className="text-[9px] text-primary uppercase tracking-widest font-mono font-bold block mt-1">
               {user.role === 'admin' ? 'CHỦ TIỆM' : user.role === 'manager' ? 'QUẢN LÝ' : 'NHÂN VIÊN'}
             </span>
           </div>
         </div>
 
         {/* Menu Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
           {allowedMenuItems.map(item => {
             const isActive = location.pathname.startsWith(item.fullPath);
             return (
               <Link
                 key={item.fullPath}
                 to={item.fullPath}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 btn-press border ${isActive ? 'bg-primary text-white border-primary shadow-[0_10px_24px_rgba(108,99,255,0.22)]' : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-[20px] text-xs font-bold transition-all duration-200 btn-press border ${isActive ? 'bg-primary text-white border-primary shadow-[0_12px_26px_rgba(108,99,255,0.24)]' : 'border-transparent text-slate-500 hover:bg-primary/10 hover:text-primary'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement, { strokeWidth: 1.5, size: 16 }) : item.icon}
@@ -122,38 +127,46 @@ const DashboardLayout: React.FC = () => {
         </nav>
 
         {/* Footer info & Logout */}
-        <div className="p-4 border-t border-slate-800/60">
+        <div className="p-4 border-t border-slate-100">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/30 hover:bg-rose-950/20 hover:text-rose-400 text-slate-400 border border-slate-800 hover:border-rose-900/30 transition-all text-xs font-medium btn-press"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[20px] bg-slate-100 hover:bg-rose-50 hover:text-rose-500 text-slate-500 border border-slate-100 hover:border-rose-100 transition-all text-xs font-bold btn-press"
           >
             <LogOut size={16} strokeWidth={1.5} />
             <span className="tracking-tight">Đăng xuất</span>
           </button>
+        </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Topbar Header */}
-        <header className="h-16 glass flex items-center justify-between px-6 z-30 border-b border-slate-200/60">
+        <header className="h-20 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-30">
           {/* Mobile Sidebar Toggle & Page Title */}
-          <div className="flex items-center gap-4">
-            <button className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors btn-press" onClick={() => setSidebarOpen(true)}>
+          <div className="flex items-center gap-4 min-w-0">
+            <button className="md:hidden p-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition-colors btn-press" onClick={() => setSidebarOpen(true)}>
               <Menu size={20} strokeWidth={1.5} />
             </button>
-            <h1 className="text-sm font-bold text-slate-800 tracking-tight hidden sm:block">
-              {getPageTitle()}
-            </h1>
+            <div className="hidden sm:block min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Dashboard / {user.role}</p>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight truncate">
+                {getPageTitle()}
+              </h1>
+            </div>
           </div>
 
           {/* User actions / Notification Bell */}
-          <div className="flex items-center gap-4 relative">
+          <div className="flex items-center gap-3 relative">
+            <div className="hidden lg:flex items-center gap-2 w-72 rounded-[20px] bg-white border border-[#ECECEC] px-4 py-2.5 shadow-sm">
+              <Search size={16} strokeWidth={1.5} className="text-slate-400" />
+              <span className="text-xs font-medium text-slate-400">Tìm kiếm...</span>
+            </div>
             {/* Notification Bell Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setNotifsOpen(!notifsOpen)}
-                className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl relative transition-colors btn-press"
+                className="p-3 text-slate-600 bg-white hover:bg-primary/10 hover:text-primary rounded-[20px] relative transition-colors btn-press border border-[#ECECEC] shadow-sm"
               >
                 <Bell size={18} strokeWidth={1.5} />
                 {unreadCount > 0 && (
@@ -167,7 +180,7 @@ const DashboardLayout: React.FC = () => {
               {notifsOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifsOpen(false)} />
-                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-slate-100 py-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-[24px] shadow-card border border-[#ECECEC] py-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                       <h3 className="font-bold text-slate-800 text-xs tracking-tight">Thông báo</h3>
                       {unreadCount > 0 && (
@@ -185,7 +198,7 @@ const DashboardLayout: React.FC = () => {
                               handleMarkRead(n.id);
                               setNotifsOpen(false);
                             }}
-                            className={`px-4 py-2.5 border-b border-slate-50 last:border-b-0 cursor-pointer transition-colors hover:bg-slate-50/50 flex flex-col gap-0.5 ${!n.is_read ? 'bg-primary/10/30' : ''}`}
+                            className={`px-4 py-2.5 border-b border-slate-50 last:border-b-0 cursor-pointer transition-colors hover:bg-primary/5 flex flex-col gap-0.5 ${!n.is_read ? 'bg-primary/10' : ''}`}
                           >
                             <div className="flex justify-between items-start">
                               <h4 className={`text-xs font-semibold ${!n.is_read ? 'text-primary-dark font-bold' : 'text-slate-700'}`}>{n.title}</h4>
@@ -215,22 +228,22 @@ const DashboardLayout: React.FC = () => {
             {/* Profile trigger */}
             <div
               onClick={() => navigate(`${base}/settings`)}
-              className="flex items-center gap-2.5 cursor-pointer p-1 rounded-xl hover:bg-slate-100 transition-colors btn-press"
+              className="flex items-center gap-2.5 cursor-pointer p-1.5 pr-3 rounded-[20px] bg-white hover:bg-primary/10 transition-colors btn-press border border-[#ECECEC] shadow-sm"
             >
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center font-bold overflow-hidden shadow-inner relative">
+              <div className="w-9 h-9 rounded-[20px] bg-primary/10 text-primary border border-primary/10 flex items-center justify-center font-bold overflow-hidden relative">
                 {user.avatar_url ? (
                   <img src={user.avatar_url} alt="profile" className="w-full h-full object-cover" />
                 ) : (
                   <UserIcon size={14} strokeWidth={1.5} />
                 )}
               </div>
-              <span className="text-xs font-semibold text-slate-700 hidden md:inline">{user.full_name}</span>
+              <span className="text-xs font-bold text-slate-700 hidden md:inline">{user.full_name}</span>
             </div>
           </div>
         </header>
 
         {/* Main Dashboard Panel Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
+        <main className="flex-1 overflow-y-auto px-4 pb-6 sm:px-6 lg:px-8 lg:pb-8">
           <Outlet />
         </main>
       </div>

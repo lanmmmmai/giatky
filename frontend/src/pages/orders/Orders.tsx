@@ -121,7 +121,7 @@ const Orders: React.FC = () => {
         </div>
         <Link
           to={`${base}/orders/create`}
-          className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
         >
           <Plus size={16} />
           Tạo đơn hàng mới
@@ -129,7 +129,7 @@ const Orders: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-4 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
         <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -138,12 +138,12 @@ const Orders: React.FC = () => {
               placeholder="Tìm theo số điện thoại khách hàng..."
               value={searchPhone}
               onChange={(e) => setSearchPhone(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:bg-white focus:border-primary transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="px-5 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+            className="px-5 py-2 bg-primary hover:bg-primary-dark text-white rounded-2xl text-xs font-semibold shadow-sm transition-all"
           >
             Tìm kiếm
           </button>
@@ -201,7 +201,7 @@ const Orders: React.FC = () => {
       ) : orders.length === 0 ? (
         <EmptyState message="Không có đơn hàng nào khớp với bộ lọc." />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -249,7 +249,7 @@ const Orders: React.FC = () => {
                   }[order.payment_status] || order.payment_status;
 
                   return (
-                    <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <tr key={order.id} className="border-b border-slate-100 hover:bg-primary/5 transition-colors">
                       <td className="p-4 font-bold text-primary">
                         <Link to={`${base}/orders/${order.id}`} className="hover:underline">{order.order_code}</Link>
                       </td>

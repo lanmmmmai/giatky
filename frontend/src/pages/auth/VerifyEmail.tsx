@@ -31,7 +31,7 @@ const VerifyEmail: React.FC = () => {
   return (
     <div className="text-center space-y-6">
       <div className="text-center">
-        <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center font-bold text-white text-xl shadow-md mx-auto mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center font-bold text-white text-xl shadow-md mx-auto mb-4">
           GK
         </div>
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">Xác Thực Tài Khoản</h2>
@@ -65,7 +65,7 @@ const VerifyEmail: React.FC = () => {
       {status !== 'loading' && (
         <Link
           to="/login"
-          className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm inline-block shadow-md transition-all active:scale-[0.99]"
+          className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-2xl font-semibold text-sm inline-block shadow-md transition-all active:scale-[0.99]"
         >
           Quay lại Đăng nhập
         </Link>

@@ -27,7 +27,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8 text-center animate-in zoom-in-95 duration-200">
+          <div className="max-w-md w-full bg-white rounded-[20px] shadow-xl border border-slate-200 p-8 text-center animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-3xl shadow-inner">
               !
             </div>
@@ -38,7 +38,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => window.location.reload()}
-                className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm transition-all shadow-md active:scale-95"
+                className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-2xl font-semibold text-sm transition-all shadow-md active:scale-95"
               >
                 Tải lại trang
               </button>
@@ -47,7 +47,7 @@ class ErrorBoundary extends Component<Props, State> {
                   localStorage.clear();
                   window.location.href = '/login';
                 }}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all border border-slate-200 active:scale-95"
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-semibold text-sm transition-all border border-slate-200 active:scale-95"
               >
                 Về trang Đăng nhập
               </button>

@@ -57,7 +57,7 @@ const Login: React.FC = () => {
       <div 
         className="hidden lg:flex lg:w-[52.5%] relative flex-col justify-between p-12 text-white overflow-hidden"
         style={{
-          background: 'radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.2), transparent 45%), radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.15), transparent 50%), #0b0f19'
+          background: 'radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.24), transparent 34%), radial-gradient(circle at 82% 78%, rgba(155, 140, 255, 0.34), transparent 42%), #6C63FF'
         }}
       >
         {/* Soft abstract decorative lines */}
@@ -81,34 +81,34 @@ const Login: React.FC = () => {
 
         {/* Center/Middle: Intro Text and Badges */}
         <div className="relative z-10 space-y-5">
-          <h2 className="text-2xl font-bold tracking-tight leading-tight text-slate-100">
+          <h2 className="text-3xl font-bold tracking-tight leading-tight text-white">
             Quản lý tiệm giặt<br />thông minh & tối ưu
           </h2>
-          <p className="text-xs text-slate-400 font-medium max-w-xs leading-relaxed">
+          <p className="text-xs text-white/75 font-medium max-w-xs leading-relaxed">
             Theo dõi đơn hàng, quản lý nhân viên, chấm công ca trực và phân tích báo cáo doanh thu trong một nền tảng hợp nhất.
           </p>
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-[9px] font-bold text-white border border-white/10">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Đơn hàng realtime
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-[9px] font-bold text-white border border-white/10">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span> Chấm công chính xác
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 backdrop-blur-sm rounded-full text-[9px] font-bold text-slate-300 border border-white/5">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-[9px] font-bold text-white border border-white/10">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Báo cáo doanh thu
             </span>
           </div>
         </div>
 
         {/* Bottom: Slogan Card */}
-        <div className="relative z-10 bg-white/5 backdrop-blur-lg border border-white/5 rounded-2xl p-4 flex items-center gap-3 max-w-sm">
-          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shadow-md">
+        <div className="relative z-10 bg-white/12 backdrop-blur-lg border border-white/15 rounded-[20px] p-4 flex items-center gap-3 max-w-sm">
+          <div className="w-9 h-9 rounded-2xl bg-white text-primary flex items-center justify-center font-bold text-xs shadow-md">
             L
           </div>
           <div>
-            <h4 className="font-bold text-xs tracking-wide text-slate-200">Giặt Ký</h4>
-            <p className="text-[8px] text-secondary uppercase tracking-widest font-bold mt-0.5">Sạch Thơm Tin Tưởng</p>
+            <h4 className="font-bold text-xs tracking-wide text-white">Giặt Ký</h4>
+            <p className="text-[8px] text-white/70 uppercase tracking-widest font-bold mt-0.5">Sạch Thơm Tin Tưởng</p>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ const Login: React.FC = () => {
         
         {/* Header Branding (Visible on Mobile only) */}
         <div className="lg:hidden flex items-center gap-2 pb-6 border-b border-slate-100 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-md">
+          <div className="w-9 h-9 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-md">
             L
           </div>
           <div>
@@ -130,7 +130,7 @@ const Login: React.FC = () => {
         <div className="my-auto space-y-6">
           {/* Logo & Headline */}
           <div className="space-y-3">
-            <div className="hidden lg:flex w-12 h-12 rounded-2xl bg-primary text-white items-center justify-center font-bold text-base shadow-md shadow-primary/20">
+            <div className="hidden lg:flex w-12 h-12 rounded-[20px] bg-primary text-white items-center justify-center font-bold text-base shadow-md shadow-primary/20">
               L
             </div>
             <div>
@@ -153,7 +153,7 @@ const Login: React.FC = () => {
                   placeholder="admin / admin@lanhsach.com"
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -176,7 +176,7 @@ const Login: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -185,7 +185,7 @@ const Login: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
+              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-semibold text-xs shadow-[0_12px_26px_rgba(108,99,255,0.24)] transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
               disabled={loading}
             >
               <LogIn size={13} strokeWidth={1.5} />
@@ -203,7 +203,7 @@ const Login: React.FC = () => {
           <button
             onClick={handleMockGoogleLogin}
             type="button"
-            className="w-full h-11 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all btn-press"
+            className="w-full h-11 border border-slate-200 hover:bg-primary/5 text-slate-600 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all btn-press"
             disabled={loading}
           >
             <Chrome size={14} className="text-red-500" strokeWidth={1.5} />

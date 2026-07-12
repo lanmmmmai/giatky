@@ -69,7 +69,7 @@ const ResetPassword: React.FC = () => {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all outline-none"
+              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
               required
               disabled={loading}
             />
@@ -85,7 +85,7 @@ const ResetPassword: React.FC = () => {
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all outline-none"
+              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
               required
               disabled={loading}
             />
@@ -94,7 +94,7 @@ const ResetPassword: React.FC = () => {
 
         <button
           type="submit"
-          className="w-full py-3.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99]"
+          className="w-full py-3.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99]"
           disabled={loading}
         >
           <Key size={16} />

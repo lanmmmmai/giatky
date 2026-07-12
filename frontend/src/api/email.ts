@@ -10,7 +10,17 @@ export interface EmailTemplate {
   type: 'verify_account' | 'reset_password' | 'order_success' | 'announcement' | 'payroll';
   is_active: boolean;
   created_at: string;
+  updated_at?: string;
 }
+
+// Mirrors the CHECK constraint on email_templates.type in the Supabase schema
+export const EMAIL_TEMPLATE_TYPES: { value: EmailTemplate['type']; label: string }[] = [
+  { value: 'verify_account', label: 'Xác minh tài khoản' },
+  { value: 'reset_password', label: 'Đặt lại mật khẩu' },
+  { value: 'order_success', label: 'Xác nhận đơn hàng' },
+  { value: 'announcement', label: 'Thông báo chung' },
+  { value: 'payroll', label: 'Thông báo bảng lương' },
+];
 
 export interface EmailLog {
   id: string;

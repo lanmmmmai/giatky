@@ -74,7 +74,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
   if (token && user && user.role !== role) {
     return (
       <div className="text-center space-y-6 max-w-sm mx-auto my-auto p-6">
-        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm animate-pulse">
+        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-[20px] flex items-center justify-center mx-auto shadow-sm animate-pulse">
           <AlertTriangle size={28} />
         </div>
         <div className="space-y-2">
@@ -87,7 +87,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
         <div className="flex flex-col gap-2.5 pt-2">
           <button
             onClick={() => navigate(DASHBOARD_PATH[user.role], { replace: true })}
-            className="w-full h-10 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all btn-press"
+            className="w-full h-10 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-2xl text-xs font-semibold transition-all btn-press"
           >
             Vào Dashboard {user.role.toUpperCase()}
           </button>
@@ -96,7 +96,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
               logout();
               addToast('Đã đăng xuất tài khoản cũ.', 'info');
             }}
-            className="w-full h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/10 btn-press"
+            className="w-full h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/10 btn-press"
           >
             <LogOut size={14} />
             Đăng xuất để đăng nhập {role.toUpperCase()}
@@ -112,7 +112,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
       <div 
         className="hidden lg:flex lg:w-[52.5%] relative flex-col justify-between p-12 text-white overflow-hidden"
         style={{
-          background: 'radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.2), transparent 45%), radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.15), transparent 50%), #0b0f19'
+          background: 'radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.24), transparent 34%), radial-gradient(circle at 82% 78%, rgba(155, 140, 255, 0.34), transparent 42%), #6C63FF'
         }}
       >
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
@@ -127,27 +127,27 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
         </div>
 
         <div className="relative z-10">
-          <span className="px-3.5 py-1.5 bg-white/5 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-secondary border border-white/5 w-fit block">
+          <span className="px-3.5 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-white border border-white/10 w-fit block">
             Giặt Ký Laundry System
           </span>
         </div>
 
         <div className="relative z-10 space-y-5">
-          <h2 className="text-2xl font-bold tracking-tight leading-tight text-slate-100">
+          <h2 className="text-2xl font-bold tracking-tight leading-tight text-white">
             Hệ thống đăng nhập<br />riêng biệt từng vai trò
           </h2>
-          <p className="text-xs text-slate-400 font-medium max-w-xs leading-relaxed">
+          <p className="text-xs text-white/75 font-medium max-w-xs leading-relaxed">
             Đảm bảo tính bảo mật và định tuyến chính xác đến khu vực làm việc của Admin, Quản lý cơ sở và Nhân viên ca trực.
           </p>
         </div>
 
-        <div className="relative z-10 bg-white/5 backdrop-blur-lg border border-white/5 rounded-2xl p-4 flex items-center gap-3 max-w-sm">
-          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shadow-md">
+        <div className="relative z-10 bg-white/12 backdrop-blur-lg border border-white/15 rounded-[20px] p-4 flex items-center gap-3 max-w-sm">
+          <div className="w-9 h-9 rounded-2xl bg-white text-primary flex items-center justify-center font-bold text-xs shadow-md">
             GK
           </div>
           <div>
-            <h4 className="font-bold text-xs tracking-wide text-slate-200">Giặt Ký</h4>
-            <p className="text-[8px] text-secondary uppercase tracking-widest font-bold mt-0.5">Sạch Thơm Tin Tưởng</p>
+            <h4 className="font-bold text-xs tracking-wide text-white">Giặt Ký</h4>
+            <p className="text-[8px] text-white/70 uppercase tracking-widest font-bold mt-0.5">Sạch Thơm Tin Tưởng</p>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
         
         {/* Header Branding (Mobile only) */}
         <div className="lg:hidden flex items-center gap-2 pb-6 border-b border-slate-100 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-md">
+          <div className="w-9 h-9 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-md">
             GK
           </div>
           <div>
@@ -169,7 +169,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
         <div className="my-auto space-y-6">
           {/* Headline */}
           <div className="space-y-3">
-            <div className="hidden lg:flex w-12 h-12 rounded-2xl bg-primary text-white items-center justify-center font-bold text-base shadow-md">
+            <div className="hidden lg:flex w-12 h-12 rounded-[20px] bg-primary text-white items-center justify-center font-bold text-base shadow-md">
               GK
             </div>
             <div>
@@ -192,7 +192,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
                   placeholder={details.placeholder}
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -215,7 +215,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/15 rounded-xl text-xs transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl text-xs transition-all outline-none"
                   disabled={loading}
                   required
                 />
@@ -224,7 +224,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
 
             <button
               type="submit"
-              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-4 text-center"
+              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-4 text-center"
               disabled={loading}
             >
               <LogIn size={13} strokeWidth={1.5} />

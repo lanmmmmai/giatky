@@ -98,7 +98,7 @@ const SettingsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-200">
         
         {/* Profile Card (Left) */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-card space-y-6 h-fit text-center">
+        <div className="bg-white p-6 rounded-[20px] border border-[#ECECEC] shadow-card space-y-6 h-fit text-center">
           <div className="space-y-3">
             <div className="w-24 h-24 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-3xl shadow-inner mx-auto overflow-hidden">
               {user?.avatar_url ? (
@@ -134,7 +134,7 @@ const SettingsPage: React.FC = () => {
         {/* Edit profile & Edit password (Right) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Edit profile form */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
               <UserIcon size={16} className="text-primary" /> Cập nhật thông tin cá nhân
             </h3>
@@ -147,7 +147,7 @@ const SettingsPage: React.FC = () => {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary"
                     required
                     disabled={profileLoading}
                   />
@@ -158,7 +158,7 @@ const SettingsPage: React.FC = () => {
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary"
                     disabled={profileLoading}
                   />
                 </div>
@@ -171,14 +171,14 @@ const SettingsPage: React.FC = () => {
                   placeholder="https://example.com/avatar.jpg"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary"
                   disabled={profileLoading}
                 />
               </div>
 
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.99]"
+                className="px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-bold shadow-md transition-all active:scale-[0.99]"
                 disabled={profileLoading}
               >
                 {profileLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -187,7 +187,7 @@ const SettingsPage: React.FC = () => {
           </div>
 
           {/* Change password form */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
               <Lock size={16} className="text-primary" /> Thay đổi mật khẩu
             </h3>
@@ -200,7 +200,7 @@ const SettingsPage: React.FC = () => {
                   placeholder="••••••••"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary"
                   required
                   disabled={pwdLoading}
                 />
@@ -214,7 +214,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary"
                     required
                     disabled={pwdLoading}
                   />
@@ -226,7 +226,7 @@ const SettingsPage: React.FC = () => {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary"
                     required
                     disabled={pwdLoading}
                   />
@@ -235,7 +235,7 @@ const SettingsPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.99]"
+                className="px-5 py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-bold shadow-md transition-all active:scale-[0.99]"
                 disabled={pwdLoading}
               >
                 {pwdLoading ? 'Đang thực hiện đổi...' : 'Đổi mật khẩu'}

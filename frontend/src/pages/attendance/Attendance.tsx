@@ -115,7 +115,7 @@ const Attendance: React.FC = () => {
         
         {/* Real-time Clock & Action Card (Only for Staff) */}
         {user?.role === 'staff' && (
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-card space-y-6 flex flex-col justify-between">
+          <div className="bg-white p-6 rounded-[20px] border border-[#ECECEC] shadow-card space-y-6 flex flex-col justify-between">
             <div className="text-center space-y-2">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Thời gian hiện tại</h3>
               <div className="text-3xl font-mono font-bold text-primary tracking-wider">
@@ -128,7 +128,7 @@ const Attendance: React.FC = () => {
 
             {/* Current shift stats */}
             {summary && (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs space-y-2">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs space-y-2">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Trạng thái hiện tại:</span>
                   <span className={`font-bold ${summary.status === 'checked_in' ? 'text-emerald-600' : 'text-slate-500'}`}>
@@ -158,7 +158,7 @@ const Attendance: React.FC = () => {
                 placeholder="Ví dụ: Đi muộn do kẹt xe, nhận ca bàn giao..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-slate-50 focus:bg-white"
+                className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary bg-slate-50 focus:bg-white"
                 disabled={actionLoading}
               />
             </div>
@@ -169,7 +169,7 @@ const Attendance: React.FC = () => {
                 <button
                   onClick={handleCheckIn}
                   disabled={actionLoading}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   <Play size={16} /> Check-in Vào Ca
                 </button>
@@ -177,7 +177,7 @@ const Attendance: React.FC = () => {
                 <button
                   onClick={handleCheckOut}
                   disabled={actionLoading}
-                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   <Square size={14} /> Check-out Tan Ca
                 </button>
@@ -188,7 +188,7 @@ const Attendance: React.FC = () => {
 
         {/* Attendance Filters (Only for Admin/Manager) */}
         {user?.role !== 'staff' && (
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-card space-y-4">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-1">
               <Filter size={14} /> Bộ lọc danh sách
             </h3>
@@ -199,7 +199,7 @@ const Attendance: React.FC = () => {
                 <select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary bg-white"
                 >
                   <option value="">Tất cả cơ sở</option>
                   {branches.map(b => (
@@ -213,7 +213,7 @@ const Attendance: React.FC = () => {
                 <select
                   value={selectedStaff}
                   onChange={(e) => setSelectedStaff(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary bg-white"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary bg-white"
                 >
                   <option value="">Tất cả nhân viên</option>
                   {staffUsers.map(st => (
@@ -236,7 +236,7 @@ const Attendance: React.FC = () => {
           ) : records.length === 0 ? (
             <EmptyState message="Không có bản ghi chấm công nào." />
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -265,7 +265,7 @@ const Attendance: React.FC = () => {
                       }[rec.status] || rec.status;
 
                       return (
-                        <tr key={rec.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors">
+                        <tr key={rec.id} className="border-b border-slate-100 last:border-b-0 hover:bg-primary/5 transition-colors">
                           {user?.role !== 'staff' && (
                             <td className="p-4 font-bold text-slate-800">{rec.staff_name || 'Nhân viên'}</td>
                           )}

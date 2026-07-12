@@ -16,6 +16,7 @@ class PayrollGenerateRequest(BaseModel):
     month: int = Field(..., ge=1, le=12)
     year: int = Field(..., ge=2020)
     branch_id: str
+    staff_id: Optional[str] = None
 
 @router.get("")
 def get_payrolls(
@@ -88,11 +89,66 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
     last_day = calendar.monthrange(payload.year, payload.month)[1]
     start_date = f"{payload.year}-{payload.month:02d}-01"
     end_date = f"{payload.year}-{payload.month:02d}-{last_day}"
-    
+
+    # Single-staff generation: compute payroll for exactly the selected employee
+    if payload.staff_id:
+        staff_res = supabase.table("users").select("id, full_name, hourly_rate, role, branch_id")\
+            .eq("id", payload.staff_id).execute()
+        if not staff_res.data:
+            raise HTTPException(status_code=404, detail="Không tìm thấy nhân viên.")
+        staff = staff_res.data[0]
+
+        if staff["role"] != "staff":
+            raise HTTPException(status_code=400, detail="Chỉ có thể tính lương cho tài khoản nhân viên (staff).")
+        if staff.get("branch_id") != payload.branch_id:
+            raise HTTPException(status_code=400, detail="Nhân viên không thuộc chi nhánh đã chọn.")
+
+        # Duplicate guard: one payroll per staff + month + year + branch
+        dup_res = supabase.table("payrolls").select("id")\
+            .eq("staff_id", staff["id"])\
+            .eq("month", payload.month)\
+            .eq("year", payload.year)\
+            .eq("branch_id", payload.branch_id)\
+            .execute()
+        if dup_res.data:
+            raise HTTPException(status_code=400, detail="Bảng lương của nhân viên này trong tháng đã tồn tại.")
+
+        # Real attendance data for the selected month
+        att_res = supabase.table("attendance").select("total_hours")\
+            .eq("staff_id", staff["id"])\
+            .eq("status", "completed")\
+            .gte("work_date", start_date)\
+            .lte("work_date", end_date)\
+            .execute()
+        att_rows = att_res.data or []
+        if not att_rows:
+            raise HTTPException(status_code=400, detail="Nhân viên chưa có dữ liệu chấm công trong tháng này.")
+
+        total_hours = sum(float(a["total_hours"]) for a in att_rows)
+        hourly_rate = staff["hourly_rate"] or 0
+        insert_data = {
+            "staff_id": staff["id"],
+            "branch_id": payload.branch_id,
+            "month": payload.month,
+            "year": payload.year,
+            "hourly_rate_snapshot": hourly_rate,
+            "total_hours": total_hours,
+            "total_salary": int(total_hours * hourly_rate),
+            "generated_by": current_user["id"],
+            "status": "draft"
+        }
+        res = supabase.table("payrolls").insert(insert_data).execute()
+        if not res.data:
+            raise HTTPException(status_code=500, detail="Không thể tạo bảng lương.")
+        return {
+            "message": f"Đã tạo bảng lương nháp cho {staff['full_name']} ({total_hours:g} giờ).",
+            "payrolls": res.data
+        }
+
     # 1. Fetch all staff in the branch
     staff_res = supabase.table("users").select("id, full_name, hourly_rate").eq("branch_id", payload.branch_id).eq("role", "staff").execute()
     staff_members = staff_res.data or []
-    
+
     if not staff_members:
         return {"message": "Không có nhân viên nào thuộc chi nhánh này để tính lương."}
         
@@ -181,20 +237,23 @@ def confirm_payroll(id: str, current_user: dict = Depends(get_current_user)):
     # Send email notification
     staff_user = payroll.get("users", {})
     if staff_user and staff_user.get("email"):
-        send_template_email(
-            to_email=staff_user["email"],
-            template_type="payroll",
-            template_data={
-                "full_name": staff_user["full_name"],
-                "month": payroll["month"],
-                "year": payroll["year"],
-                "total_hours": payroll["total_hours"],
-                "hourly_rate": "{:,}".format(payroll["hourly_rate_snapshot"]),
-                "total_salary": "{:,}".format(payroll["total_salary"]),
-                "status": "Đã xác nhận (Chờ thanh toán)"
-            },
-            sent_by=current_user["id"]
-        )
+        try:
+            send_template_email(
+                to_email=staff_user["email"],
+                template_type="payroll",
+                template_data={
+                    "full_name": staff_user["full_name"],
+                    "month": payroll["month"],
+                    "year": payroll["year"],
+                    "total_hours": payroll["total_hours"],
+                    "hourly_rate": "{:,}".format(payroll["hourly_rate_snapshot"]),
+                    "total_salary": "{:,}".format(payroll["total_salary"]),
+                    "status": "Đã xác nhận (Chờ thanh toán)"
+                },
+                sent_by=current_user["id"]
+            )
+        except Exception as e:
+            logger.error(f"Failed to send payroll confirmation email: {str(e)}")
         
     # Trigger system notification
     try:

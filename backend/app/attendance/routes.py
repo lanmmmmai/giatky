@@ -39,7 +39,19 @@ def check_in(payload: AttendanceCheckIn, current_user: dict = Depends(get_curren
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Bạn đang có ca làm việc chưa check-out. Vui lòng check-out ca cũ trước."
         )
-        
+
+    # One check-in record per staff per day
+    today_res = supabase.table("attendance").select("id")\
+        .eq("staff_id", staff_id)\
+        .eq("work_date", date.today().isoformat())\
+        .execute()
+
+    if today_res.data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bạn đã chấm công hôm nay. Mỗi ngày chỉ chấm công một lần."
+        )
+
     now = datetime.now(timezone.utc)
     insert_data = {
         "staff_id": staff_id,

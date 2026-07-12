@@ -189,10 +189,10 @@ const Chat: React.FC = () => {
   if (loading && rooms.length === 0) return <LoadingSpinner />;
 
   return (
-    <div className="h-[calc(100vh-140px)] flex bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-200">
+    <div className="h-[calc(100vh-140px)] flex bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden animate-in fade-in duration-200">
       
       {/* Rooms Sidebar */}
-      <aside className="w-80 border-r border-slate-200 flex flex-col justify-between flex-shrink-0 bg-slate-50/50">
+      <aside className="w-80 border-r border-slate-200 flex flex-col justify-between flex-shrink-0 bg-primary/5">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
           <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
             <MessageSquare size={18} className="text-primary" /> Kênh trò chuyện
@@ -220,10 +220,10 @@ const Chat: React.FC = () => {
                 <div
                   key={r.id}
                   onClick={() => setActiveRoom(r)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all flex items-center gap-3 border ${
+                  className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center gap-3 border ${
                     isActive 
                       ? 'bg-primary border-primary text-white shadow-md'
-                      : 'bg-white hover:bg-slate-50 border-slate-200/65 text-slate-700'
+                      : 'bg-white hover:bg-primary/5 border-slate-200/65 text-slate-700'
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
@@ -259,7 +259,7 @@ const Chat: React.FC = () => {
             </div>
 
             {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-primary/5">
               {messagesLoading && messages.length === 0 ? (
                 <LoadingSpinner />
               ) : (
@@ -285,7 +285,7 @@ const Chat: React.FC = () => {
                         {!isMine && (
                           <span className="text-[10px] text-slate-400 font-semibold pl-1">{m.sender_name}</span>
                         )}
-                        <div className={`p-3 rounded-2xl text-xs leading-5 border ${
+                        <div className={`p-3 rounded-[20px] text-xs leading-5 border ${
                           isMine 
                             ? 'bg-primary border-primary text-white rounded-tr-none shadow-md'
                             : 'bg-white border-slate-200 text-slate-800 rounded-tl-none shadow-sm'
@@ -310,11 +310,11 @@ const Chat: React.FC = () => {
                 placeholder="Nhập nội dung tin nhắn và ấn Enter để gửi..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary transition-all bg-slate-50 focus:bg-white"
+                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary transition-all bg-slate-50 focus:bg-white"
               />
               <button
                 type="submit"
-                className="p-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl shadow-md transition-all active:scale-95 flex-shrink-0"
+                className="p-2.5 bg-primary hover:bg-primary-dark text-white rounded-2xl shadow-md transition-all active:scale-95 flex-shrink-0"
               >
                 <Send size={16} />
               </button>
@@ -332,8 +332,8 @@ const Chat: React.FC = () => {
       {/* CREATE ROOM MODAL */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="bg-white rounded-[20px] max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-primary/5">
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
                 <Users className="text-primary" size={18} /> Tạo cuộc hội thoại mới
               </h3>
@@ -352,7 +352,7 @@ const Chat: React.FC = () => {
                       setRoomType('direct');
                       setSelectedUserIds([]);
                     }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-2xl border transition-all ${
                       roomType === 'direct' 
                         ? 'bg-primary border-primary text-white shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -366,7 +366,7 @@ const Chat: React.FC = () => {
                       setRoomType('group');
                       setSelectedUserIds([]);
                     }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
+                    className={`flex-1 py-2 text-xs font-bold rounded-2xl border transition-all ${
                       roomType === 'group' 
                         ? 'bg-primary border-primary text-white shadow-sm'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -385,7 +385,7 @@ const Chat: React.FC = () => {
                     placeholder="Nhóm giặt ngày ca tối, ca sáng..."
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-primary"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary"
                     required
                   />
                 </div>
@@ -395,7 +395,7 @@ const Chat: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-600">
                   Chọn thành viên {roomType === 'direct' ? '(Chọn 1 người)' : '(Chọn nhiều người)'}
                 </label>
-                <div className="border border-slate-200 rounded-xl p-2 max-h-48 overflow-y-auto space-y-1">
+                <div className="border border-slate-200 rounded-2xl p-2 max-h-48 overflow-y-auto space-y-1">
                   {usersList.length === 0 ? (
                     <p className="text-center py-6 text-xs text-slate-400">Không tìm thấy nhân viên khả dụng.</p>
                   ) : (
@@ -412,7 +412,7 @@ const Chat: React.FC = () => {
                             }
                           }}
                           className={`p-2 rounded-lg cursor-pointer text-xs font-medium flex items-center justify-between transition-colors ${
-                            isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-slate-50 text-slate-700'
+                            isSelected ? 'bg-primary/10 text-primary' : 'hover:bg-primary/5 text-slate-700'
                           }`}
                         >
                           <span>{u.full_name} ({u.role.toUpperCase()})</span>
@@ -426,7 +426,7 @@ const Chat: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-2xl font-bold text-xs shadow-md transition-all active:scale-[0.99] mt-2"
                 disabled={selectedUserIds.length === 0}
               >
                 Tạo trò chuyện

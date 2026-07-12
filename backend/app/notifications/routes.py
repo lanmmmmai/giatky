@@ -110,15 +110,18 @@ def create_notification(payload: NotificationCreate, current_user: dict = Depend
             emails_to_send = u_res.data or []
             
         for user in emails_to_send:
-            send_template_email(
-                to_email=user["email"],
-                template_type="announcement",
-                template_data={
-                    "title": payload.title,
-                    "content": payload.content
-                },
-                sent_by=current_user["id"]
-            )
+            try:
+                send_template_email(
+                    to_email=user["email"],
+                    template_type="announcement",
+                    template_data={
+                        "title": payload.title,
+                        "content": payload.content
+                    },
+                    sent_by=current_user["id"]
+                )
+            except Exception as e:
+                logger.error(f"Failed to send announcement email to {user['email']}: {str(e)}")
             
     return created_notif
 

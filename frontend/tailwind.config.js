@@ -1,3 +1,5 @@
+import tailwindcssAnimate from 'tailwindcss-animate';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -11,6 +13,9 @@ export default {
           DEFAULT: '#6C63FF',
           dark: '#5A50E8',
           light: '#F5F6FF',
+        },
+        secondary: {
+          DEFAULT: '#9B8CFF',
         },
         accent: {
           cyan: '#9B8CFF',
@@ -48,5 +53,5 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 }

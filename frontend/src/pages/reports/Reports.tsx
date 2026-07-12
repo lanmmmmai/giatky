@@ -10,7 +10,7 @@ import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import * as XLSX from 'xlsx';
 import { Calendar, Filter, CircleDollarSign, BarChart3, TrendingUp, Download, Users, Briefcase } from 'lucide-react';
 
-const COLORS = ['#2563EB', '#06B6D4', '#6366F1', '#10B981', '#F59E0B', '#EC4899'];
+const COLORS = ['#6C63FF', '#9B8CFF', '#22C55E', '#F59E0B', '#EF4444', '#A78BFA'];
 
 const Reports: React.FC = () => {
   const { user } = useAuthStore();
@@ -127,7 +127,7 @@ const Reports: React.FC = () => {
         <button
           onClick={handleExportExcel}
           disabled={!report}
-          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
         >
           <Download size={16} />
           Xuất báo cáo Excel
@@ -135,7 +135,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Filter panel */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
         <div className="flex items-center gap-1.5 text-slate-600 text-xs font-bold border-b border-slate-100 pb-2">
           <Filter size={16} className="text-primary" />
           Bộ lọc nâng cao
@@ -149,7 +149,7 @@ const Reports: React.FC = () => {
               <select
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none bg-slate-50 focus:bg-white transition-all"
+                className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all"
               >
                 <option value="">Tất cả</option>
                 {branches.map(b => (
@@ -166,7 +166,7 @@ const Reports: React.FC = () => {
               <select
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none bg-slate-50 focus:bg-white transition-all"
+                className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all"
               >
                 <option value="">Tất cả</option>
                 {staffUsers.map(st => (
@@ -183,7 +183,7 @@ const Reports: React.FC = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none bg-slate-50 focus:bg-white transition-all"
+              className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all"
             />
           </div>
 
@@ -194,7 +194,7 @@ const Reports: React.FC = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none bg-slate-50 focus:bg-white transition-all"
+              className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all"
             />
           </div>
 
@@ -204,7 +204,7 @@ const Reports: React.FC = () => {
             <select
               value={paymentStatus}
               onChange={(e) => setPaymentStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none bg-slate-50 focus:bg-white transition-all"
+              className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all"
             >
               <option value="">Tất cả</option>
               <option value="unpaid">Chưa thanh toán</option>
@@ -219,7 +219,7 @@ const Reports: React.FC = () => {
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl outline-none bg-slate-50 focus:bg-white transition-all"
+              className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none bg-slate-50 focus:bg-white transition-all"
             >
               <option value="">Tất cả</option>
               <option value="cash">Tiền mặt</option>
@@ -240,7 +240,7 @@ const Reports: React.FC = () => {
           {/* Summary metrics widgets */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 rounded-2xl border border-[#ECECEC] shadow-card flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Doanh thu phát sinh</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{formatCurrency(report.summary.total_revenue)}</h4>
@@ -248,7 +248,7 @@ const Reports: React.FC = () => {
               <CircleDollarSign size={20} className="text-primary" />
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 rounded-2xl border border-[#ECECEC] shadow-card flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Đã thanh toán</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{formatCurrency(report.summary.paid_revenue)}</h4>
@@ -256,7 +256,7 @@ const Reports: React.FC = () => {
               <CircleDollarSign size={20} className="text-emerald-500" />
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 rounded-2xl border border-[#ECECEC] shadow-card flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Công nợ/Chưa thu</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{formatCurrency(report.summary.unpaid_revenue)}</h4>
@@ -264,7 +264,7 @@ const Reports: React.FC = () => {
               <CircleDollarSign size={20} className="text-rose-500" />
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 rounded-2xl border border-[#ECECEC] shadow-card flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng đơn tiếp nhận</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{report.summary.total_orders} đơn</h4>
@@ -272,7 +272,7 @@ const Reports: React.FC = () => {
               <BarChart3 size={20} className="text-indigo-500" />
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 rounded-2xl border border-[#ECECEC] shadow-card flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Giá trị trung bình đơn</p>
                 <h4 className="text-sm font-bold text-slate-800 mt-1">{formatCurrency(report.summary.average_order_value)}</h4>
@@ -286,7 +286,7 @@ const Reports: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* Service Sales Performance Chart */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1">
                 <Briefcase size={14} className="text-primary" /> Doanh thu theo dịch vụ giặt sấy
               </h3>
@@ -312,7 +312,7 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Staff efficiency chart */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1">
                 <Users size={14} className="text-primary" /> Hiệu suất doanh thu theo nhân viên
               </h3>

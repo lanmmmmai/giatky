@@ -27,7 +27,7 @@ const ToastContainer: React.FC = () => {
         return (
           <div
             key={toast.id}
-            className={`flex items-start gap-3 p-4 rounded-xl border shadow-lg pointer-events-auto animate-in slide-in-from-bottom-5 duration-200 ${bgClass}`}
+            className={`flex items-start gap-3 p-4 rounded-2xl border shadow-lg pointer-events-auto animate-in slide-in-from-bottom-5 duration-200 ${bgClass}`}
           >
             {icon}
             <div className="flex-1 text-sm font-medium leading-5">{toast.message}</div>

@@ -121,7 +121,7 @@ const OrderDetail: React.FC = () => {
       {/* Header section (Non-printable) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 pb-4 no-print">
         <div className="flex items-center gap-3">
-          <Link to={`${base}/orders`} className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+          <Link to={`${base}/orders`} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors">
             <ArrowLeft size={18} />
           </Link>
           <div>
@@ -155,7 +155,7 @@ const OrderDetail: React.FC = () => {
 
         <button
           onClick={handlePrint}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
         >
           <Printer size={16} />
           In hóa đơn biên nhận
@@ -176,7 +176,7 @@ const OrderDetail: React.FC = () => {
         {/* Left Column: Order Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Customer & Branch Snapshots */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                 <User size={12} /> Khách hàng
@@ -216,8 +216,8 @@ const OrderDetail: React.FC = () => {
           </div>
 
           {/* Service Items Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+          <div className="bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-primary/5">
               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Danh sách đồ gửi</h3>
             </div>
             <table className="w-full text-left text-xs">
@@ -246,7 +246,7 @@ const OrderDetail: React.FC = () => {
 
           {/* Order Note Card */}
           {order.note && (
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+            <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-2">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ghi chú tiếp nhận</h4>
               <p className="text-xs text-slate-600 leading-relaxed font-sans">{order.note}</p>
             </div>
@@ -257,7 +257,7 @@ const OrderDetail: React.FC = () => {
         <div className="space-y-6">
           
           {/* Bill summary card */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
               Thành tiền hóa đơn
             </h3>
@@ -304,7 +304,7 @@ const OrderDetail: React.FC = () => {
           </div>
 
           {/* Update Status Card (Non-printable) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 no-print">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4 no-print">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
               Trạng thái xử lý
             </h3>
@@ -326,7 +326,7 @@ const OrderDetail: React.FC = () => {
                       type="button"
                       onClick={() => handleStatusChange(st.key)}
                       disabled={updating}
-                      className={`py-2 px-3 rounded-xl text-[11px] font-bold text-center border transition-all ${
+                      className={`py-2 px-3 rounded-2xl text-[11px] font-bold text-center border transition-all ${
                         isCurrent 
                           ? 'bg-primary border-primary text-white shadow-sm'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
@@ -341,7 +341,7 @@ const OrderDetail: React.FC = () => {
           </div>
 
           {/* Payment updates card (Non-printable) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 no-print">
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4 no-print">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
               Thu tiền / Cập nhật thanh toán
             </h3>
@@ -390,7 +390,7 @@ const OrderDetail: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-xs shadow-sm flex items-center justify-center gap-1"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-2xl font-bold text-xs shadow-sm flex items-center justify-center gap-1"
                 disabled={updating}
               >
                 <DollarSign size={14} />

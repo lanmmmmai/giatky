@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getPayrolls, generatePayroll, confirmPayroll, payPayroll, getMyPayroll, PayrollRecord } from '../../api/payroll';
 import { getBranches, Branch } from '../../api/branches';
-import { useAuthStore } from '../../stores/authStore';
+import { getUsers } from '../../api/users';
+import { useAuthStore, User } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
@@ -13,6 +14,7 @@ const Payroll: React.FC = () => {
 
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -20,6 +22,8 @@ const Payroll: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [genBranchId, setGenBranchId] = useState('');
+  const [genStaffId, setGenStaffId] = useState('');
+  const [formErrors, setFormErrors] = useState<{ month?: string; year?: string; branch?: string; staff?: string }>({});
 
   // Filters state
   const [filterMonth, setFilterMonth] = useState<string>('');
@@ -34,11 +38,15 @@ const Payroll: React.FC = () => {
   const loadBranches = async () => {
     if (user?.role !== 'staff') {
       try {
-        const data = await getBranches();
-        setBranches(data);
+        const [branchData, userData] = await Promise.all([getBranches(), getUsers()]);
+        setBranches(branchData);
+        setStaffUsers(userData.filter(u => u.role === 'staff' && u.status === 'active'));
       } catch (_) {}
     }
   };
+
+  // Staff options are restricted to the selected branch (real data from Supabase via backend)
+  const branchStaffOptions = staffUsers.filter(u => u.branch_id === genBranchId);
 
   const loadPayrollData = async () => {
     setLoading(true);
@@ -63,18 +71,26 @@ const Payroll: React.FC = () => {
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!genBranchId) {
-      addToast('Vui lòng chọn cơ sở để tính lương.', 'warning');
-      return;
-    }
+
+    const errors: typeof formErrors = {};
+    if (!selectedMonth) errors.month = 'Vui lòng chọn tháng.';
+    if (!selectedYear) errors.year = 'Vui lòng chọn năm.';
+    if (!genBranchId) errors.branch = 'Vui lòng chọn chi nhánh.';
+    if (!genStaffId) errors.staff = 'Vui lòng chọn nhân viên cần tính lương.';
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     setActionLoading(true);
     try {
-      const result = await generatePayroll(selectedMonth, selectedYear, genBranchId);
+      const result = await generatePayroll(selectedMonth, selectedYear, genBranchId, genStaffId);
       addToast(result.message || 'Tính toán bảng lương thành công.', 'success');
+      setGenStaffId('');
       loadPayrollData();
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Tính lương thất bại.', 'error');
+      const detail = err.response?.data?.detail || 'Tính lương thất bại.';
+      // Business errors relate to the selected employee — surface them under that field too
+      setFormErrors(prev => ({ ...prev, staff: detail }));
+      addToast(detail, 'error');
     } finally {
       setActionLoading(false);
     }
@@ -120,39 +136,41 @@ const Payroll: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+      <div className={`grid grid-cols-1 gap-6 ${user?.role !== 'staff' ? 'lg:grid-cols-[380px_1fr]' : ''}`}>
+
         {/* Payroll Generation controls (Only for Admin/Manager) */}
         {user?.role !== 'staff' && (
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-card space-y-4 h-fit">
+          <div className="bg-white p-6 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4 h-fit">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 flex items-center gap-1">
               <PlusCircle size={14} className="text-primary" /> Tính lương tháng mới
             </h3>
 
-            <form onSubmit={handleGenerate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleGenerate} className="space-y-4" noValidate>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-600">Tháng</label>
                   <select
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs outline-none bg-white"
+                    onChange={(e) => { setSelectedMonth(Number(e.target.value)); setFormErrors(prev => ({ ...prev, month: undefined })); }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none bg-white focus:border-primary"
                   >
                     {[...Array(12)].map((_, i) => (
                       <option key={i+1} value={i+1}>Tháng {i+1}</option>
                     ))}
                   </select>
+                  {formErrors.month && <p className="text-[10px] text-rose-600 font-semibold">{formErrors.month}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-600">Năm</label>
                   <select
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs outline-none bg-white"
+                    onChange={(e) => { setSelectedYear(Number(e.target.value)); setFormErrors(prev => ({ ...prev, year: undefined })); }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none bg-white focus:border-primary"
                   >
                     <option value={2026}>2026</option>
                     <option value={2027}>2027</option>
                   </select>
+                  {formErrors.year && <p className="text-[10px] text-rose-600 font-semibold">{formErrors.year}</p>}
                 </div>
               </div>
 
@@ -160,35 +178,63 @@ const Payroll: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-600">Chọn cơ sở chi nhánh</label>
                 <select
                   value={genBranchId}
-                  onChange={(e) => setGenBranchId(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs outline-none bg-white"
-                  required
+                  onChange={(e) => {
+                    setGenBranchId(e.target.value);
+                    setGenStaffId('');
+                    setFormErrors(prev => ({ ...prev, branch: undefined, staff: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-2xl text-xs outline-none bg-white focus:border-primary ${formErrors.branch ? 'border-rose-300' : 'border-slate-200'}`}
                 >
                   <option value="">Chọn chi nhánh cần tính</option>
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
+                {formErrors.branch && <p className="text-[10px] text-rose-600 font-semibold">{formErrors.branch}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-600">Nhân viên</label>
+                <select
+                  value={genStaffId}
+                  onChange={(e) => { setGenStaffId(e.target.value); setFormErrors(prev => ({ ...prev, staff: undefined })); }}
+                  disabled={!genBranchId}
+                  className={`w-full px-3 py-2 border rounded-2xl text-xs outline-none bg-white focus:border-primary disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${formErrors.staff ? 'border-rose-300' : 'border-slate-200'}`}
+                >
+                  <option value="">
+                    {!genBranchId
+                      ? 'Vui lòng chọn chi nhánh trước'
+                      : branchStaffOptions.length === 0
+                      ? 'Chi nhánh chưa có nhân viên nào'
+                      : 'Chọn nhân viên cần tính lương'}
+                  </option>
+                  {genBranchId && branchStaffOptions.map(st => (
+                    <option key={st.id} value={st.id}>
+                      {st.full_name} — {st.username}{st.hourly_rate ? ` (${new Intl.NumberFormat('vi-VN').format(st.hourly_rate)} đ/giờ)` : ''}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.staff && <p className="text-[10px] text-rose-600 font-semibold">{formErrors.staff}</p>}
               </div>
 
               <button
                 type="submit"
                 disabled={actionLoading}
-                className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-bold text-xs shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-1.5"
               >
                 <CircleDollarSign size={16} />
-                Tính lương tự động
+                {actionLoading ? 'Đang tính lương...' : 'Tính lương tự động'}
               </button>
             </form>
           </div>
         )}
 
         {/* Filters & Listing */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4">
           
           {/* Filters (Admin/Manager only) */}
           {user?.role !== 'staff' && (
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center text-xs font-semibold text-slate-600">
+            <div className="bg-white p-4 rounded-[20px] border border-[#ECECEC] shadow-card flex flex-wrap gap-4 items-center text-xs font-semibold text-slate-600">
               <div className="flex items-center gap-1">
                 <Filter size={14} className="text-slate-400" />
                 <span>Lọc bảng lương:</span>
@@ -234,7 +280,7 @@ const Payroll: React.FC = () => {
           ) : payrolls.length === 0 ? (
             <EmptyState message="Không có bản ghi lương nào được tìm thấy." />
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -263,7 +309,7 @@ const Payroll: React.FC = () => {
                       }[pr.status] || pr.status;
 
                       return (
-                        <tr key={pr.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors">
+                        <tr key={pr.id} className="border-b border-slate-100 last:border-b-0 hover:bg-primary/5 transition-colors">
                           <td className="p-4">
                             <div className="font-bold text-slate-800">{pr.staff_name || 'Nhân viên'}</div>
                             {user?.role !== 'staff' && (
