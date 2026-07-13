@@ -79,7 +79,7 @@ const CreateOrder: React.FC = () => {
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [user?.branch_id]);
 
   // Sync paidAmount automatically based on paymentStatus
   const subtotal = selectedItems.reduce((acc, item) => acc + item.amount, 0);

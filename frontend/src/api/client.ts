@@ -14,6 +14,10 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const currentBranchId = localStorage.getItem('lanh_sach_current_branch_id');
+    if (currentBranchId && config.headers) {
+      config.headers['X-Current-Branch'] = currentBranchId;
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -40,6 +44,7 @@ apiClient.interceptors.response.use(
     if (status === 401 && !isAuthEndpoint && !isPublicEndpoint) {
       localStorage.removeItem('lanh_sach_token');
       localStorage.removeItem('lanh_sach_user');
+      localStorage.removeItem('lanh_sach_current_branch_id');
       // Redirect to login page
       window.location.href = '/login';
     }

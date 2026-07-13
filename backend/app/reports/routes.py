@@ -30,8 +30,11 @@ def get_dashboard_summary(current_user: dict = Depends(get_current_user)):
     orders_query = supabase.table("orders").select("*, branches(name)")
     if role == "manager":
         # Get branches managed by this manager
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        m_branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            m_branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if not m_branch_ids:
             return summary
         orders_query = orders_query.in_("branch_id", m_branch_ids)
@@ -112,8 +115,11 @@ def get_dashboard_summary(current_user: dict = Depends(get_current_user)):
         
     elif role == "manager":
         # Active staff working today in manager's branches
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        m_branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            m_branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if m_branch_ids:
             att_res = supabase.table("attendance").select("staff_id", "users!staff_id(full_name)")\
                 .in_("branch_id", m_branch_ids)\
@@ -147,8 +153,11 @@ def get_revenue_report(
     
     # Filter based on role limits
     if role == "manager":
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        m_branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            m_branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if not m_branch_ids:
             return []
         query = query.in_("branch_id", m_branch_ids)

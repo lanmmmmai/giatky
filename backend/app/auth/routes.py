@@ -8,7 +8,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
 from app.common.security import hash_password, verify_password, create_access_token
-from app.common.dependencies import get_current_user
+from app.common.dependencies import attach_branch_context, get_current_user
 from app.database import supabase
 from app.config import settings
 from app.email.email_service import send_template_email
@@ -106,18 +106,24 @@ def login(payload: LoginRequest):
     # Generate token
     token = create_access_token({"sub": user["id"], "role": user["role"]})
     
+    user_payload = attach_branch_context(user)
     return {
         "token": token,
         "token_type": "bearer",
         "user": {
-            "id": user["id"],
-            "full_name": user["full_name"],
-            "email": user["email"],
-            "username": user["username"],
-            "role": user["role"],
-            "status": user["status"],
-            "branch_id": user["branch_id"],
-            "avatar_url": user["avatar_url"]
+            "id": user_payload["id"],
+            "full_name": user_payload["full_name"],
+            "email": user_payload["email"],
+            "username": user_payload["username"],
+            "role": user_payload["role"],
+            "status": user_payload["status"],
+            "branch_id": user_payload["branch_id"],
+            "avatar_url": user_payload["avatar_url"],
+            "assigned_branches": user_payload.get("assigned_branches", []),
+            "branch_ids": user_payload.get("branch_ids", []),
+            "facilities": user_payload.get("facilities", []),
+            "current_branch_id": user_payload.get("current_branch_id"),
+            "current_branch_name": user_payload.get("current_branch_name"),
         }
     }
 
@@ -190,18 +196,24 @@ def google_login(payload: GoogleLoginRequest):
         # Generate token
         token = create_access_token({"sub": user["id"], "role": user["role"]})
         
+        user_payload = attach_branch_context(user)
         return {
             "token": token,
             "token_type": "bearer",
             "user": {
-                "id": user["id"],
-                "full_name": user["full_name"],
-                "email": user["email"],
-                "username": user["username"],
-                "role": user["role"],
-                "status": user["status"],
-                "branch_id": user["branch_id"],
-                "avatar_url": user["avatar_url"] or avatar_url
+                "id": user_payload["id"],
+                "full_name": user_payload["full_name"],
+                "email": user_payload["email"],
+                "username": user_payload["username"],
+                "role": user_payload["role"],
+                "status": user_payload["status"],
+                "branch_id": user_payload["branch_id"],
+                "avatar_url": user_payload["avatar_url"] or avatar_url,
+                "assigned_branches": user_payload.get("assigned_branches", []),
+                "branch_ids": user_payload.get("branch_ids", []),
+                "facilities": user_payload.get("facilities", []),
+                "current_branch_id": user_payload.get("current_branch_id"),
+                "current_branch_name": user_payload.get("current_branch_name"),
             }
         }
     except Exception as e:
@@ -223,7 +235,12 @@ def get_me(current_user: dict = Depends(get_current_user)):
         "branch_id": current_user["branch_id"],
         "avatar_url": current_user["avatar_url"],
         "phone": current_user["phone"],
-        "hourly_rate": current_user["hourly_rate"]
+        "hourly_rate": current_user["hourly_rate"],
+        "assigned_branches": current_user.get("assigned_branches", []),
+        "branch_ids": current_user.get("branch_ids", []),
+        "facilities": current_user.get("facilities", []),
+        "current_branch_id": current_user.get("current_branch_id"),
+        "current_branch_name": current_user.get("current_branch_name"),
     }
 
 @router.post("/logout")

@@ -55,7 +55,7 @@ const Payroll: React.FC = () => {
   useEffect(() => {
     loadBranches();
     loadPayrollData();
-  }, [filterMonth, filterYear, filterBranch]);
+  }, [filterMonth, filterYear, filterBranch, user?.branch_id]);
 
   useEffect(() => {
     if (activeTab === 'attendance' && user?.role !== 'staff') {
@@ -74,7 +74,12 @@ const Payroll: React.FC = () => {
   };
 
   // Staff options are restricted to the selected branch (real data from Supabase via backend)
-  const branchStaffOptions = staffUsers.filter(u => u.branch_id === genBranchId);
+  const userBelongsToBranch = (staff: User, branchId: string) => {
+    if (!branchId) return true;
+    return staff.branch_id === branchId || (staff.assigned_branches || []).some(branch => branch.branch_id === branchId) || (staff.branch_ids || []).includes(branchId);
+  };
+
+  const branchStaffOptions = staffUsers.filter(u => userBelongsToBranch(u, genBranchId));
 
   const loadPayrollData = async () => {
     setLoading(true);
@@ -242,7 +247,7 @@ const Payroll: React.FC = () => {
     manual_adjusted: 'Đã chỉnh sửa thủ công'
   }[status || ''] || status || '-');
 
-  const activeStaffOptions = staffUsers.filter(u => !attendanceFilters.branch_id || u.branch_id === attendanceFilters.branch_id);
+  const activeStaffOptions = staffUsers.filter(u => userBelongsToBranch(u, attendanceFilters.branch_id));
 
   return (
     <div className="space-y-6">

@@ -113,6 +113,8 @@ def validate_payment_method(payment_method: Optional[str]) -> str:
 
 def ensure_order_access(order: dict, current_user: dict, action: str = "cập nhật") -> None:
     if current_user["role"] == "manager":
+        if current_user.get("current_branch_id") and order["branch_id"] != current_user.get("current_branch_id"):
+            raise HTTPException(status_code=403, detail=f"Không có quyền {action} đơn hàng ngoài cơ sở đang chọn.")
         chk = supabase.table("branches").select("id").eq("id", order["branch_id"]).eq("manager_id", current_user["id"]).execute()
         if not chk.data:
             raise HTTPException(status_code=403, detail=f"Không có quyền {action} đơn hàng ở chi nhánh này.")
@@ -286,8 +288,11 @@ def get_orders(
     # Apply role limits
     if role == "manager":
         # Get branches managed by this manager
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        m_branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            m_branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if not m_branch_ids:
             return []
         query = query.in_("branch_id", m_branch_ids)
@@ -332,6 +337,9 @@ def get_orders(
 
 @router.post("")
 def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin" and payload.branch_id != current_user.get("branch_id"):
+        raise HTTPException(status_code=403, detail="Bạn chỉ được tạo đơn tại cơ sở đang chọn.")
+
     calculated_items, subtotal, service_names = build_order_items_from_services(payload.items)
     if payload.payment_status not in {"unpaid", "paid"}:
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ tạo đơn chưa thanh toán hoặc đã thanh toán đủ.")

@@ -34,7 +34,7 @@ const Attendance: React.FC = () => {
 
   useEffect(() => {
     loadInitialData();
-  }, [selectedBranch, selectedStaff]);
+  }, [selectedBranch, selectedStaff, user?.branch_id]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -257,14 +257,23 @@ const Attendance: React.FC = () => {
                       const statColors = {
                         checked_in: 'bg-primary/10 text-primary border-primary/20',
                         completed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+                        on_time: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+                        late: 'bg-amber-50 text-amber-600 border-amber-200',
+                        early_leave: 'bg-amber-50 text-amber-600 border-amber-200',
+                        manual_adjusted: 'bg-slate-50 text-slate-600 border-slate-200',
                         missing_checkout: 'bg-rose-50 text-rose-600 border-rose-200'
                       }[rec.status] || 'bg-slate-50 text-slate-500';
 
                       const statNames = {
                         checked_in: 'Đang làm',
                         completed: 'Hoàn tất',
+                        on_time: 'Đúng giờ',
+                        late: 'Đi muộn',
+                        early_leave: 'Về sớm',
+                        manual_adjusted: 'Chỉnh tay',
                         missing_checkout: 'Thiếu checkout'
                       }[rec.status] || rec.status;
+                      const isCompletedSession = ['completed', 'on_time', 'late', 'early_leave', 'manual_adjusted'].includes(rec.status);
 
                       return (
                         <tr key={rec.id} className="border-b border-slate-100 last:border-b-0 hover:bg-primary/5 transition-colors">
@@ -285,7 +294,7 @@ const Attendance: React.FC = () => {
                               : '-'}
                           </td>
                           <td className="p-4 font-bold text-slate-800">
-                            {rec.status === 'completed' ? formatHours(rec.total_hours) : '-'}
+                            {isCompletedSession ? formatHours(Number(rec.total_hours || 0)) : '-'}
                           </td>
                           <td className="p-4">
                             <span className={`px-2 py-0.5 border text-[9px] font-bold uppercase rounded-md tracking-wider ${statColors}`}>

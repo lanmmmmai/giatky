@@ -3,7 +3,6 @@ import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import { getDashboardSummary, DashboardSummary } from '../../api/reports';
 import { checkIn, checkOut, getMyAttendance, getAttendanceSummary, AttendanceSummary, AttendanceRecord } from '../../api/attendance';
-import { getBranches } from '../../api/branches';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import {
@@ -42,15 +41,15 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [user?.branch_id]);
 
   useEffect(() => {
     if (user?.role !== 'staff') return;
     const timer = setInterval(() => setClock(new Date()), 1000);
     loadAttendanceState();
-    getBranches().then(bs => setBranchName(bs[0]?.name || '')).catch(() => {});
+    setBranchName(user?.current_branch_name || '');
     return () => clearInterval(timer);
-  }, [user?.role]);
+  }, [user?.role, user?.branch_id, user?.current_branch_name]);
 
   const loadAttendanceState = async () => {
     setAttLoading(true);
@@ -116,7 +115,9 @@ const Dashboard: React.FC = () => {
       {/* Staff: "Chấm công hôm nay" — always first so no one forgets to check in */}
       {user?.role === 'staff' && (() => {
         const workingShift = attSummary?.status === 'checked_in' ? attSummary.current_shift : null;
-        const completedToday = !workingShift ? todayRecords.find(r => r.status === 'completed') : null;
+        const completedToday = todayRecords.filter(r => ['completed', 'on_time', 'late', 'early_leave', 'manual_adjusted'].includes(r.status));
+        const latestCompleted = completedToday[0];
+        const totalTodayHours = completedToday.reduce((sum, record) => sum + Number(record.total_hours || 0), 0);
         const fmtTime = (iso?: string | null) =>
           iso ? new Date(iso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 
@@ -152,17 +153,17 @@ const Dashboard: React.FC = () => {
                       Giờ vào: <span className="font-bold font-mono text-slate-800">{fmtTime(workingShift.check_in_time)}</span>
                     </p>
                   </>
-                ) : completedToday ? (
+                ) : latestCompleted ? (
                   <>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                      <CheckCircle2 size={11} strokeWidth={2} /> Đã hoàn thành
+                      <CheckCircle2 size={11} strokeWidth={2} /> Đã hoàn thành {completedToday.length} phiên
                     </span>
                     <p className="text-xs text-slate-500">
-                      Vào: <span className="font-bold font-mono text-slate-800">{fmtTime(completedToday.check_in_time)}</span>
-                      {' · '}Ra: <span className="font-bold font-mono text-slate-800">{fmtTime(completedToday.check_out_time)}</span>
+                      Phiên gần nhất: <span className="font-bold font-mono text-slate-800">{fmtTime(latestCompleted.check_in_time)}</span>
+                      {' · '}<span className="font-bold font-mono text-slate-800">{fmtTime(latestCompleted.check_out_time)}</span>
                     </p>
                     <p className="text-xs text-slate-500">
-                      Tổng thời gian: <span className="font-bold text-slate-800">{Number(completedToday.total_hours).toFixed(2)} giờ</span>
+                      Tổng hôm nay: <span className="font-bold text-slate-800">{totalTodayHours.toFixed(2)} giờ</span>
                     </p>
                   </>
                 ) : (
@@ -180,7 +181,7 @@ const Dashboard: React.FC = () => {
                     >
                       <Square size={16} /> {attActionLoading ? 'Đang xử lý...' : 'Chấm công ra'}
                     </button>
-                  ) : completedToday ? null : (
+                  ) : (
                     <button
                       onClick={handleCheckIn}
                       disabled={attActionLoading}

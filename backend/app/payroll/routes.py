@@ -36,8 +36,11 @@ def get_payrolls(
     
     if role == "manager":
         # Get manager's branches
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        m_branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            m_branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if not m_branch_ids:
             return []
         query = query.in_("branch_id", m_branch_ids)
@@ -100,7 +103,11 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
 
         if staff["role"] != "staff":
             raise HTTPException(status_code=400, detail="Chỉ có thể tính lương cho tài khoản nhân viên (staff).")
-        if staff.get("branch_id") != payload.branch_id:
+        staff_branch_res = supabase.table("user_branches").select("branch_id")\
+            .eq("user_id", staff["id"])\
+            .eq("branch_id", payload.branch_id)\
+            .execute()
+        if staff.get("branch_id") != payload.branch_id and not staff_branch_res.data:
             raise HTTPException(status_code=400, detail="Nhân viên không thuộc chi nhánh đã chọn.")
 
         # Duplicate guard: one payroll per staff + month + year + branch
@@ -116,6 +123,7 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
         # Real attendance data for the selected month
         att_res = supabase.table("attendance").select("total_hours, work_minutes")\
             .eq("staff_id", staff["id"])\
+            .eq("branch_id", payload.branch_id)\
             .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
@@ -147,7 +155,14 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
 
     # 1. Fetch all staff in the branch
     staff_res = supabase.table("users").select("id, full_name, hourly_rate").eq("branch_id", payload.branch_id).eq("role", "staff").execute()
-    staff_members = staff_res.data or []
+    staff_members_by_id = {row["id"]: row for row in (staff_res.data or [])}
+    ub_res = supabase.table("user_branches").select("user_id").eq("branch_id", payload.branch_id).execute()
+    ub_staff_ids = [row["user_id"] for row in (ub_res.data or [])]
+    if ub_staff_ids:
+        assigned_staff_res = supabase.table("users").select("id, full_name, hourly_rate, role").in_("id", ub_staff_ids).eq("role", "staff").execute()
+        for row in (assigned_staff_res.data or []):
+            staff_members_by_id[row["id"]] = row
+    staff_members = list(staff_members_by_id.values())
 
     if not staff_members:
         return {"message": "Không có nhân viên nào thuộc chi nhánh này để tính lương."}
@@ -168,6 +183,7 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
         att_res = supabase.table("attendance")\
             .select("total_hours, work_minutes")\
             .eq("staff_id", staff["id"])\
+            .eq("branch_id", payload.branch_id)\
             .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\

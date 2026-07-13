@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
+import { getUserBranchOptions, useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import { DASHBOARD_PATH } from '../../config/roleNav';
 import { Lock, User as UserIcon, LogIn, AlertTriangle, LogOut, ShieldCheck } from 'lucide-react';
@@ -19,6 +19,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [pendingLogin, setPendingLogin] = useState<{ token: string; user: any } | null>(null);
+  const [selectedLoginBranchId, setSelectedLoginBranchId] = useState('');
   const loginButtonRef = useRef<HTMLButtonElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -75,6 +76,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
 
   const handleCancelConfirm = () => {
     setPendingLogin(null);
+    setSelectedLoginBranchId('');
     setPassword('');
     setConfirming(false);
     window.setTimeout(() => loginButtonRef.current?.focus(), 0);
@@ -82,8 +84,13 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
 
   const handleConfirmLogin = () => {
     if (!pendingLogin || confirming) return;
+    const branchOptions = getUserBranchOptions(pendingLogin.user);
+    if (branchOptions.length > 1 && !selectedLoginBranchId) {
+      addToast('Vui lòng chọn cơ sở làm việc.', 'warning');
+      return;
+    }
     setConfirming(true);
-    completeLogin(pendingLogin.token, pendingLogin.user);
+    completeLogin(pendingLogin.token, pendingLogin.user, selectedLoginBranchId || branchOptions[0]?.id);
     addToast('Đăng nhập thành công!', 'success');
     navigate(DASHBOARD_PATH.staff, { replace: true });
   };
@@ -101,6 +108,8 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
       setLoading(false);
       if (result.success) {
         if (result.token && result.user) {
+          const branchOptions = getUserBranchOptions(result.user);
+          setSelectedLoginBranchId(branchOptions.length === 1 ? branchOptions[0].id : '');
           setPendingLogin({ token: result.token, user: result.user });
         } else {
           addToast('Không thể xác nhận phiên đăng nhập. Vui lòng thử lại.', 'error');
@@ -352,6 +361,21 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
                   {getFacilityDisplay(pendingLogin.user)}
                 </span>
               </div>
+              {getUserBranchOptions(pendingLogin.user).length > 1 && (
+                <div className="pt-2 space-y-1.5 border-t border-slate-200">
+                  <label className="text-slate-500 font-semibold block">Chọn cơ sở làm việc</label>
+                  <select
+                    value={selectedLoginBranchId}
+                    onChange={(event) => setSelectedLoginBranchId(event.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-primary"
+                  >
+                    <option value="">Chọn cơ sở</option>
+                    {getUserBranchOptions(pendingLogin.user).map(branch => (
+                      <option key={branch.id} value={branch.id}>{branch.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <span className="text-slate-500 font-semibold">Thời gian</span>
                 <span className="text-slate-900 font-bold text-right">{new Date().toLocaleString('vi-VN')}</span>
@@ -372,7 +396,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
                 ref={confirmButtonRef}
                 type="button"
                 onClick={handleConfirmLogin}
-                disabled={confirming}
+                disabled={confirming || (getUserBranchOptions(pendingLogin.user).length > 1 && !selectedLoginBranchId)}
                 className="h-10 px-4 rounded-2xl bg-slate-950 hover:bg-black text-white text-xs font-bold transition-colors disabled:opacity-60"
               >
                 {confirming ? 'Đang đăng nhập...' : 'Xác nhận đăng nhập'}

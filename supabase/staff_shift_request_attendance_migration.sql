@@ -77,7 +77,7 @@ BEGIN
   );
 END $$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_staff_date_shift_unique
+CREATE INDEX IF NOT EXISTS idx_attendance_staff_date_shift
   ON attendance (staff_id, work_date, COALESCE(shift_id, shift_name, 'DEFAULT_SHIFT'))
   WHERE deleted_at IS NULL;
 
@@ -96,4 +96,3 @@ CREATE TABLE IF NOT EXISTS attendance_audit_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_attendance_audit_logs_attendance ON attendance_audit_logs(attendance_id);
-

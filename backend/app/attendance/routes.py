@@ -124,6 +124,27 @@ def _calculate_attendance(
         "status": status_value,
     }
 
+COMPLETED_ATTENDANCE_STATUSES = ["completed", "on_time", "late", "early_leave", "manual_adjusted"]
+
+def _ensure_no_overlap(staff_id: str, work_date_value: date, check_in_at: Optional[datetime], check_out_at: Optional[datetime], exclude_id: Optional[str] = None):
+    if not check_in_at or not check_out_at:
+        return
+
+    records_res = supabase.table("attendance").select("id, check_in_at, check_out_at, check_in_time, check_out_time")\
+        .eq("staff_id", staff_id)\
+        .eq("work_date", work_date_value.isoformat())\
+        .execute()
+
+    for record in (records_res.data or []):
+        if exclude_id and record.get("id") == exclude_id:
+            continue
+        start = _parse_dt(record.get("check_in_at") or record.get("check_in_time"))
+        end = _parse_dt(record.get("check_out_at") or record.get("check_out_time"))
+        if not start or not end:
+            continue
+        if check_in_at < end and check_out_at > start:
+            raise HTTPException(status_code=400, detail="Phiên chấm công bị chồng giờ với phiên đã có.")
+
 def _format_admin_attendance(record: dict):
     staff = record.get("users") or {}
     branch = record.get("branches") or {}
@@ -150,7 +171,8 @@ def _recalculate_draft_payrolls(staff_id: str, work_date_value: date):
         end_date = f"{payroll['year']}-{payroll['month']:02d}-31"
         att_res = supabase.table("attendance").select("total_hours")\
             .eq("staff_id", staff_id)\
-            .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
+            .eq("branch_id", payroll.get("branch_id"))\
+            .in_("status", COMPLETED_ATTENDANCE_STATUSES)\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
             .execute()
@@ -182,18 +204,6 @@ def check_in(payload: AttendanceCheckIn, current_user: dict = Depends(get_curren
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Bạn đang có ca làm việc chưa check-out. Vui lòng check-out ca cũ trước."
-        )
-
-    # One check-in record per staff per day
-    today_res = supabase.table("attendance").select("id")\
-        .eq("staff_id", staff_id)\
-        .eq("work_date", date.today().isoformat())\
-        .execute()
-
-    if today_res.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bạn đã chấm công hôm nay. Mỗi ngày chỉ chấm công một lần."
         )
 
     now = datetime.now(timezone.utc)
@@ -236,7 +246,8 @@ def check_out(payload: AttendanceCheckOut, current_user: dict = Depends(get_curr
     now = datetime.now(timezone.utc)
     
     # Calculate hours
-    check_in_time = datetime.fromisoformat(record["check_in_time"].replace("Z", "+00:00"))
+    check_in_raw = record.get("check_in_at") or record.get("check_in_time")
+    check_in_time = datetime.fromisoformat(check_in_raw.replace("Z", "+00:00"))
     delta = now - check_in_time
     total_seconds = delta.total_seconds()
     
@@ -258,6 +269,7 @@ def check_out(payload: AttendanceCheckOut, current_user: dict = Depends(get_curr
     response = supabase.table("attendance").update(update_data).eq("id", record["id"]).execute()
     if not response.data:
         raise HTTPException(status_code=500, detail="Không thể ghi nhận check-out.")
+    _recalculate_draft_payrolls(staff_id, date.fromisoformat(record["work_date"]))
         
     return response.data[0]
 
@@ -266,6 +278,7 @@ def get_my_attendance(current_user: dict = Depends(get_current_user)):
     """Get history of current user."""
     response = supabase.table("attendance").select("*, branches(name)")\
         .eq("staff_id", current_user["id"])\
+        .eq("branch_id", current_user.get("branch_id"))\
         .order("check_in_time", desc=True)\
         .execute()
         
@@ -293,8 +306,11 @@ def get_attendance_list(
     
     if role == "manager":
         # Get manager's branches
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        m_branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            m_branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if not m_branch_ids:
             return []
         query = query.in_("branch_id", m_branch_ids)
@@ -342,7 +358,8 @@ def get_attendance_summary(current_user: dict = Depends(get_current_user)):
     
     history_res = supabase.table("attendance").select("total_hours")\
         .eq("staff_id", staff_id)\
-        .eq("status", "completed")\
+        .eq("branch_id", current_user.get("branch_id"))\
+        .in_("status", COMPLETED_ATTENDANCE_STATUSES)\
         .gte("work_date", start_of_month)\
         .execute()
         
@@ -351,7 +368,8 @@ def get_attendance_summary(current_user: dict = Depends(get_current_user)):
     # 3. Today's hours
     today_history_res = supabase.table("attendance").select("total_hours")\
         .eq("staff_id", staff_id)\
-        .eq("status", "completed")\
+        .eq("branch_id", current_user.get("branch_id"))\
+        .in_("status", COMPLETED_ATTENDANCE_STATUSES)\
         .eq("work_date", today.isoformat())\
         .execute()
     total_hours_today = sum(float(att["total_hours"]) for att in (today_history_res.data or []))
@@ -383,8 +401,11 @@ def get_admin_attendance(
         .range(max(page - 1, 0) * page_size, max(page, 1) * page_size - 1)
 
     if current_user["role"] == "manager":
-        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
-        branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if current_user.get("current_branch_id"):
+            branch_ids = [current_user["current_branch_id"]]
+        else:
+            branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+            branch_ids = [b["id"] for b in (branch_res.data or [])]
         if not branch_ids:
             return []
         query = query.in_("branch_id", branch_ids)
@@ -427,17 +448,6 @@ def create_manual_attendance(payload: ManualAttendancePayload, current_user: dic
         if not branch_res.data:
             raise HTTPException(status_code=403, detail="Bạn không có quyền nhập chấm công cho nhân viên này.")
 
-    duplicate_query = supabase.table("attendance").select("id")\
-        .eq("staff_id", payload.staff_id)\
-        .eq("work_date", payload.work_date.isoformat())
-    if payload.shift_id:
-        duplicate_query = duplicate_query.eq("shift_id", payload.shift_id)
-    else:
-        duplicate_query = duplicate_query.eq("shift_name", payload.shift_name)
-    duplicate_res = duplicate_query.execute()
-    if duplicate_res.data:
-        raise HTTPException(status_code=409, detail="Đã có bản ghi chấm công cho nhân viên, ngày và ca này. Vui lòng mở bản ghi để cập nhật.")
-
     calculated = _calculate_attendance(
         payload.work_date,
         payload.check_in_at,
@@ -446,6 +456,7 @@ def create_manual_attendance(payload: ManualAttendancePayload, current_user: dic
         payload.shift_end_time,
         payload.break_minutes
     )
+    _ensure_no_overlap(payload.staff_id, payload.work_date, payload.check_in_at, payload.check_out_at)
     now = datetime.now(timezone.utc).isoformat()
     insert_data = {
         "staff_id": payload.staff_id,
@@ -528,6 +539,7 @@ def update_admin_attendance(id: str, payload: AttendanceUpdatePayload, current_u
         shift_end_time = time.fromisoformat(old_record["shift_end_time"])
 
     calculated = _calculate_attendance(work_date_value, check_in_at, check_out_at, shift_start_time, shift_end_time, break_minutes)
+    _ensure_no_overlap(old_record["staff_id"], work_date_value, check_in_at, check_out_at, exclude_id=id)
     now = datetime.now(timezone.utc).isoformat()
     update_data = {
         "shift_id": payload.shift_id if payload.shift_id is not None else old_record.get("shift_id"),

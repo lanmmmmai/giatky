@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
+import { getUserBranchOptions, useAuthStore } from '../stores/authStore';
+import { useToastStore } from '../stores/toastStore';
 import { getNotifications, markNotificationRead, Notification } from '../api/notifications';
 import { ROLE_NAV } from '../config/roleNav';
 import {
   Bell,
+  Check,
   LogOut,
+  MapPin,
   Menu,
   Search,
   X,
@@ -13,12 +16,15 @@ import {
 } from 'lucide-react';
 
 const DashboardLayout: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setCurrentBranch } = useAuthStore();
+  const { addToast } = useToastStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [notifsOpen, setNotifsOpen] = useState(false);
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const [branchSearch, setBranchSearch] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -46,11 +52,25 @@ const DashboardLayout: React.FC = () => {
   };
 
   const unreadCount = notifs.filter(n => !n.is_read).length;
+  const branchOptions = getUserBranchOptions(user);
+  const currentBranch = branchOptions.find(branch => branch.id === user?.current_branch_id || branch.id === user?.branch_id);
+  const filteredBranchOptions = branchOptions.filter(branch =>
+    branch.name.toLowerCase().includes(branchSearch.trim().toLowerCase())
+  );
 
   const handleLogout = () => {
     const currentRole = user?.role || 'admin';
     logout();
     navigate(`/${currentRole}/login`);
+  };
+
+  const handleBranchChange = (branchId: string) => {
+    const branch = branchOptions.find(item => item.id === branchId);
+    if (!branch) return;
+    setCurrentBranch(branchId);
+    setBranchMenuOpen(false);
+    setBranchSearch('');
+    addToast(`Đã chuyển sang ${branch.name}.`, 'success');
   };
 
   if (!user) return null;
@@ -105,6 +125,12 @@ const DashboardLayout: React.FC = () => {
             <span className="text-[9px] text-neutral-400 uppercase tracking-widest font-mono font-bold block mt-1">
               {user.role === 'admin' ? 'CHỦ TIỆM' : user.role === 'manager' ? 'QUẢN LÝ' : 'NHÂN VIÊN'}
             </span>
+            {currentBranch && (
+              <span className="text-[10px] text-neutral-300 font-semibold mt-1 flex items-center gap-1 min-w-0">
+                <MapPin size={10} strokeWidth={1.7} className="shrink-0" />
+                <span className="truncate">{currentBranch.name}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -163,6 +189,59 @@ const DashboardLayout: React.FC = () => {
               <span className="text-xs font-medium text-neutral-400">Tìm kiếm...</span>
             </div>
             {/* Notification Bell Dropdown */}
+            {branchOptions.length > 0 && (
+              <div className="relative">
+                {branchOptions.length === 1 ? (
+                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-2.5 rounded-[20px] bg-white border border-[#E5E7EB] shadow-sm text-xs font-bold text-slate-700 max-w-56">
+                    <MapPin size={14} strokeWidth={1.5} className="text-primary shrink-0" />
+                    <span className="truncate">{currentBranch?.name || branchOptions[0].name}</span>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setBranchMenuOpen(prev => !prev)}
+                      className="flex items-center gap-1.5 px-3 py-2.5 rounded-[20px] bg-white hover:bg-neutral-100 border border-[#E5E7EB] shadow-sm text-xs font-bold text-slate-700 max-w-56 btn-press"
+                    >
+                      <MapPin size={14} strokeWidth={1.5} className="text-primary shrink-0" />
+                      <span className="truncate">{currentBranch?.name || 'Cơ sở'}</span>
+                    </button>
+                    {branchMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} />
+                        <div className="absolute right-0 mt-3 w-72 bg-white rounded-[24px] shadow-card border border-[#E5E7EB] p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                          {branchOptions.length > 6 && (
+                            <input
+                              value={branchSearch}
+                              onChange={(event) => setBranchSearch(event.target.value)}
+                              placeholder="Tìm cơ sở..."
+                              className="w-full px-3 py-2 mb-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:bg-white focus:border-primary"
+                            />
+                          )}
+                          <div className="max-h-72 overflow-y-auto space-y-1">
+                            {filteredBranchOptions.map(branch => (
+                              <button
+                                key={branch.id}
+                                type="button"
+                                onClick={() => handleBranchChange(branch.id)}
+                                className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl text-left text-xs font-bold transition-colors ${branch.id === currentBranch?.id ? 'bg-primary/10 text-primary' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                <span className="truncate">{branch.name}</span>
+                                {branch.id === currentBranch?.id && <Check size={14} strokeWidth={2} />}
+                              </button>
+                            ))}
+                            {filteredBranchOptions.length === 0 && (
+                              <div className="px-3 py-4 text-center text-xs text-slate-400">Không tìm thấy cơ sở</div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="relative">
               <button
                 onClick={() => setNotifsOpen(!notifsOpen)}

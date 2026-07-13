@@ -40,7 +40,7 @@ const Orders: React.FC = () => {
   useEffect(() => {
     loadBranches();
     loadOrders();
-  }, [selectedBranch, selectedStatus, selectedPaymentStatus]);
+  }, [selectedBranch, selectedStatus, selectedPaymentStatus, user?.branch_id]);
 
   const loadBranches = async () => {
     if (user?.role !== 'staff') {
