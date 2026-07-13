@@ -14,6 +14,8 @@ export interface User {
   hourly_rate?: number;
   manager_id?: string | null;
   assigned_branches?: { branch_id: string; branch_name: string }[];
+  branch_ids?: string[];
+  facilities?: { id: string; name: string }[];
 }
 
 interface AuthState {

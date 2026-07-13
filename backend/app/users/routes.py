@@ -46,6 +46,101 @@ class UserUpdate(BaseModel):
 class StatusUpdate(BaseModel):
     status: str = Field(..., pattern="^(active|pending_verification|blocked)$")
 
+def _dedupe_ids(ids: Optional[List[str]]) -> List[str]:
+    deduped = []
+    seen = set()
+    for item in ids or []:
+        value = str(item).strip()
+        if value and value not in seen:
+            seen.add(value)
+            deduped.append(value)
+    return deduped
+
+def _validate_branch_ids(branch_ids: List[str], current_user: dict) -> None:
+    if not branch_ids:
+        return
+
+    branch_res = supabase.table("branches").select("id").in_("id", branch_ids).execute()
+    found_ids = {str(branch["id"]) for branch in (branch_res.data or [])}
+    missing = [branch_id for branch_id in branch_ids if branch_id not in found_ids]
+    if missing:
+        raise HTTPException(status_code=400, detail="Một hoặc nhiều cơ sở làm việc không tồn tại.")
+
+    if current_user["role"] == "manager":
+        managed_res = supabase.table("branches").select("id").in_("id", branch_ids).eq("manager_id", current_user["id"]).execute()
+        managed_ids = {str(branch["id"]) for branch in (managed_res.data or [])}
+        unauthorized = [branch_id for branch_id in branch_ids if branch_id not in managed_ids]
+        if unauthorized:
+            raise HTTPException(status_code=403, detail="Bạn không thể gán nhân viên vào cơ sở không thuộc quyền quản lý của mình.")
+
+def _attach_assigned_branches(users_data: List[dict]) -> List[dict]:
+    if not users_data:
+        return users_data
+
+    user_ids = [u["id"] for u in users_data]
+    ub_data = []
+    try:
+        for i in range(0, len(user_ids), 100):
+            chunk = user_ids[i:i+100]
+            ub_res = supabase.table("user_branches").select("user_id, branch_id, branches(name)").in_("user_id", chunk).execute()
+            if ub_res.data:
+                ub_data.extend(ub_res.data)
+    except Exception as ub_err:
+        logger.warning(f"Failed to fetch user_branches (table may not exist yet): {ub_err}")
+
+    ub_map = {}
+    for ub in ub_data:
+        u_id = ub["user_id"]
+        b_id = ub["branch_id"]
+        b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
+        if u_id not in ub_map:
+            ub_map[u_id] = []
+        if not any(item["branch_id"] == b_id for item in ub_map[u_id]):
+            ub_map[u_id].append({
+                "branch_id": b_id,
+                "branch_name": b_name
+            })
+
+    for u in users_data:
+        assigned = ub_map.get(u["id"], [])
+        if not assigned and u.get("branch_id"):
+            branch_name = None
+            if u.get("branches"):
+                branch_name = u["branches"].get("name")
+            assigned = [{"branch_id": u["branch_id"], "branch_name": branch_name or "N/A"}]
+        u["assigned_branches"] = assigned
+        u["branch_ids"] = [item["branch_id"] for item in assigned]
+        u["facilities"] = [{"id": item["branch_id"], "name": item["branch_name"]} for item in assigned]
+
+    return users_data
+
+def _sync_user_branches(user_id: str, branch_ids: List[str], assigned_by: str) -> None:
+    branch_ids = _dedupe_ids(branch_ids)
+    try:
+        supabase.rpc("sync_user_branches", {
+            "p_user_id": user_id,
+            "p_branch_ids": branch_ids,
+            "p_assigned_by": assigned_by
+        }).execute()
+        return
+    except Exception as rpc_err:
+        logger.warning(f"sync_user_branches RPC unavailable, using fallback sync: {rpc_err}")
+
+    current_res = supabase.table("user_branches").select("branch_id").eq("user_id", user_id).execute()
+    current_ids = {str(row["branch_id"]) for row in (current_res.data or [])}
+    desired_ids = set(branch_ids)
+
+    to_delete = list(current_ids - desired_ids)
+    to_insert = list(desired_ids - current_ids)
+
+    if to_delete:
+        supabase.table("user_branches").delete().eq("user_id", user_id).in_("branch_id", to_delete).execute()
+    if to_insert:
+        supabase.table("user_branches").insert([
+            {"user_id": user_id, "branch_id": branch_id, "assigned_by": assigned_by}
+            for branch_id in to_insert
+        ]).execute()
+
 @router.get("")
 def get_users(current_user: dict = Depends(get_current_user)):
     """List users based on current user's role.
@@ -69,16 +164,26 @@ def get_users(current_user: dict = Depends(get_current_user)):
             # Get branches managed by this manager
             branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
             branch_ids = [b["id"] for b in (branch_res.data or [])]
+            staff_ids_from_assignments = []
+            if branch_ids:
+                try:
+                    ub_res = supabase.table("user_branches").select("user_id").in_("branch_id", branch_ids).execute()
+                    staff_ids_from_assignments = [row["user_id"] for row in (ub_res.data or [])]
+                except Exception as ub_err:
+                    logger.warning(f"Failed to fetch manager staff via user_branches: {ub_err}")
             
             if not branch_ids:
                 # Still check if they are explicitly assigned to this manager via manager_id
                 response = supabase.table("users").select(select_fields).eq("manager_id", current_user["id"]).order("created_at", desc=True).execute()
                 users_data = response.data or []
             else:
-                # Get users belonging to those branches, or having this manager as manager_id
-                # Wrap branch ids in brackets for postgres array
+                # Get users belonging to managed branches, assigned through user_branches,
+                # or explicitly having this manager as manager_id.
                 branch_list_str = ",".join(branch_ids)
-                response = supabase.table("users").select(select_fields).or_(f"branch_id.in.({branch_list_str}),manager_id.eq.{current_user['id']}").order("created_at", desc=True).execute()
+                filters = [f"branch_id.in.({branch_list_str})", f"manager_id.eq.{current_user['id']}"]
+                if staff_ids_from_assignments:
+                    filters.append(f"id.in.({','.join(staff_ids_from_assignments)})")
+                response = supabase.table("users").select(select_fields).or_(",".join(filters)).order("created_at", desc=True).execute()
                 users_data = response.data or []
             
         else:
@@ -86,33 +191,7 @@ def get_users(current_user: dict = Depends(get_current_user)):
             response = supabase.table("users").select(select_fields).eq("id", current_user["id"]).execute()
             users_data = response.data or []
             
-        if users_data:
-            user_ids = [u["id"] for u in users_data]
-            ub_data = []
-            try:
-                for i in range(0, len(user_ids), 100):
-                    chunk = user_ids[i:i+100]
-                    ub_res = supabase.table("user_branches").select("user_id, branch_id, branches(name)").in_("user_id", chunk).execute()
-                    if ub_res.data:
-                        ub_data.extend(ub_res.data)
-            except Exception as ub_err:
-                logger.warning(f"Failed to fetch user_branches (table may not exist yet): {ub_err}")
-            
-            # Map user_id to assigned branches list
-            ub_map = {}
-            for ub in ub_data:
-                u_id = ub["user_id"]
-                b_id = ub["branch_id"]
-                b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-                if u_id not in ub_map:
-                    ub_map[u_id] = []
-                ub_map[u_id].append({
-                    "branch_id": b_id,
-                    "branch_name": b_name
-                })
-                
-            for u in users_data:
-                u["assigned_branches"] = ub_map.get(u["id"], [])
+        _attach_assigned_branches(users_data)
                 
         return users_data
     except Exception as e:
@@ -210,19 +289,14 @@ def create_staff(payload: StaffCreate, current_user: dict = Depends(get_current_
         raise HTTPException(status_code=400, detail="Tên đăng nhập này đã tồn tại.")
 
     # Parse branch_ids
-    branch_ids = payload.branch_ids or []
+    branch_ids = _dedupe_ids(payload.branch_ids)
     if not branch_ids and payload.branch_id:
-        branch_ids = [payload.branch_id]
+        branch_ids = _dedupe_ids([payload.branch_id])
 
     if not branch_ids:
         raise HTTPException(status_code=400, detail="Vui lòng chọn ít nhất một cơ sở làm việc.")
 
-    # If manager is creating staff, verify branch belongs to them
-    if current_user["role"] == "manager":
-        for b_id in branch_ids:
-            branch_res = supabase.table("branches").select("id").eq("id", b_id).eq("manager_id", current_user["id"]).execute()
-            if not branch_res.data:
-                raise HTTPException(status_code=403, detail="Bạn không thể tạo nhân viên cho cơ sở không thuộc quyền quản lý của mình.")
+    _validate_branch_ids(branch_ids, current_user)
 
     pwd_hash = hash_password(payload.password)
     verification_token = str(uuid.uuid4())
@@ -251,19 +325,8 @@ def create_staff(payload: StaffCreate, current_user: dict = Depends(get_current_
         
     new_user = response.data[0]
     
-    # Insert assignments to user_branches
-    try:
-        ub_inserts = [
-            {
-                "user_id": new_user["id"],
-                "branch_id": b_id,
-                "assigned_by": current_user["id"]
-            }
-            for b_id in branch_ids
-        ]
-        supabase.table("user_branches").insert(ub_inserts).execute()
-    except Exception as ub_err:
-        logger.warning(f"Failed to insert user_branches (table may not exist yet): {ub_err}")
+    _sync_user_branches(new_user["id"], branch_ids, current_user["id"])
+    _attach_assigned_branches([new_user])
     
     # Send verification email
     verify_link = f"{settings.FRONTEND_URL}/verify-account?token={verification_token}"
@@ -315,20 +378,7 @@ def get_user_detail(id: str, current_user: dict = Depends(get_current_user)):
         
     user_rec = response.data[0]
     
-    # Fetch assigned branches
-    assigned = []
-    try:
-        ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
-        for ub in (ub_res.data or []):
-            b_id = ub["branch_id"]
-            b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-            assigned.append({
-                "branch_id": b_id,
-                "branch_name": b_name
-            })
-    except Exception as ub_err:
-        logger.warning(f"Failed to fetch user_branches (table may not exist yet): {ub_err}")
-    user_rec["assigned_branches"] = assigned
+    _attach_assigned_branches([user_rec])
     
     return user_rec
 
@@ -392,6 +442,11 @@ def update_user(id: str, payload: UserUpdate, current_user: dict = Depends(get_c
 
     # Pop branch_ids from update_data before saving to users table
     branch_ids = update_data.pop("branch_ids", None)
+    if branch_ids is not None:
+        branch_ids = _dedupe_ids(branch_ids)
+        if target_user["role"] == "staff" and not branch_ids:
+            raise HTTPException(status_code=400, detail="Vui lòng chọn ít nhất một cơ sở làm việc.")
+        _validate_branch_ids(branch_ids, current_user)
     
     # Store first branch in branch_id for backward compatibility if branch_ids is modified
     if branch_ids is not None:
@@ -412,51 +467,14 @@ def update_user(id: str, payload: UserUpdate, current_user: dict = Depends(get_c
     # Update user_branches table if branch_ids list was supplied
     if branch_ids is not None:
         try:
-            # First delete all current assignments
-            supabase.table("user_branches").delete().eq("user_id", id).execute()
-            # Then insert the new ones
-            if branch_ids:
-                ub_inserts = [
-                    {
-                        "user_id": id,
-                        "branch_id": b_id,
-                        "assigned_by": current_user["id"]
-                    }
-                    for b_id in branch_ids
-                ]
-                supabase.table("user_branches").insert(ub_inserts).execute()
+            _sync_user_branches(id, branch_ids, current_user["id"])
         except Exception as ub_err:
-            logger.warning(f"Failed to update user_branches mapping (table may not exist yet): {ub_err}")
+            logger.error(f"Failed to update user_branches mapping: {ub_err}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Không thể cập nhật cơ sở làm việc cho nhân viên.")
             
-        # Re-fetch the updated assigned branches to return in the response
-        assigned = []
-        try:
-            ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
-            for ub in (ub_res.data or []):
-                b_id = ub["branch_id"]
-                b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-                assigned.append({
-                    "branch_id": b_id,
-                    "branch_name": b_name
-                })
-        except Exception as ub_err:
-            logger.warning(f"Failed to fetch updated user_branches mapping (table may not exist yet): {ub_err}")
-        updated_user["assigned_branches"] = assigned
+        _attach_assigned_branches([updated_user])
     else:
-        # Fetch current assigned branches
-        assigned = []
-        try:
-            ub_res = supabase.table("user_branches").select("branch_id, branches(name)").eq("user_id", id).execute()
-            for ub in (ub_res.data or []):
-                b_id = ub["branch_id"]
-                b_name = ub["branches"]["name"] if ub.get("branches") else "N/A"
-                assigned.append({
-                    "branch_id": b_id,
-                    "branch_name": b_name
-                })
-        except Exception as ub_err:
-            logger.warning(f"Failed to fetch current user_branches mapping (table may not exist yet): {ub_err}")
-        updated_user["assigned_branches"] = assigned
+        _attach_assigned_branches([updated_user])
 
     return updated_user
 

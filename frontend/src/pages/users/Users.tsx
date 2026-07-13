@@ -77,6 +77,48 @@ const Users: React.FC = () => {
     setSelectedManagerId('');
   };
 
+  const normalizeBranchIds = (u: User | any): string[] => {
+    const ids =
+      u.assigned_branches?.map((item: any) => item.branch_id) ??
+      u.facilities?.map((item: any) => item.id) ??
+      u.branch_ids ??
+      (u.branch_id ? [u.branch_id] : []);
+
+    return Array.from(new Set((ids || []).filter(Boolean).map((id: any) => String(id))));
+  };
+
+  const getUserBranches = (u: User | any) => {
+    const fromAssigned = u.assigned_branches?.map((item: any) => ({
+      id: String(item.branch_id),
+      name: item.branch_name
+    }));
+    const fromFacilities = u.facilities?.map((item: any) => ({
+      id: String(item.id),
+      name: item.name
+    }));
+    const source = fromAssigned?.length ? fromAssigned : fromFacilities?.length ? fromFacilities : [];
+
+    if (source.length > 0) {
+      return source.filter((item: any, index: number, arr: any[]) => (
+        item.id && arr.findIndex(other => other.id === item.id) === index
+      ));
+    }
+
+    if (u.branch_id) {
+      const branch = branches.find(b => String(b.id) === String(u.branch_id));
+      return branch ? [{ id: String(branch.id), name: branch.name }] : [];
+    }
+
+    return [];
+  };
+
+  const getFacilityDisplay = (u: User | any) => {
+    const userBranches = getUserBranches(u);
+    if (userBranches.length === 0) return 'Chưa phân công';
+    if (userBranches.length === 1) return userBranches[0].name;
+    return `${userBranches.length} cơ sở`;
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim() || !username.trim()) {
@@ -140,9 +182,7 @@ const Users: React.FC = () => {
     setEditHourlyRate(u.hourly_rate || 0);
     setEditBranchId(u.branch_id || '');
     
-    // Map assigned branches
-    const currentBranchIds = u.assigned_branches?.map(b => b.branch_id) || (u.branch_id ? [u.branch_id] : []);
-    setEditBranchIds(currentBranchIds);
+    setEditBranchIds(normalizeBranchIds(u));
     
     setEditManagerId(u.manager_id || '');
     setEditModalOpen(true);
@@ -173,10 +213,10 @@ const Users: React.FC = () => {
         })
       };
 
-      await updateUser(editingUserId, payload);
-      addToast('Cập nhật tài khoản thành công.', 'success');
+      const updated = await updateUser(editingUserId, payload);
+      setUsersList(prev => prev.map(item => item.id === editingUserId ? { ...item, ...updated } : item));
+      addToast('Cập nhật nhân viên thành công', 'success');
       setEditModalOpen(false);
-      loadUsers();
     } catch (err: any) {
       addToast(err.response?.data?.detail || 'Không thể cập nhật tài khoản.', 'error');
     } finally {
@@ -280,6 +320,7 @@ const Users: React.FC = () => {
                     pending_verification: 'Chờ kích hoạt',
                     blocked: 'Đã khóa'
                   }[u.status] || u.status;
+                  const userBranches = getUserBranches(u);
 
                   return (
                     <tr key={u.id} className="border-b border-slate-100 hover:bg-primary/5 transition-colors">
@@ -309,17 +350,12 @@ const Users: React.FC = () => {
                       </td>
                       <td className="p-4 text-slate-500 font-medium">
                         {u.role === 'staff' ? (
-                          u.assigned_branches && u.assigned_branches.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                              {u.assigned_branches.map((ab: any) => (
-                                <span key={ab.branch_id} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                  {ab.branch_name}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            (u as any).branches?.name || 'Chưa gán'
-                          )
+                          <span
+                            className={userBranches.length > 1 ? 'cursor-help underline decoration-dotted underline-offset-4' : ''}
+                            title={userBranches.map((branch: { id: string; name: string }) => branch.name).join('\n')}
+                          >
+                            {getFacilityDisplay(u)}
+                          </span>
                         ) : '-'}
                       </td>
                       <td className="p-4 font-bold text-slate-800">
@@ -502,7 +538,8 @@ const Users: React.FC = () => {
                     <label className="text-xs font-semibold text-slate-600">Cơ sở gán làm việc *</label>
                     <div className="border border-slate-200 rounded-2xl p-3 bg-primary/5 max-h-32 overflow-y-auto space-y-2">
                       {branches.map(b => {
-                        const isChecked = branchIds.includes(b.id);
+                        const branchKey = String(b.id);
+                        const isChecked = branchIds.includes(branchKey);
                         return (
                           <label key={b.id} className="flex items-center gap-2.5 text-xs text-slate-700 font-medium cursor-pointer hover:text-slate-900 transition-colors">
                             <input
@@ -510,9 +547,9 @@ const Users: React.FC = () => {
                               checked={isChecked}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setBranchIds(prev => [...prev, b.id]);
+                                  setBranchIds(prev => Array.from(new Set([...prev, branchKey])));
                                 } else {
-                                  setBranchIds(prev => prev.filter(id => id !== b.id));
+                                  setBranchIds(prev => prev.filter(id => id !== branchKey));
                                 }
                               }}
                               className="rounded border-slate-300 text-primary focus:ring-primary"
@@ -528,13 +565,13 @@ const Users: React.FC = () => {
                     {branchIds.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {branchIds.map(id => {
-                          const bName = branches.find(b => b.id === id)?.name || id;
+                          const bName = branches.find(b => String(b.id) === String(id))?.name || id;
                           return (
                             <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/15">
                               {bName}
                               <button
                                 type="button"
-                                onClick={() => setBranchIds(prev => prev.filter(x => x !== id))}
+                                onClick={() => setBranchIds(prev => prev.filter(x => String(x) !== String(id)))}
                                 className="text-primary hover:text-primary transition-colors ml-1"
                               >
                                 <X size={10} />
@@ -632,7 +669,8 @@ const Users: React.FC = () => {
                     <label className="text-xs font-semibold text-slate-600">Cơ sở làm việc *</label>
                     <div className="border border-slate-200 rounded-2xl p-3 bg-primary/5 max-h-32 overflow-y-auto space-y-2">
                       {branches.map(b => {
-                        const isChecked = editBranchIds.includes(b.id);
+                        const branchKey = String(b.id);
+                        const isChecked = editBranchIds.includes(branchKey);
                         return (
                           <label key={b.id} className="flex items-center gap-2.5 text-xs text-slate-700 font-medium cursor-pointer hover:text-slate-900 transition-colors">
                             <input
@@ -640,9 +678,9 @@ const Users: React.FC = () => {
                               checked={isChecked}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setEditBranchIds(prev => [...prev, b.id]);
+                                  setEditBranchIds(prev => Array.from(new Set([...prev, branchKey])));
                                 } else {
-                                  setEditBranchIds(prev => prev.filter(id => id !== b.id));
+                                  setEditBranchIds(prev => prev.filter(id => id !== branchKey));
                                 }
                               }}
                               className="rounded border-slate-300 text-primary focus:ring-primary"
@@ -658,13 +696,13 @@ const Users: React.FC = () => {
                     {editBranchIds.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {editBranchIds.map(id => {
-                          const bName = branches.find(b => b.id === id)?.name || id;
+                          const bName = branches.find(b => String(b.id) === String(id))?.name || id;
                           return (
                             <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/15">
                               {bName}
                               <button
                                 type="button"
-                                onClick={() => setEditBranchIds(prev => prev.filter(x => x !== id))}
+                                onClick={() => setEditBranchIds(prev => prev.filter(x => String(x) !== String(id)))}
                                 className="text-primary hover:text-primary transition-colors ml-1"
                               >
                                 <X size={10} />
