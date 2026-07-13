@@ -1,16 +1,58 @@
 {
+  "site": "Giặt Ký",
+  "url": "https://giatky.site",
+  "language": "vi",
+  "last_updated": "2026-07-14",
   "items": [
     {
-      "question": "Giặt Ký dùng cho ai?",
-      "answer": "Giặt Ký phù hợp cho tiệm giặt là, chuỗi cửa hàng giặt sấy và đội vận hành nhiều cơ sở."
+      "question": "Giặt Ký là gì?",
+      "answer": "Giặt Ký là hệ thống quản lý tiệm giặt sấy, gom đơn hàng, khách hàng, nhiều cơ sở, nhân viên, chấm công, tính lương, doanh thu và nội dung website vào một nơi. Hệ thống dành cho chủ tiệm, quản lý cơ sở và nhân viên quầy thao tác hằng ngày.",
+      "url": "https://giatky.site/faq#giat-ky-la-gi"
     },
     {
-      "question": "Giặt Ký có hỗ trợ nhiều cơ sở không?",
-      "answer": "Có. Hệ thống hỗ trợ phân quyền theo vai trò và lọc dữ liệu theo cơ sở."
+      "question": "Giặt Ký hỗ trợ quản lý những nghiệp vụ nào?",
+      "answer": "Hệ thống hỗ trợ tạo đơn tại quầy, chọn dịch vụ theo kilogram hoặc theo món, quản lý trạng thái giặt sấy, thanh toán, trả đồ, lưu hồ sơ khách hàng, chấm công, bảng lương, báo cáo doanh thu, email tự động theo mẫu và quản lý nội dung website gồm blog, tuyển dụng, SEO.",
+      "url": "https://giatky.site/faq#nghiep-vu-ho-tro"
     },
     {
-      "question": "Giặt Ký có hỗ trợ SEO và AI discovery không?",
-      "answer": "Có. Website có robots.txt, sitemap.xml, llms.txt, RSS, Atom, JSON-LD, Open Graph, Twitter Card và dữ liệu /ai."
+      "question": "Hệ thống có quản lý nhiều cơ sở không?",
+      "answer": "Có. Một nhân viên có thể được phân công vào nhiều cơ sở, người dùng chọn cơ sở đang làm việc khi vận hành, và dữ liệu đơn hàng, chấm công, báo cáo đều lọc được theo từng cơ sở.",
+      "url": "https://giatky.site/faq#nhieu-co-so"
+    },
+    {
+      "question": "Nhân viên có thể chấm công nhiều lần trong ngày không?",
+      "answer": "Có. Một ngày làm việc có thể gồm nhiều phiên chấm công vào - ra. Quản lý cũng có thể điều chỉnh công thủ công kèm lý do khi nhân viên quên chấm.",
+      "url": "https://giatky.site/faq#cham-cong-nhieu-phien"
+    },
+    {
+      "question": "Hệ thống có hỗ trợ quản lý đơn hàng theo kilogram không?",
+      "answer": "Có. Dịch vụ tính theo cân nhận số lượng lẻ với tối đa 2 chữ số thập phân (ví dụ 2.35 kg), bên cạnh dịch vụ tính theo món. Mỗi đơn ghi rõ ngày giờ nhận, ngày hẹn trả, đơn giá và thành tiền.",
+      "url": "https://giatky.site/faq#don-theo-kilogram"
+    },
+    {
+      "question": "Có thể theo dõi lịch sử khách hàng không?",
+      "answer": "Có. Khi nhập số điện thoại, hệ thống hiển thị hồ sơ khách gồm tổng số đơn, tổng chi tiêu, lần giao dịch gần nhất và lịch sử dịch vụ đã dùng để nhân viên phục vụ nhanh hơn.",
+      "url": "https://giatky.site/faq#lich-su-khach-hang"
+    },
+    {
+      "question": "Hệ thống có hỗ trợ email tự động không?",
+      "answer": "Có. Quản trị viên soạn mẫu email theo sự kiện như tạo đơn, đổi trạng thái hoặc thanh toán, dùng 15 biến động kiểu {{customer_name}}, {{order_code}}, xem trước, gửi thử và cấu hình SMTP ngay trong hệ thống.",
+      "url": "https://giatky.site/faq#email-tu-dong"
+    },
+    {
+      "question": "Có thể quản lý doanh thu và tính lương không?",
+      "answer": "Có. Báo cáo doanh thu lọc được theo tháng, năm và cơ sở, kèm trạng thái thanh toán của từng đơn. Bảng lương tính theo tổng giờ công ghi nhận từ các phiên chấm công.",
+      "url": "https://giatky.site/faq#doanh-thu-tinh-luong"
+    },
+    {
+      "question": "Dữ liệu giữa các cơ sở được phân quyền như thế nào?",
+      "answer": "Hệ thống có 3 vai trò: admin xem toàn bộ hệ thống, quản lý xem dữ liệu của cơ sở mình phụ trách, nhân viên thao tác trong phạm vi cơ sở đang làm việc. Đơn hàng và thao tác ngoài phạm vi được chặn ở tầng backend.",
+      "url": "https://giatky.site/faq#phan-quyen-du-lieu"
+    },
+    {
+      "question": "Làm thế nào để liên hệ hỗ trợ?",
+      "answer": "Bạn có thể gửi email tới support@giatky.site hoặc dùng form tại trang Liên hệ. Yêu cầu thường được phản hồi trong 1-2 ngày làm việc.",
+      "url": "https://giatky.site/faq#lien-he-ho-tro"
     }
   ]
 }

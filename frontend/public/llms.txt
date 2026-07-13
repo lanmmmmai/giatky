@@ -1,33 +1,30 @@
 # Giặt Ký
 
-> Hệ thống quản lý tiệm giặt là chuyên nghiệp cho đơn hàng, khách hàng, nhân viên, cơ sở, doanh thu, CMS SEO và tuyển dụng.
+> Giặt Ký là hệ thống quản lý tiệm giặt sấy hỗ trợ đơn hàng, khách hàng, nhiều cơ sở, nhân viên, chấm công, tính lương, doanh thu và nội dung website.
 
-## Website
+## Main
 
-- https://giatky.site - Trang chủ và tổng quan sản phẩm Giặt Ký.
-- https://giatky.site/services - Tính năng phần mềm quản lý tiệm giặt là.
-- https://giatky.site/about - Giới thiệu thương hiệu, sứ mệnh và tầm nhìn.
-- https://giatky.site/contact - Thông tin liên hệ và form tư vấn.
-- https://giatky.site/blog - Tin tức, hướng dẫn và thông báo.
-- https://giatky.site/faq - Câu hỏi thường gặp về hệ thống.
-- https://giatky.site/tuyen-dung - Tin tuyển dụng và ứng tuyển online.
-- https://giatky.site/privacy - Chính sách quyền riêng tư.
-- https://giatky.site/terms - Điều khoản sử dụng.
-- https://giatky.site/cookies - Chính sách cookie.
+- [Trang chủ](https://giatky.site/): Tổng quan hệ thống Giặt Ký, các nhóm chức năng và số liệu tính năng.
+- [Giới thiệu](https://giatky.site/about): Sứ mệnh, đối tượng sử dụng và tài liệu tiêu chuẩn tham khảo.
+- [Liên hệ](https://giatky.site/contact): Email hỗ trợ, form liên hệ và thời gian phản hồi.
 
-## AI Discovery
+## Product
 
-- https://giatky.site/ai/summary.json - Tóm tắt website cho AI search.
-- https://giatky.site/ai/faq.json - FAQ dạng machine-readable.
-- https://giatky.site/ai/services.json - Danh sách dịch vụ và tính năng.
+- [Dịch vụ](https://giatky.site/services): Các chức năng chính của hệ thống quản lý giặt sấy.
+- [Câu hỏi thường gặp](https://giatky.site/faq): 10 câu hỏi về nghiệp vụ, nhiều cơ sở, chấm công, email và hỗ trợ.
+- [Blog](https://giatky.site/blog): Bài viết, hướng dẫn vận hành và thông báo.
+- [Tuyển dụng](https://giatky.site/tuyen-dung): Tin tuyển dụng và ứng tuyển online.
 
-## Feeds
+## Policies
 
-- https://giatky.site/rss.xml - RSS feed.
-- https://giatky.site/atom.xml - Atom feed.
+- [Chính sách bảo mật](https://giatky.site/privacy): Cách Giặt Ký xử lý dữ liệu cá nhân.
+- [Điều khoản sử dụng](https://giatky.site/terms): Điều khoản sử dụng website và hệ thống.
+- [Chính sách cookie](https://giatky.site/cookies): Chính sách cookie cho trình duyệt và phân tích website.
 
 ## Optional
 
-- https://giatky.site/privacy - Thông tin về cách Giặt Ký xử lý dữ liệu cá nhân.
-- https://giatky.site/terms - Điều khoản sử dụng website và hệ thống.
-- https://giatky.site/cookies - Chính sách cookie cho trình duyệt và phân tích website.
+- [RSS](https://giatky.site/rss.xml): Nguồn cập nhật nội dung mới.
+- [Atom](https://giatky.site/atom.xml): Feed thay thế chuẩn Atom.
+- [AI Summary](https://giatky.site/ai/summary.json): Tóm tắt website dạng máy đọc.
+- [AI FAQ](https://giatky.site/ai/faq.json): Dữ liệu FAQ máy đọc, đồng bộ với trang /faq.
+- [AI Services](https://giatky.site/ai/services.json): Dữ liệu dịch vụ và tính năng máy đọc.

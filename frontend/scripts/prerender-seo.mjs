@@ -11,6 +11,8 @@ const SITE_URL = 'https://giatky.site';
 const SITE_NAME = 'Giặt Ký';
 
 const routeSeo = JSON.parse(fs.readFileSync(seoPath, 'utf8'));
+// Nguồn FAQ duy nhất — dùng chung với trang /faq (React) và /ai/faq.json
+const faqData = JSON.parse(fs.readFileSync(path.join(root, 'src', 'config', 'faqData.json'), 'utf8'));
 const template = fs.readFileSync(templatePath, 'utf8');
 
 const escapeHtml = (value = '') =>
@@ -75,11 +77,7 @@ const breadcrumbSchema = (items) => ({
   })),
 });
 
-const faqItems = [
-  ['Giặt Ký dùng cho ai?', 'Giặt Ký phù hợp cho tiệm giặt sấy, chuỗi cửa hàng và đội vận hành nhiều cơ sở.'],
-  ['Giặt Ký có hỗ trợ nhiều cơ sở không?', 'Có. Hệ thống hỗ trợ phân quyền theo vai trò và lọc dữ liệu theo cơ sở.'],
-  ['Website có hỗ trợ SEO và AI discovery không?', 'Có. Website có robots.txt, sitemap.xml, llms.txt, RSS, Atom, JSON-LD, Open Graph, Twitter Card và dữ liệu /ai.'],
-];
+const faqItems = faqData.map(item => [item.question, item.answer]);
 
 const schemaForRoute = (route, seo) => {
   const base = [organizationSchema()];
@@ -109,6 +107,26 @@ const schemaForRoute = (route, seo) => {
     url: seo.canonical,
     isPartOf: { '@id': `${SITE_URL}/#website` },
   }];
+  if (route === '/about') return [...base, {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    '@id': `${SITE_URL}/about#webpage`,
+    name: seo.title,
+    url: `${SITE_URL}/about`,
+    inLanguage: 'vi-VN',
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    about: { '@id': `${SITE_URL}/#organization` },
+  }, breadcrumbSchema([{ name: 'Trang chủ', path: '/' }, { name: 'Giới thiệu', path: '/about' }])];
+  if (route === '/contact') return [...base, {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    '@id': `${SITE_URL}/contact#webpage`,
+    name: seo.title,
+    url: `${SITE_URL}/contact`,
+    inLanguage: 'vi-VN',
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    about: { '@id': `${SITE_URL}/#organization` },
+  }, breadcrumbSchema([{ name: 'Trang chủ', path: '/' }, { name: 'Liên hệ', path: '/contact' }])];
   return [...base, breadcrumbSchema([{ name: 'Trang chủ', path: '/' }, { name: seo.title.replace(` | ${SITE_NAME}`, ''), path: route }])];
 };
 
@@ -119,16 +137,31 @@ const contentForRoute = (route, seo) => {
   if (route === '/') {
     return `<main>
       <h1>Hệ thống quản lý tiệm giặt sấy Giặt Ký</h1>
-      <section><h2>Giặt Ký là gì?</h2><p>Giặt Ký là phần mềm quản lý tiệm giặt sấy được xây dựng cho các cơ sở cần theo dõi đơn hàng, khách hàng, nhân viên và dòng tiền trong cùng một nơi.</p></section>
-      <section><h2>Các chức năng chính.</h2><p>Hệ thống hỗ trợ nhận đồ, chọn dịch vụ, ghi nhận thanh toán, quản lý trạng thái đơn, theo dõi khách hàng, quản lý cơ sở, nhân viên, chấm công, bảng lương, báo cáo và CMS SEO.</p></section>
-      <section><h2>Quản lý đơn hàng và khách hàng.</h2><p>Mỗi đơn hàng có mã riêng, thông tin khách, danh sách dịch vụ, tổng tiền, phụ thu, giảm giá và trạng thái thanh toán để đội vận hành phục vụ nhất quán hơn.</p></section>
-      <section><h2>Quản lý cơ sở và nhân viên.</h2><p>Giặt Ký hỗ trợ vai trò admin, quản lý và nhân viên, phân dữ liệu theo cơ sở làm việc và giúp phối hợp nội bộ rõ ràng hơn.</p></section>
-      <section><h2>Báo cáo doanh thu.</h2><p>Khu vực báo cáo tổng hợp doanh thu, thanh toán và kết quả vận hành theo thời gian để chủ cơ sở có cái nhìn nhanh về tình hình kinh doanh.</p></section>
-      <section><h2>Câu hỏi thường gặp.</h2><p>Trang FAQ giải thích cách sử dụng Giặt Ký cho nhiều cơ sở, tuyển dụng, SEO và AI discovery.</p></section>
+      <p>Giặt Ký là hệ thống quản lý dành cho tiệm giặt sấy và chuỗi nhiều cơ sở. Phần mềm thay thế phiếu giấy và sổ tay bằng một bảng điều khiển duy nhất cho đơn hàng, khách hàng, nhân viên, chấm công, tính lương, doanh thu và nội dung website. Xem thêm tại <a href="/about">trang giới thiệu</a>, <a href="/faq">câu hỏi thường gặp</a>, <a href="/blog">blog</a> và <a href="/contact">liên hệ</a>.</p>
+      <section><h2>Số liệu tính năng của hệ thống</h2><ul>
+        <li>Số cân nhận tối đa 2 chữ số thập phân, bước nhỏ nhất 0.01 kg.</li>
+        <li>3 vai trò phân quyền: admin, quản lý cơ sở và nhân viên.</li>
+        <li>6 trạng thái đơn hàng: mới tạo, đang giặt, đang sấy, sẵn sàng, đã giao, đã hủy.</li>
+        <li>15 biến động trong mẫu email như {{customer_name}}, {{order_code}}.</li>
+        <li>Một ngày làm việc có thể gồm nhiều phiên chấm công vào - ra.</li>
+        <li>Báo cáo doanh thu lọc theo tháng, năm và từng cơ sở.</li>
+      </ul></section>
+      <section><h2>Quản lý đơn hàng giặt sấy tập trung</h2><p>Quy trình tại quầy đi theo một luồng thống nhất: nhận đồ của khách, chọn dịch vụ theo kilogram hoặc theo món, nhập số cân lẻ tới 2 chữ số thập phân, ghi ngày giờ nhận và ngày hẹn trả, rồi xác nhận tạo đơn. Ngày hẹn trả được đề xuất tự động dựa trên ngày nhận và có thể chỉnh tay khi khách cần gấp. Mỗi đơn có mã riêng được sinh tự động, đi qua các trạng thái mới tạo, đang giặt, đang sấy, sẵn sàng, đã giao hoặc đã hủy; thanh toán ghi nhận theo tiền mặt, chuyển khoản hoặc ví điện tử và phiếu biên nhận in được ngay từ trang chi tiết đơn.</p></section>
+      <section><h2>Quản lý khách hàng và lịch sử giao dịch</h2><p>Hồ sơ khách hàng lưu tên, số điện thoại, email và địa chỉ. Khi nhân viên nhập số điện thoại lúc tạo đơn, hệ thống tự tra cứu và hiển thị tổng số đơn, tổng chi tiêu, lần giao dịch gần nhất và lịch sử dịch vụ đã dùng để phục vụ khách quen nhanh hơn.</p></section>
+      <section><h2>Quản lý nhiều cơ sở</h2><p>Một nhân viên có thể được phân công vào nhiều cơ sở và chọn cơ sở đang làm việc khi vào ca. Quản lý chỉ nhìn thấy dữ liệu thuộc cơ sở mình phụ trách, còn admin xem được toàn hệ thống. Đơn hàng, chấm công và báo cáo đều lọc theo từng cơ sở.</p></section>
+      <section><h2>Chấm công và tính lương</h2><p>Nhân viên chấm công vào - ra theo phiên, một ngày có thể có nhiều phiên làm việc. Khi quên chấm, quản lý điều chỉnh công thủ công kèm lý do. Tổng giờ làm được cộng dồn tự động và là căn cứ tính lương theo giờ.</p></section>
+      <section><h2>Báo cáo doanh thu và vận hành</h2><p>Khu vực báo cáo tổng hợp doanh thu theo tháng, theo năm và theo cơ sở, kèm trạng thái thanh toán của từng đơn để thấy rõ tiền đã thu và khoản khách còn nợ.</p></section>
+      <section><h2>Email, SEO và nội dung</h2><p>Hệ thống gửi email xác nhận tự động theo mẫu do quản trị viên soạn, có xem trước và gửi thử. Khu vực CMS quản lý thẻ SEO, bài viết blog và tin tuyển dụng cho website public.</p></section>
+      <section><h2>Giặt Ký phù hợp với ai?</h2><p>Tiệm giặt nhỏ dùng Giặt Ký để bỏ phiếu giấy và tra cứu khách quen nhanh hơn. Chuỗi nhiều cơ sở dùng phân quyền theo chi nhánh. Chủ tiệm theo dõi doanh thu và công nợ từ xa, còn nhân viên quầy thao tác nhận đồ, tạo đơn và thu tiền trên một màn hình duy nhất.</p></section>
+      <section><h2>Câu hỏi thường gặp</h2>${faqItems.slice(0, 4).map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join('')}<p><a href="/faq">Xem tất cả câu hỏi thường gặp về Giặt Ký</a></p></section>
     </main>`;
   }
   if (route === '/faq') {
-    return `<main><h1>FAQ - Câu hỏi thường gặp</h1>${faqItems.map(([q, a]) => `<section><h2>${escapeHtml(q)}</h2><p>${escapeHtml(a)}</p></section>`).join('')}</main>`;
+    return `<main>
+      <h1>Câu hỏi thường gặp về Giặt Ký</h1>
+      <p>Trang này tổng hợp các câu hỏi phổ biến về hệ thống quản lý tiệm giặt sấy Giặt Ký: phạm vi nghiệp vụ, quản lý nhiều cơ sở, chấm công, tính lương, email tự động và cách liên hệ hỗ trợ. Xem thêm <a href="/">trang chủ</a>, <a href="/services">dịch vụ</a> và <a href="/contact">liên hệ</a>.</p>
+      ${faqData.map(item => `<section id="${escapeHtml(item.id)}"><h2>${escapeHtml(item.question)}</h2><p>${escapeHtml(item.answer)}</p></section>`).join('')}
+    </main>`;
   }
   return `<main><h1>${escapeHtml(seo.title.replace(` | ${SITE_NAME}`, ''))}</h1><p>${escapeHtml(seo.description)}</p></main>`;
 };
@@ -215,4 +248,19 @@ for (const post of Array.isArray(posts) ? posts : []) {
   if (!isRecruitment) renderRoute(`/bai-viet/${post.slug}`, { ...seo, canonical: `${SITE_URL}/bai-viet/${post.slug}` });
 }
 
-console.log(`Prerendered SEO HTML for ${Object.keys(routeSeo).length + posts.length} routes.`);
+// /ai/faq.json sinh từ đúng nguồn faqData.json — không nhập tay bản thứ hai
+const aiFaq = {
+  site: SITE_NAME,
+  url: SITE_URL,
+  language: 'vi',
+  last_updated: new Date().toISOString().slice(0, 10),
+  items: faqData.map(item => ({
+    question: item.question,
+    answer: item.answer,
+    url: `${SITE_URL}/faq#${item.id}`,
+  })),
+};
+fs.mkdirSync(path.join(dist, 'ai'), { recursive: true });
+fs.writeFileSync(path.join(dist, 'ai', 'faq.json'), JSON.stringify(aiFaq, null, 2));
+
+console.log(`Prerendered SEO HTML for ${Object.keys(routeSeo).length + posts.length} routes + synced ai/faq.json (${faqData.length} items).`);
