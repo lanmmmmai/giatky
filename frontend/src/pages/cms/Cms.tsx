@@ -54,6 +54,8 @@ interface SeoPreviewData {
   canonical_url?: string;
   meta_title?: string;
   meta_description?: string;
+  keywords?: string;
+  robots?: string;
   og_title?: string;
   og_description?: string;
   og_image?: string;
@@ -87,6 +89,23 @@ const FacebookPreview: React.FC<{ data: SeoPreviewData }> = ({ data }) => (
       <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wide truncate">{data.domain || 'ten-mien-cua-ban.vn'}</p>
       <p className="text-xs font-bold text-slate-800 line-clamp-1">{data.og_title || data.meta_title || 'Tiêu đề SEO'}</p>
       <p className="text-[11px] text-slate-500 line-clamp-1">{data.og_description || data.meta_description || 'Mô tả SEO'}</p>
+    </div>
+  </div>
+);
+
+const AIPreview: React.FC<{ data: SeoPreviewData }> = ({ data }) => (
+  <div className="border border-slate-200 rounded-2xl p-4 bg-slate-950 text-white space-y-3">
+    <div>
+      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">AI citation source</p>
+      <p className="text-xs font-mono text-white/80 truncate">{data.canonical_url || (data.domain ? `https://${data.domain}` : 'https://ten-mien-cua-ban.vn')}</p>
+    </div>
+    <div>
+      <p className="text-sm font-black">{data.meta_title || 'Tiêu đề SEO'}</p>
+      <p className="text-xs text-white/65 leading-5 mt-1">{data.meta_description || 'Mô tả ngắn để ChatGPT, Gemini, Claude, Perplexity và Copilot hiểu nội dung trang.'}</p>
+    </div>
+    <div className="grid grid-cols-2 gap-2 text-[11px]">
+      <div className="rounded-xl bg-white/10 p-2"><span className="block text-white/40">Robots</span>{data.robots || 'index, follow'}</div>
+      <div className="rounded-xl bg-white/10 p-2"><span className="block text-white/40">Keywords</span><span className="line-clamp-1">{data.keywords || 'Giặt Ký, quản lý giặt là'}</span></div>
     </div>
   </div>
 );
@@ -510,6 +529,10 @@ const Cms: React.FC = () => {
                     <div className="space-y-1.5">
                       <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Facebook size={11} /> Chia sẻ Facebook</h5>
                       <FacebookPreview data={seoPreviewRow} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><ClipboardList size={11} /> AI Preview</h5>
+                      <AIPreview data={seoPreviewRow} />
                     </div>
                   </div>
                 </div>

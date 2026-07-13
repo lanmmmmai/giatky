@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, MapPin, Send } from 'lucide-react';
 import { getPublicPost, Post, submitJobApplication } from '../../api/content';
 import { getPublicBranches } from '../../api/branches';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import SEO, { SITE_URL, buildBreadcrumbSchema, buildOrganizationSchema } from '../../components/SEO';
 
 const MAX_CV_SIZE = 5 * 1024 * 1024;
 const CV_TYPES = [
@@ -132,13 +133,46 @@ const PublicPostDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <SEO
+        title={post.meta_title || post.title}
+        description={post.meta_description || post.excerpt || 'Bài viết từ Giặt Ký.'}
+        path={`/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}`}
+        keywords={post.keywords || [post.category, ...(post.tags || [])].filter(Boolean).join(', ')}
+        image={post.og_image || post.featured_image || undefined}
+        type="article"
+        publishedTime={post.published_at}
+        modifiedTime={post.updated_at}
+        jsonLd={[
+          buildOrganizationSchema(),
+          buildBreadcrumbSchema([
+            { name: 'Trang chủ', path: '/' },
+            { name: post.post_type === 'recruitment' ? 'Tuyển dụng' : 'Blog', path: post.post_type === 'recruitment' ? '/tuyen-dung' : '/blog' },
+            { name: post.title, path: `/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}` },
+          ]),
+          {
+            '@context': 'https://schema.org',
+            '@type': post.post_type === 'recruitment' ? 'JobPosting' : 'BlogPosting',
+            headline: post.title,
+            description: post.meta_description || post.excerpt || post.title,
+            image: post.og_image || post.featured_image,
+            url: `${SITE_URL}/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}`,
+            datePublished: post.published_at,
+            dateModified: post.updated_at || post.published_at,
+            author: {
+              '@type': 'Person',
+              name: post.author_name || 'Giặt Ký',
+            },
+            publisher: { '@id': `${SITE_URL}/#organization` },
+          },
+        ]}
+      />
       <main className="max-w-5xl mx-auto px-4 py-8">
         <Link to={post.post_type === 'recruitment' ? '/tuyen-dung' : '/bai-viet'} className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-primary mb-6">
           <ArrowLeft size={16} /> Quay lại
         </Link>
 
         <article className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-          {post.featured_image && <img src={post.featured_image} alt={post.title} className="w-full max-h-[420px] object-cover" />}
+          {post.featured_image && <img src={post.featured_image} alt={post.title} loading="lazy" className="w-full max-h-[420px] object-cover" />}
           <div className="p-5 md:p-8 space-y-6">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">

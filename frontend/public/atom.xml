@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Giặt Ký</title>
+  <id>https://giatky.site/</id>
+  <link href="https://giatky.site/" />
+  <link rel="self" href="https://giatky.site/atom.xml" />
+  <updated>2026-07-13T00:00:00+07:00</updated>
+  <entry>
+    <title>Giặt Ký - Phần mềm quản lý tiệm giặt là</title>
+    <id>https://giatky.site/</id>
+    <link href="https://giatky.site/" />
+    <updated>2026-07-13T00:00:00+07:00</updated>
+    <summary>Hệ thống quản lý đơn hàng, khách hàng, nhân sự, doanh thu và SEO cho tiệm giặt là.</summary>
+  </entry>
+</feed>

@@ -1,0 +1,10 @@
+{
+  "name": "Giặt Ký",
+  "short_name": "Giặt Ký",
+  "description": "Hệ thống quản lý tiệm giặt là chuyên nghiệp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f6f3",
+  "theme_color": "#111111",
+  "lang": "vi"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Giặt Ký",
+  "url": "https://giatky.site",
+  "language": "vi-VN",
+  "description": "Giặt Ký là hệ thống quản lý tiệm giặt là chuyên nghiệp cho đơn hàng, khách hàng, nhân viên, cơ sở, doanh thu, CMS SEO và tuyển dụng.",
+  "category": ["BusinessApplication", "Laundry Management", "WebApplication"],
+  "audience": ["tiệm giặt là", "chuỗi giặt sấy", "quản lý cơ sở", "nhân viên vận hành"],
+  "important_pages": {
+    "home": "https://giatky.site/",
+    "services": "https://giatky.site/services",
+    "about": "https://giatky.site/about",
+    "faq": "https://giatky.site/faq",
+    "blog": "https://giatky.site/blog",
+    "careers": "https://giatky.site/tuyen-dung",
+    "contact": "https://giatky.site/contact"
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Giặt Ký</title>
+    <link>https://giatky.site/</link>
+    <description>Tin tức, hướng dẫn và cập nhật từ Giặt Ký.</description>
+    <language>vi-VN</language>
+    <item>
+      <title>Giặt Ký - Phần mềm quản lý tiệm giặt là</title>
+      <link>https://giatky.site/</link>
+      <guid>https://giatky.site/</guid>
+      <description>Hệ thống quản lý đơn hàng, khách hàng, nhân sự, doanh thu và SEO cho tiệm giặt là.</description>
+    </item>
+  </channel>
+</rss>

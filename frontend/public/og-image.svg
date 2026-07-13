@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Giặt Ký</title>
+  <desc id="desc">Hệ thống quản lý tiệm giặt là chuyên nghiệp</desc>
+  <rect width="1200" height="630" fill="#111111"/>
+  <circle cx="1010" cy="120" r="180" fill="#ffffff" opacity="0.08"/>
+  <circle cx="160" cy="530" r="210" fill="#ffffff" opacity="0.06"/>
+  <text x="90" y="245" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="96" font-weight="800">Giặt Ký</text>
+  <text x="96" y="320" fill="#d4d4d4" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="600">Phần mềm quản lý tiệm giặt là</text>
+  <text x="96" y="390" fill="#a3a3a3" font-family="Inter, Arial, sans-serif" font-size="24">Đơn hàng · Khách hàng · Nhân sự · Doanh thu · SEO</text>
+</svg>

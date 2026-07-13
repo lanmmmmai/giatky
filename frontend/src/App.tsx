@@ -37,6 +37,16 @@ import Notifications from './pages/notifications/Notifications';
 import ContentAdmin from './pages/content/ContentAdmin';
 import PublicPosts from './pages/content/PublicPosts';
 import PublicPostDetail from './pages/content/PublicPostDetail';
+import {
+  AboutPage,
+  ContactPage,
+  CookiesPage,
+  FAQPage,
+  PrivacyPage,
+  PublicHome,
+  ServicesPage,
+  TermsPage,
+} from './pages/public/PublicPages';
 
 // Redirects "/" and any unmatched path to the user's own dashboard,
 // or to /login when not authenticated.
@@ -146,11 +156,20 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Route>
 
+          <Route path="/" element={<PublicHome />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/cookies" element={<CookiesPage />} />
+          <Route path="/blog" element={<PublicPosts />} />
+          <Route path="/blog/:slug" element={<PublicPostDetail />} />
           <Route path="/bai-viet" element={<PublicPosts />} />
           <Route path="/bai-viet/:slug" element={<PublicPostDetail />} />
           <Route path="/tuyen-dung" element={<PublicPosts defaultType="recruitment" />} />
           <Route path="/tuyen-dung/:slug" element={<PublicPostDetail />} />
-          <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<RootRedirect />} />
           </Routes>
         </BrowserRouter>

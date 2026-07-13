@@ -4,6 +4,7 @@ import { Calendar, Search } from 'lucide-react';
 import { getPublicPosts, Post, PostType } from '../../api/content';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import SEO, { SITE_URL, buildBreadcrumbSchema, buildOrganizationSchema, buildWebsiteSchema } from '../../components/SEO';
 
 const typeLabels: Record<PostType, string> = {
   news: 'Tin tức',
@@ -45,6 +46,31 @@ const PublicPosts: React.FC<PublicPostsProps> = ({ defaultType }) => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <SEO
+        title={defaultType === 'recruitment' ? 'Tuyển dụng Giặt Ký' : 'Blog Giặt Ký'}
+        description={defaultType === 'recruitment' ? 'Cơ hội làm việc tại các cơ sở Giặt Ký và thông tin tuyển dụng mới nhất.' : 'Tin tức, hướng dẫn vận hành, thông báo và kiến thức quản lý tiệm giặt là từ Giặt Ký.'}
+        path={defaultType === 'recruitment' ? '/tuyen-dung' : '/blog'}
+        jsonLd={[
+          buildOrganizationSchema(),
+          buildWebsiteSchema(),
+          buildBreadcrumbSchema([
+            { name: 'Trang chủ', path: '/' },
+            { name: defaultType === 'recruitment' ? 'Tuyển dụng' : 'Blog', path: defaultType === 'recruitment' ? '/tuyen-dung' : '/blog' },
+          ]),
+          {
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: defaultType === 'recruitment' ? 'Tuyển dụng Giặt Ký' : 'Blog Giặt Ký',
+            url: `${SITE_URL}${defaultType === 'recruitment' ? '/tuyen-dung' : '/blog'}`,
+            mainEntity: posts.map(post => ({
+              '@type': post.post_type === 'recruitment' ? 'JobPosting' : 'BlogPosting',
+              headline: post.title,
+              url: `${SITE_URL}/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}`,
+              datePublished: post.published_at,
+            })),
+          },
+        ]}
+      />
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
@@ -89,9 +115,9 @@ const PublicPosts: React.FC<PublicPostsProps> = ({ defaultType }) => {
         {loading ? <LoadingSpinner /> : posts.length === 0 ? <EmptyState message="Chưa có nội dung phù hợp." /> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {posts.map(post => (
-              <Link key={post.id} to={`/bai-viet/${post.slug}`} className="bg-white rounded-lg border border-slate-200 overflow-hidden hover:border-primary/50 hover:shadow-md transition-all">
+              <Link key={post.id} to={`/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}`} className="bg-white rounded-lg border border-slate-200 overflow-hidden hover:border-primary/50 hover:shadow-md transition-all">
                 {post.featured_image ? (
-                  <img src={post.featured_image} alt={post.title} className="w-full h-44 object-cover" />
+                  <img src={post.featured_image} alt={post.title} loading="lazy" className="w-full h-44 object-cover" />
                 ) : (
                   <div className="w-full h-44 bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">
                     {typeLabels[post.post_type]}

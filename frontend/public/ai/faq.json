@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "question": "Giặt Ký dùng cho ai?",
+      "answer": "Giặt Ký phù hợp cho tiệm giặt là, chuỗi cửa hàng giặt sấy và đội vận hành nhiều cơ sở."
+    },
+    {
+      "question": "Giặt Ký có hỗ trợ nhiều cơ sở không?",
+      "answer": "Có. Hệ thống hỗ trợ phân quyền theo vai trò và lọc dữ liệu theo cơ sở."
+    },
+    {
+      "question": "Giặt Ký có hỗ trợ SEO và AI discovery không?",
+      "answer": "Có. Website có robots.txt, sitemap.xml, llms.txt, RSS, Atom, JSON-LD, Open Graph, Twitter Card và dữ liệu /ai."
+    }
+  ]
+}
