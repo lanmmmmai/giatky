@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, date, timedelta, timezone
@@ -288,54 +289,89 @@ def build_order_email_context(order: dict, customer: dict, branch_name: str, ser
 def is_unique_violation(err: Exception) -> bool:
     """Nhận diện lỗi UNIQUE constraint từ PostgREST/Postgres (mã 23505)."""
     text = str(err)
-    return "23505" in text or "duplicate key" in text.lower() or "duplicate" in text.lower()
+    lowered = text.lower()
+    return "23505" in text or "duplicate key" in lowered or "duplicate" in lowered
 
 
-def generate_order_code(attempt: int = 0) -> str:
-    """Generate sequential order code: LS-YYYYMMDD-XXX.
-
-    Dùng MAX(sequence)+1 thay vì COUNT+1: COUNT bị lệch khi có đơn trong ngày
-    bị xóa (VD còn 002 nhưng count=1 → sinh lại 002 → vi phạm UNIQUE(order_code)
-    → lần tạo sau bị lỗi dù lần đầu thành công). Sequence theo giờ Việt Nam để
-    không đổi prefix giữa ngày khi server chạy UTC.
-    """
-    today_str = datetime.now(VN_TZ).strftime("%Y%m%d")
-    prefix = f"LS-{today_str}-"
-
-    response = supabase.table("orders").select("order_code").ilike("order_code", f"{prefix}%").execute()
-    max_seq = 0
-    for row in (response.data or []):
-        tail = str(row.get("order_code") or "").rsplit("-", 1)[-1]
-        if tail.isdigit():
-            max_seq = max(max_seq, int(tail))
-
-    # attempt > 0: đang retry sau khi đụng unique (2 request đồng thời) → nhảy thêm
-    next_seq = str(max_seq + 1 + attempt).zfill(3)
-    return f"{prefix}{next_seq}"
+def is_order_code_conflict(err: Exception) -> bool:
+    text = str(err)
+    lowered = text.lower()
+    return (
+        "orders_order_code_key" in text
+        or "ORDER_CODE_CONFLICT" in text
+        or ("23505" in text and "order_code" in lowered)
+        or ("duplicate key" in lowered and "order_code" in lowered)
+    )
 
 
-def insert_order_with_unique_retry(order_data: dict, max_attempts: int = 3) -> dict:
-    """Insert đơn hàng, tự sinh lại order_code và thử lại khi 2 request đồng thời
-    sinh trùng mã (unique violation 23505). Hết số lần thử → trả 409 rõ ràng."""
+def is_idempotency_in_progress(err: Exception) -> bool:
+    return "IDEMPOTENCY_REQUEST_IN_PROGRESS" in str(err) or "55P03" in str(err)
+
+
+def order_code_conflict_response() -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={
+            "success": False,
+            "code": "ORDER_CODE_CONFLICT",
+            "message": "Mã đơn bị trùng. Hệ thống chưa thể tạo đơn, vui lòng thử lại.",
+        },
+    )
+
+
+def idempotency_in_progress_response() -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={
+            "success": False,
+            "code": "ORDER_CREATE_IN_PROGRESS",
+            "message": "Đơn hàng đang được xử lý, vui lòng chờ trong giây lát.",
+        },
+    )
+
+
+def unwrap_rpc_result(data):
+    if isinstance(data, list):
+        return data[0] if data else None
+    return data
+
+
+def create_order_atomic(order_data: dict, order_items: list[dict], payment_data: Optional[dict], idempotency_key: Optional[str]) -> tuple[dict, dict]:
+    """Tạo order_code, order, items và payment trong một transaction PostgreSQL."""
+    code_date = datetime.now(VN_TZ).date().isoformat()
+    rpc_res = supabase.rpc(
+        "create_order_atomic",
+        {
+            "p_order": order_data,
+            "p_items": order_items,
+            "p_payment": payment_data,
+            "p_idempotency_key": idempotency_key,
+            "p_code_date": code_date,
+        },
+    ).execute()
+    result = unwrap_rpc_result(rpc_res.data) or {}
+    order = result.get("order") if isinstance(result, dict) else None
+    if not order:
+        raise HTTPException(status_code=500, detail="Không thể tạo đơn hàng.")
+    return order, result
+
+
+def insert_order_with_unique_retry(order_data: dict, order_items: list[dict], payment_data: Optional[dict], idempotency_key: Optional[str], max_attempts: int = 3) -> tuple[dict, dict]:
+    """Gọi RPC transaction; nếu gặp unique trong giai đoạn chuyển đổi thì thử lại có giới hạn."""
     last_err: Optional[Exception] = None
     for attempt in range(max_attempts):
-        if attempt > 0:
-            order_data["order_code"] = generate_order_code(attempt)
         try:
-            order_res = supabase.table("orders").insert(order_data).execute()
-            if not order_res.data:
-                raise HTTPException(status_code=500, detail="Không thể tạo đơn hàng.")
-            return order_res.data[0]
+            return create_order_atomic(order_data, order_items, payment_data, idempotency_key)
         except HTTPException:
             raise
         except Exception as err:
-            if not is_unique_violation(err):
+            if not is_order_code_conflict(err):
                 raise
             last_err = err
-            logger.warning(f"order_code '{order_data['order_code']}' bị trùng (attempt {attempt + 1}), thử sinh mã mới...")
+            logger.warning(f"order_code conflict khi tạo đơn (attempt {attempt + 1}/{max_attempts}), xin sequence mới từ DB...")
 
     logger.error(f"Không thể sinh order_code duy nhất sau {max_attempts} lần: {str(last_err)}")
-    raise HTTPException(status_code=409, detail="Hệ thống đang có nhiều đơn tạo cùng lúc, vui lòng bấm tạo lại.")
+    raise HTTPException(status_code=409, detail="Không thể tạo mã đơn mới. Vui lòng thử lại.")
 
 def create_order_notification(order_code: str, status_desc: str, branch_id: str, sender_id: str):
     """Log system notification about order events."""
@@ -552,7 +588,7 @@ def get_orders(
     return formatted
 
 @router.post("")
-def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_user)):
+def create_order(request: Request, payload: OrderCreate, current_user: dict = Depends(get_current_user)):
     if current_user["role"] != "admin" and payload.branch_id != current_user.get("branch_id"):
         raise HTTPException(status_code=403, detail="Bạn chỉ được tạo đơn tại cơ sở đang chọn.")
 
@@ -616,10 +652,8 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         paid_amount = total_amount
         paid_at = datetime.utcnow().isoformat()
     
-    # 2. Save Order
-    order_code = generate_order_code()
+    # 2. Save Order + items + optional payment atomically in PostgreSQL
     order_data = {
-        "order_code": order_code,
         "customer_id": customer["id"],
         "branch_id": payload.branch_id,
         "created_by_staff_id": current_user["id"],
@@ -639,26 +673,77 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         # Tôn trọng ngày giờ nhận do người dùng chọn; chỉ mặc định NOW() khi không gửi
         "received_at": payload.received_at.isoformat() if payload.received_at else datetime.utcnow().isoformat()
     }
-    
-    order = insert_order_with_unique_retry(order_data)
-    order_code = order["order_code"]
-
-    # 3. Save Order Items
-    items_to_insert = []
-    for item in calculated_items:
-        items_to_insert.append({
-            "order_id": order["id"],
-            "service_id": item["service_id"],
-            "service_name_snapshot": item["service_name_snapshot"],
-            "unit": item["unit"],
-            "quantity": item["quantity"],
-            "unit_price": item["unit_price"],
-            "amount": item["amount"]
-        })
-    supabase.table("order_items").insert(items_to_insert).execute()
-
+    payment_data = None
     if payload.payment_status == "paid":
-        record_order_payment(order, payment_method, current_user, "Thanh toán khi nhận đơn")
+        payment_data = {
+            "payment_method": payment_method,
+            "amount": total_amount,
+            "status": "success",
+            "paid_at": paid_at,
+            "created_by": current_user["id"],
+            "note": "Thanh toán khi nhận đơn",
+        }
+
+    idempotency_key = request.headers.get("Idempotency-Key")
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+
+    logger.info(
+        "create_order transaction start request_id=%s user_id=%s branch_id=%s idempotency_key=%s",
+        request_id,
+        current_user["id"],
+        payload.branch_id,
+        bool(idempotency_key),
+    )
+
+    try:
+        order, atomic_result = insert_order_with_unique_retry(order_data, calculated_items, payment_data, idempotency_key)
+    except HTTPException as err:
+        if err.status_code == 409:
+            logger.warning(
+                "create_order transaction rollback request_id=%s user_id=%s branch_id=%s reason=order_code_conflict",
+                request_id,
+                current_user["id"],
+                payload.branch_id,
+            )
+            return order_code_conflict_response()
+        raise
+    except Exception as err:
+        if is_idempotency_in_progress(err):
+            logger.warning(
+                "create_order transaction pending request_id=%s user_id=%s branch_id=%s",
+                request_id,
+                current_user["id"],
+                payload.branch_id,
+            )
+            return idempotency_in_progress_response()
+        if is_order_code_conflict(err):
+            logger.error(
+                "create_order transaction rollback request_id=%s user_id=%s branch_id=%s postgres_code=23505",
+                request_id,
+                current_user["id"],
+                payload.branch_id,
+                exc_info=True,
+            )
+            return order_code_conflict_response()
+        logger.error(
+            "create_order transaction rollback request_id=%s user_id=%s branch_id=%s error=%s",
+            request_id,
+            current_user["id"],
+            payload.branch_id,
+            str(err),
+            exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail="Không thể tạo đơn hàng lúc này. Vui lòng thử lại hoặc liên hệ quản trị viên.")
+
+    order_code = order["order_code"]
+    logger.info(
+        "create_order transaction commit request_id=%s user_id=%s branch_id=%s generated_order_code=%s sequence_number=%s",
+        request_id,
+        current_user["id"],
+        payload.branch_id,
+        order_code,
+        atomic_result.get("sequence_number") if isinstance(atomic_result, dict) else None,
+    )
 
     # Get branch name
     branch_name_res = supabase.table("branches").select("name").eq("id", payload.branch_id).execute()
@@ -706,7 +791,7 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         )
 
     customer_stats = build_customer_stats(customer, limit_recent=0)
-    order["items"] = items_to_insert
+    order["items"] = calculated_items
     order["branch_name"] = branch_name
     order["customer_name"] = customer["full_name"]
     order["customer_phone"] = customer["phone"]
@@ -714,7 +799,7 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
     order["customer_total_orders"] = customer_stats.get("total_orders", 0)
     order["customer_total_spent"] = customer_stats.get("total_spent", 0)
     order["customer_is_vip"] = customer_stats.get("is_vip", False)
-    return order
+    return {"success": True, "data": order}
 
 @router.get("/{id}")
 def get_order_detail(id: str, current_user: dict = Depends(get_current_user)):

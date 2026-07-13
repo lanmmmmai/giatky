@@ -80,10 +80,19 @@ export interface CustomerProfile {
   }>;
 }
 
+const isCreateOrderResponse = (body: Order | { success: boolean; data: Order }): body is { success: boolean; data: Order } =>
+  Boolean((body as { data?: Order }).data);
+
 export const getOrders = (params?: { branch_id?: string; status?: string; payment_status?: string; customer_phone?: string; search?: string; page?: number; page_size?: number }) =>
   apiClient.get<Order[]>('/orders', { params }).then(res => res.data);
   
-export const createOrder = (data: any) => apiClient.post<Order>('/orders', data).then(res => res.data);
+export const createOrder = (data: any, idempotencyKey?: string): Promise<Order> =>
+  apiClient.post<Order | { success: boolean; data: Order }>('/orders', data, {
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+  }).then(res => {
+    const body = res.data as Order | { success: boolean; data: Order };
+    return isCreateOrderResponse(body) ? body.data : body;
+  });
 export const getOrderDetail = (id: string) => apiClient.get<Order>(`/orders/${id}`).then(res => res.data);
 export const updateOrder = (id: string, data: any) => apiClient.put<Order>(`/orders/${id}`, data).then(res => res.data);
 export const updateOrderStatus = (id: string, status: string) => apiClient.patch<Order>(`/orders/${id}/status`, { status }).then(res => res.data);

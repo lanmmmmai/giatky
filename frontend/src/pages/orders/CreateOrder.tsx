@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getServices, Service } from '../../api/services';
 import { getBranches, Branch } from '../../api/branches';
@@ -39,11 +39,41 @@ const formatQuantity = (value: number) =>
 const isValidWeightQuantity = (value: number) =>
   Number.isFinite(value) && value > 0 && /^\d+(\.\d{1,2})?$/.test(String(value));
 
+const createIdempotencyKey = () =>
+  globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const getCreateOrderErrorMessage = (err: any) => {
+  const status = err.response?.status;
+  const data = err.response?.data;
+  const code = data?.code || data?.detail?.code;
+
+  if (status === 409 && code === 'ORDER_CODE_CONFLICT') {
+    return 'Không thể tạo mã đơn mới. Vui lòng thử lại.';
+  }
+  if (status === 409 && code === 'ORDER_CREATE_IN_PROGRESS') {
+    return 'Đơn hàng đang được xử lý, vui lòng chờ trong giây lát.';
+  }
+  if (status === 422) {
+    return 'Vui lòng kiểm tra lại thông tin đơn hàng.';
+  }
+  if (status === 500) {
+    return 'Không thể tạo đơn hàng lúc này. Vui lòng thử lại hoặc liên hệ quản trị viên.';
+  }
+  if (status === 403) {
+    return 'Bạn không có quyền tạo đơn tại cơ sở này.';
+  }
+  if (status === 400) {
+    return typeof data?.detail === 'string' ? data.detail : 'Dữ liệu đơn hàng không hợp lệ.';
+  }
+  return 'Không thể tạo đơn hàng lúc này. Vui lòng thử lại.';
+};
+
 const CreateOrder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
   const base = `/${user?.role}`;
+  const idempotencyKeyRef = useRef(createIdempotencyKey());
 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -428,19 +458,12 @@ const CreateOrder: React.FC = () => {
         paid_amount: 0
       };
 
-      await createOrder(payload);
+      await createOrder(payload, idempotencyKeyRef.current);
+      idempotencyKeyRef.current = createIdempotencyKey();
       addToast('Tạo đơn hàng thành công.', 'success');
       navigate(`${base}/orders`);
     } catch (err: any) {
-      const status = err.response?.status;
-      const fallbackByStatus: Record<number, string> = {
-        400: 'Dữ liệu đơn hàng không hợp lệ.',
-        403: 'Bạn không có quyền tạo đơn tại cơ sở này.',
-        409: 'Mã đơn hoặc dữ liệu đã tồn tại.',
-        422: 'Vui lòng kiểm tra lại thông tin đơn hàng.',
-        500: 'Không thể tạo đơn hàng. Vui lòng thử lại.',
-      };
-      addToast(err.response?.data?.detail || fallbackByStatus[status] || 'Không thể tạo đơn hàng. Vui lòng thử lại.', 'error');
+      addToast(getCreateOrderErrorMessage(err), 'error');
     } finally {
       setSubmitting(false);
     }
