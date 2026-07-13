@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import logging
+import uuid
 
 from app.common.dependencies import get_current_user, require_role, require_branch_access
 from app.config import settings
@@ -70,6 +72,86 @@ PAYMENT_METHOD_VN = {
     "e_wallet": "Ví điện tử",
     "none": "Chưa chọn",
 }
+
+
+def is_weight_unit(unit: Optional[str]) -> bool:
+    normalized_unit = str(unit or "").strip().lower()
+    return normalized_unit in {"kg", "kilogram", "ký", "cân"}
+
+
+def parse_quantity(value) -> Decimal:
+    try:
+        quantity = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise HTTPException(status_code=400, detail="Số lượng dịch vụ không hợp lệ.")
+    if not quantity.is_finite() or quantity <= 0:
+        raise HTTPException(status_code=400, detail="Số lượng dịch vụ phải lớn hơn 0.")
+    return quantity
+
+
+def has_more_than_two_decimals(value: Decimal) -> bool:
+    return value.as_tuple().exponent < -2
+
+
+def money_from_decimal(value: Decimal) -> int:
+    return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def build_order_items_from_services(items: List[OrderItemCreate]) -> tuple[list[dict], int, str]:
+    if not items:
+        raise HTTPException(status_code=400, detail="Đơn hàng phải có ít nhất một dịch vụ.")
+
+    service_ids = []
+    for item in items:
+        if not item.service_id:
+            raise HTTPException(status_code=400, detail="Dịch vụ trong đơn hàng không hợp lệ.")
+        try:
+            uuid.UUID(str(item.service_id))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Mã dịch vụ không hợp lệ.")
+        service_ids.append(item.service_id)
+
+    unique_service_ids = list(dict.fromkeys(service_ids))
+    services_res = supabase.table("services").select("id, name, unit, price, is_active").in_("id", unique_service_ids).execute()
+    services_by_id = {service["id"]: service for service in (services_res.data or [])}
+
+    if len(services_by_id) != len(unique_service_ids):
+        raise HTTPException(status_code=400, detail="Một hoặc nhiều dịch vụ không tồn tại.")
+
+    subtotal = 0
+    order_items = []
+    service_names = []
+
+    for item in items:
+        service = services_by_id[item.service_id]
+        if service.get("is_active") is False:
+            raise HTTPException(status_code=400, detail=f"Dịch vụ {service.get('name') or item.service_id} đang tạm ngừng.")
+
+        unit = service.get("unit") or "kg"
+        quantity = parse_quantity(item.quantity)
+        if is_weight_unit(unit):
+            if has_more_than_two_decimals(quantity):
+                raise HTTPException(status_code=400, detail="Số cân chỉ được tối đa 2 chữ số thập phân.")
+            quantity = quantity.quantize(Decimal("0.01"))
+        else:
+            if quantity != quantity.to_integral_value():
+                raise HTTPException(status_code=400, detail="Dịch vụ không tính theo kg phải có số lượng nguyên dương.")
+            quantity = quantity.to_integral_value()
+
+        unit_price = int(service.get("price") or 0)
+        amount = money_from_decimal(Decimal(unit_price) * quantity)
+        subtotal += amount
+        service_names.append(service.get("name") or item.service_name_snapshot)
+        order_items.append({
+            "service_id": item.service_id,
+            "service_name_snapshot": service.get("name") or item.service_name_snapshot,
+            "unit": unit,
+            "quantity": float(quantity) if is_weight_unit(unit) else int(quantity),
+            "unit_price": unit_price,
+            "amount": amount,
+        })
+
+    return order_items, subtotal, ", ".join(service_names)
 
 
 def build_order_email_context(order: dict, customer: dict, branch_name: str, service_name: str = "", order_status: str = "") -> dict:
@@ -196,6 +278,8 @@ def get_orders(
 
 @router.post("")
 def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_user)):
+    calculated_items, subtotal, service_names = build_order_items_from_services(payload.items)
+
     # 1. Customer verification / creation
     cust_res = supabase.table("customers").select("*").eq("phone", payload.customer.phone).execute()
     if cust_res.data:
@@ -220,8 +304,6 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
             raise HTTPException(status_code=500, detail="Không thể tạo thông tin khách hàng.")
         customer = new_cust_res.data[0]
 
-    # Calculate prices
-    subtotal = sum(item.amount for item in payload.items)
     total_amount = subtotal + payload.surcharge - payload.discount
     
     # 2. Save Order
@@ -253,15 +335,15 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
 
     # 3. Save Order Items
     items_to_insert = []
-    for item in payload.items:
+    for item in calculated_items:
         items_to_insert.append({
             "order_id": order["id"],
-            "service_id": item.service_id,
-            "service_name_snapshot": item.service_name_snapshot,
-            "unit": item.unit,
-            "quantity": item.quantity,
-            "unit_price": item.unit_price,
-            "amount": item.amount
+            "service_id": item["service_id"],
+            "service_name_snapshot": item["service_name_snapshot"],
+            "unit": item["unit"],
+            "quantity": item["quantity"],
+            "unit_price": item["unit_price"],
+            "amount": item["amount"]
         })
     supabase.table("order_items").insert(items_to_insert).execute()
 
@@ -303,7 +385,6 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
 
         # Trigger ORDER_CREATED: nội dung lấy hoàn toàn từ Email Template (không hard-code).
         # send_trigger_email tự bỏ qua khi chưa có mẫu active và không bao giờ raise.
-        service_names = ", ".join(i.service_name_snapshot for i in payload.items)
         send_trigger_email(
             "ORDER_CREATED",
             customer["email"],

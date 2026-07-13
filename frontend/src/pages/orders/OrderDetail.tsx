@@ -90,6 +90,10 @@ const OrderDetail: React.FC = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
+  const formatQuantity = (val: number) => {
+    return Number(val).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!order) return <div className="text-center py-12 text-slate-500">Đơn hàng không tồn tại.</div>;
 
@@ -235,7 +239,7 @@ const OrderDetail: React.FC = () => {
                   <tr key={item.id || idx} className="border-b border-slate-100 last:border-b-0">
                     <td className="p-4 font-bold text-slate-800">{item.service_name_snapshot}</td>
                     <td className="p-4 text-slate-500">{item.unit}</td>
-                    <td className="p-4 font-bold text-slate-700">{item.quantity}</td>
+                    <td className="p-4 font-bold text-slate-700">{formatQuantity(item.quantity)}</td>
                     <td className="p-4 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
                     <td className="p-4 text-right font-bold text-slate-800">{formatCurrency(item.amount)}</td>
                   </tr>

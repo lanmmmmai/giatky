@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   service_id            UUID REFERENCES services(id) ON DELETE SET NULL,
   service_name_snapshot TEXT NOT NULL,
   unit                  TEXT DEFAULT 'kg',
-  quantity              NUMERIC NOT NULL DEFAULT 1,
+  quantity              NUMERIC(10,2) NOT NULL DEFAULT 1,
   unit_price            BIGINT NOT NULL DEFAULT 0,
   amount                BIGINT NOT NULL DEFAULT 0
 );

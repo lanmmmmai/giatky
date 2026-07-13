@@ -18,6 +18,20 @@ const normalizeSearchText = (value: string) =>
     .toLowerCase()
     .trim();
 
+const isWeightUnit = (unit?: string | null) => {
+  const normalizedUnit = String(unit || '').trim().toLowerCase();
+  return ['kg', 'kilogram', 'ký', 'cân'].includes(normalizedUnit);
+};
+
+const roundWeight = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
+
+const formatQuantity = (value: number) =>
+  Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+
+const isValidWeightQuantity = (value: number) =>
+  Number.isFinite(value) && value > 0 && /^\d+(\.\d{1,2})?$/.test(String(value));
+
 const CreateOrder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -44,6 +58,8 @@ const CreateOrder: React.FC = () => {
 
   // Items / Pricing state
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
+  const [quantityErrors, setQuantityErrors] = useState<Record<string, string>>({});
+  const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
   const [surcharge, setSurcharge] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
   
@@ -126,10 +142,18 @@ const CreateOrder: React.FC = () => {
       const existIdx = prev.findIndex(item => item.service_id === service.id);
       if (existIdx > -1) {
         const copy = [...prev];
-        const newQty = copy[existIdx].quantity + 1;
+        const newQty = isWeightUnit(copy[existIdx].unit)
+          ? roundWeight(copy[existIdx].quantity + 0.1)
+          : copy[existIdx].quantity + 1;
         copy[existIdx].quantity = newQty;
-        copy[existIdx].amount = newQty * service.price;
+        copy[existIdx].amount = Math.round(newQty * service.price);
+        if (isWeightUnit(copy[existIdx].unit)) {
+          setQuantityInputs(current => ({ ...current, [String(copy[existIdx].service_id || '')]: String(newQty) }));
+        }
         return copy;
+      }
+      if (isWeightUnit(service.unit)) {
+        setQuantityInputs(current => ({ ...current, [String(service.id)]: '1' }));
       }
       return [...prev, {
         service_id: service.id,
@@ -145,10 +169,17 @@ const CreateOrder: React.FC = () => {
   const handleUpdateQty = (serviceId: string | null | undefined, change: number) => {
     setSelectedItems(prev => prev.map(item => {
       if (item.service_id === serviceId) {
-        const newQty = Math.max(0.1, item.quantity + change);
+        const isWeight = isWeightUnit(item.unit);
+        const step = isWeight ? 0.1 : 1;
+        const min = isWeight ? 0.1 : 1;
+        const direction = change < 0 ? -1 : 1;
+        const newQty = Math.max(min, roundWeight(item.quantity + step * direction));
+        if (isWeight) {
+          setQuantityInputs(current => ({ ...current, [String(item.service_id || '')]: String(newQty) }));
+        }
         return {
           ...item,
-          quantity: Math.round(newQty * 10) / 10,
+          quantity: isWeight ? newQty : Math.round(newQty),
           amount: Math.round(newQty * item.unit_price)
         };
       }
@@ -156,8 +187,56 @@ const CreateOrder: React.FC = () => {
     }));
   };
 
+  const handleWeightQuantityChange = (serviceId: string | null | undefined, rawValue: string) => {
+    const key = String(serviceId || '');
+    const normalizedValue = rawValue.trim().replace(',', '.');
+    setQuantityInputs(prev => ({ ...prev, [key]: normalizedValue }));
+
+    if (!normalizedValue) {
+      setQuantityErrors(prev => ({ ...prev, [key]: 'Số cân phải lớn hơn 0.' }));
+      return;
+    }
+
+    if (!/^\d+(\.\d{0,2})?$/.test(normalizedValue)) {
+      setQuantityErrors(prev => ({ ...prev, [key]: 'Số cân chỉ được tối đa 2 chữ số thập phân.' }));
+      return;
+    }
+
+    if (normalizedValue.endsWith('.')) {
+      setQuantityErrors(prev => ({ ...prev, [key]: '' }));
+      return;
+    }
+
+    const quantity = Number(normalizedValue);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setQuantityErrors(prev => ({ ...prev, [key]: 'Số cân phải lớn hơn 0.' }));
+      return;
+    }
+
+    const roundedQuantity = roundWeight(quantity);
+    setQuantityErrors(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setSelectedItems(prev => prev.map(item => item.service_id === serviceId
+      ? { ...item, quantity: roundedQuantity, amount: Math.round(roundedQuantity * item.unit_price) }
+      : item
+    ));
+  };
+
   const handleRemoveItem = (serviceId: string | null | undefined) => {
     setSelectedItems(prev => prev.filter(item => item.service_id !== serviceId));
+    setQuantityErrors(prev => {
+      const next = { ...prev };
+      delete next[String(serviceId || '')];
+      return next;
+    });
+    setQuantityInputs(prev => {
+      const next = { ...prev };
+      delete next[String(serviceId || '')];
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,6 +251,21 @@ const CreateOrder: React.FC = () => {
     }
     if (selectedItems.length === 0) {
       addToast('Vui lòng chọn ít nhất một dịch vụ giặt.', 'warning');
+      return;
+    }
+    const invalidItem = selectedItems.find(item => {
+      if (isWeightUnit(item.unit)) {
+        const inputValue = quantityInputs[String(item.service_id || '')] ?? String(item.quantity);
+        return !/^\d+(\.\d{1,2})?$/.test(inputValue) || !isValidWeightQuantity(item.quantity);
+      }
+      return !Number.isInteger(item.quantity) || item.quantity <= 0;
+    });
+    if (invalidItem) {
+      addToast(isWeightUnit(invalidItem.unit) ? 'Số cân phải lớn hơn 0 và tối đa 2 chữ số thập phân.' : 'Số lượng dịch vụ phải là số nguyên dương.', 'warning');
+      return;
+    }
+    if (Object.values(quantityErrors).some(Boolean)) {
+      addToast('Vui lòng kiểm tra lại số cân đã nhập.', 'warning');
       return;
     }
 
@@ -193,7 +287,14 @@ const CreateOrder: React.FC = () => {
         branch_id: branchId,
         note: orderNote.trim() || null,
         expected_return_at: expectedReturn,
-        items: selectedItems,
+        items: selectedItems.map(item => ({
+          service_id: item.service_id,
+          service_name_snapshot: item.service_name_snapshot,
+          unit: item.unit,
+          quantity: Number(item.quantity),
+          unit_price: item.unit_price,
+          amount: item.amount,
+        })),
         surcharge,
         discount,
         payment_status: paymentStatus,
@@ -428,28 +529,49 @@ const CreateOrder: React.FC = () => {
               {selectedItems.length === 0 ? (
                 <p className="text-center py-6 text-xs text-slate-400 font-medium">Chưa có dịch vụ nào được chọn</p>
               ) : (
-                selectedItems.map(item => (
-                  <div key={item.service_id} className="flex justify-between items-center py-1.5 border-b border-slate-50 last:border-b-0 gap-2">
+                selectedItems.map(item => {
+                  const isWeight = isWeightUnit(item.unit);
+                  const quantityError = quantityErrors[String(item.service_id || '')];
+                  return (
+                  <div key={item.service_id} className="flex justify-between items-start py-1.5 border-b border-slate-50 last:border-b-0 gap-2">
                     <div className="flex-1 min-w-0">
                       <h4 className="text-xs font-bold text-slate-800 truncate">{item.service_name_snapshot}</h4>
                       <p className="text-[10px] text-slate-400">{formatCurrency(item.unit_price)}/{item.unit}</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateQty(item.service_id, -1)}
-                        className="p-1 hover:bg-slate-100 rounded border border-slate-200"
-                      >
-                        <Minus size={10} />
-                      </button>
-                      <span className="text-xs font-bold px-1">{item.quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateQty(item.service_id, 1)}
-                        className="p-1 hover:bg-slate-100 rounded border border-slate-200"
-                      >
-                        <Plus size={10} />
-                      </button>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQty(item.service_id, -1)}
+                          className="p-1 hover:bg-slate-100 rounded border border-slate-200"
+                          aria-label="Giảm số lượng"
+                        >
+                          <Minus size={10} />
+                        </button>
+                        {isWeight ? (
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            inputMode="decimal"
+                            value={quantityInputs[String(item.service_id || '')] ?? String(item.quantity)}
+                            onChange={(e) => handleWeightQuantityChange(item.service_id, e.target.value)}
+                            className={`w-16 px-1.5 py-1 border rounded-lg text-xs font-bold text-center outline-none focus:border-slate-900 ${quantityError ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}
+                            aria-label={`Số cân ${item.service_name_snapshot}`}
+                          />
+                        ) : (
+                          <span className="text-xs font-bold px-1 min-w-[24px] text-center">{formatQuantity(item.quantity)}</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQty(item.service_id, 1)}
+                          className="p-1 hover:bg-slate-100 rounded border border-slate-200"
+                          aria-label="Tăng số lượng"
+                        >
+                          <Plus size={10} />
+                        </button>
+                      </div>
+                      {quantityError && <p className="text-[9px] text-rose-600 font-semibold max-w-[120px]">{quantityError}</p>}
                     </div>
                     <div className="text-xs font-bold text-slate-700 w-16 text-right">
                       {formatCurrency(item.amount)}
@@ -462,7 +584,8 @@ const CreateOrder: React.FC = () => {
                       <Trash size={12} />
                     </button>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 
