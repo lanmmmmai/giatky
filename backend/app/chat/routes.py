@@ -50,6 +50,67 @@ def _get_room_member_ids(room: dict) -> List[str]:
 
     return []
 
+def _get_room_members(room: dict) -> List[dict]:
+    if room["type"] in ["direct", "group"]:
+        mbr_res = supabase.table("chat_room_members")\
+            .select("user_id, users(full_name, username, email, avatar_url, role)")\
+            .eq("room_id", room["id"])\
+            .execute()
+        return [
+            {
+                "id": row["user_id"],
+                "full_name": row["users"]["full_name"],
+                "username": row["users"].get("username"),
+                "email": row["users"].get("email"),
+                "avatar_url": row["users"]["avatar_url"],
+                "role": row["users"]["role"]
+            }
+            for row in (mbr_res.data or [])
+            if row.get("users")
+        ]
+
+    if room["type"] == "branch" and room.get("branch_id"):
+        members = []
+        seen = set()
+        users_res = supabase.table("users")\
+            .select("id, full_name, username, email, avatar_url, role")\
+            .eq("status", "active")\
+            .eq("branch_id", room["branch_id"])\
+            .execute()
+        for row in (users_res.data or []):
+            seen.add(row["id"])
+            members.append({
+                "id": row["id"],
+                "full_name": row["full_name"],
+                "username": row.get("username"),
+                "email": row.get("email"),
+                "avatar_url": row.get("avatar_url"),
+                "role": row["role"]
+            })
+        try:
+            ub_res = supabase.table("user_branches")\
+                .select("user_id, users(full_name, username, email, avatar_url, role, status)")\
+                .eq("branch_id", room["branch_id"])\
+                .execute()
+            for row in (ub_res.data or []):
+                user = row.get("users")
+                if not user or user.get("status") != "active" or row["user_id"] in seen:
+                    continue
+                seen.add(row["user_id"])
+                members.append({
+                    "id": row["user_id"],
+                    "full_name": user["full_name"],
+                    "username": user.get("username"),
+                    "email": user.get("email"),
+                    "avatar_url": user.get("avatar_url"),
+                    "role": user["role"]
+                })
+        except Exception as ub_err:
+            logger.warning(f"Failed to read branch room members from user_branches: {ub_err}")
+        return members
+
+    return []
+
 def _normalize_mentions(mentions: List[MessageMentionCreate], member_ids: List[str], sender_id: str) -> List[dict]:
     normalized = []
     seen = set()
@@ -99,7 +160,8 @@ def _save_mentions_and_notifications(message: dict, room: dict, mentions: List[d
                 "content": f"{sender['full_name']} đã nhắc đến bạn trong nhóm {room_name}: {snippet}",
                 "type": "chat",
                 "sender_id": sender["id"],
-                "target_user_id": user_id
+                "target_user_id": user_id,
+                "action_url": f"chat?room_id={room['id']}&message_id={message['id']}"
             }
             for user_id in notified_user_ids
         ]).execute()
@@ -193,20 +255,7 @@ def get_rooms(current_user: dict = Depends(get_current_user)):
                 "sender_name": m.get("users", {}).get("full_name") if m.get("users") else "Hệ thống"
             }
             
-        # Get members for direct/group rooms
-        members = []
-        if r["type"] in ["direct", "group"]:
-            mbr_res = supabase.table("chat_room_members").select("user_id, users(full_name, username, email, avatar_url, role)").eq("room_id", r["id"]).execute()
-            for m in (mbr_res.data or []):
-                if m.get("users"):
-                    members.append({
-                        "id": m["user_id"],
-                        "full_name": m["users"]["full_name"],
-                        "username": m["users"].get("username"),
-                        "email": m["users"].get("email"),
-                        "avatar_url": m["users"]["avatar_url"],
-                        "role": m["users"]["role"]
-                    })
+        members = _get_room_members(r)
                     
         # Compute display name
         display_name = r["name"]
@@ -229,7 +278,7 @@ def get_rooms(current_user: dict = Depends(get_current_user)):
         
         formatted.append(r_copy)
         
-    return _attach_message_mentions(formatted)
+    return formatted
 
 @router.post("/rooms")
 def create_room(payload: ChatRoomCreate, current_user: dict = Depends(get_current_user)):
@@ -327,7 +376,7 @@ def get_room_messages(id: str, current_user: dict = Depends(get_current_user)):
         if "users" in m_copy: del m_copy["users"]
         formatted.append(m_copy)
         
-    return formatted
+    return _attach_message_mentions(formatted)
 
 @router.post("/rooms/{id}/messages")
 def send_message(id: str, payload: MessageCreate, current_user: dict = Depends(get_current_user)):

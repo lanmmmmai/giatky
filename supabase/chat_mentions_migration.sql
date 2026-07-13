@@ -12,3 +12,4 @@ CREATE TABLE IF NOT EXISTS message_mentions (
 CREATE INDEX IF NOT EXISTS idx_message_mentions_message ON message_mentions(message_id);
 CREATE INDEX IF NOT EXISTS idx_message_mentions_user ON message_mentions(mentioned_user_id);
 
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS action_url TEXT;

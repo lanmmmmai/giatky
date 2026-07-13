@@ -9,6 +9,7 @@ export interface Notification {
   target_role?: string | null;
   target_user_id?: string | null;
   branch_id?: string | null;
+  action_url?: string | null;
   send_email: boolean;
   created_at: string;
   is_read: boolean;

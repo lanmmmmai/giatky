@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getNotifications, markNotificationRead, markAllNotificationsRead, Notification } from '../../api/notifications';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -7,6 +8,7 @@ import { Bell, Check, CheckSquare, MessageSquare, Briefcase, FileText } from 'lu
 
 const Notifications: React.FC = () => {
   const { addToast } = useToastStore();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +33,15 @@ const Notifications: React.FC = () => {
       await markNotificationRead(id);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (_) {}
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!notification.is_read) {
+      await handleRead(notification.id);
+    }
+    if (notification.type === 'chat' && notification.action_url) {
+      navigate(`../${notification.action_url}`, { relative: 'path' });
+    }
   };
 
   const handleReadAll = async () => {
@@ -83,7 +94,7 @@ const Notifications: React.FC = () => {
             return (
               <div
                 key={n.id}
-                onClick={() => !n.is_read && handleRead(n.id)}
+                onClick={() => handleNotificationClick(n)}
                 className={`p-4 rounded-2xl border flex items-start gap-4 transition-all cursor-pointer hover:bg-primary/5 ${bgClass}`}
               >
                 <div className="p-2.5 bg-slate-100 rounded-2xl flex-shrink-0">

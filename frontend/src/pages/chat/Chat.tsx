@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getChatRooms, getChatMessages, createChatRoom, sendChatMessage, ChatRoom, ChatMessage, ChatMember, ChatMention } from '../../api/chat';
 import { getUsers } from '../../api/users';
 import { useAuthStore, User } from '../../stores/authStore';
@@ -9,6 +10,7 @@ import { MessageSquare, Send, Plus, Users, X, Paperclip, Smile } from 'lucide-re
 const Chat: React.FC = () => {
   const { user, token } = useAuthStore();
   const { addToast } = useToastStore();
+  const [searchParams] = useSearchParams();
 
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
@@ -60,6 +62,14 @@ const Chat: React.FC = () => {
 
   useEffect(() => {
     // Scroll to bottom on new messages
+    const targetMessageId = searchParams.get('message_id');
+    if (targetMessageId) {
+      const target = document.getElementById(`chat-message-${targetMessageId}`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
     scrollToBottom();
   }, [messages]);
 
@@ -71,7 +81,13 @@ const Chat: React.FC = () => {
     setLoading(true);
     try {
       const data = await getChatRooms();
-      setRooms(Array.isArray(data) ? data : []);
+      const safeRooms = Array.isArray(data) ? data : [];
+      setRooms(safeRooms);
+      const roomIdFromUrl = searchParams.get('room_id');
+      if (roomIdFromUrl && !activeRoom) {
+        const targetRoom = safeRooms.find(room => room.id === roomIdFromUrl);
+        if (targetRoom) setActiveRoom(targetRoom);
+      }
     } catch (_) {
       addToast('Không thể tải phòng chat.', 'error');
     } finally {
@@ -391,6 +407,7 @@ const Chat: React.FC = () => {
                   return (
                     <div
                       key={m.id}
+                      id={`chat-message-${m.id}`}
                       className={`flex gap-3 max-w-[85%] ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
                     >
                       {/* Avatar */}
