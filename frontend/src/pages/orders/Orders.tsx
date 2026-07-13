@@ -54,6 +54,9 @@ const paymentNames: Record<string, string> = {
   none: 'Chưa chọn',
 };
 
+const orderGridColumns = 'xl:grid-cols-[minmax(170px,1.15fr)_minmax(190px,1.25fr)_minmax(230px,1.35fr)_minmax(130px,0.8fr)_minmax(150px,0.85fr)_minmax(150px,0.9fr)_minmax(135px,0.75fr)_48px]';
+const orderDesktopGridClass = `grid min-w-[1220px] ${orderGridColumns} gap-x-5 2xl:gap-x-6 items-center`;
+
 const Orders: React.FC = () => {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
@@ -240,7 +243,9 @@ const Orders: React.FC = () => {
   };
 
   const badgeClass = (extra: string) =>
-    `inline-flex items-center justify-center whitespace-nowrap shrink-0 min-h-8 px-3 py-1 rounded-full text-[11px] font-black ${extra}`;
+    `inline-flex items-center justify-center whitespace-nowrap shrink-0 min-h-10 px-4 py-1 rounded-full text-[11px] font-black ${extra}`;
+
+  const mobileLabelClass = 'xl:hidden block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1';
 
   return (
     <div className="space-y-5">
@@ -296,72 +301,87 @@ const Orders: React.FC = () => {
       </div>
 
       {loading ? <LoadingSpinner /> : orders.length === 0 ? <EmptyState message="Không có đơn hàng nào khớp với bộ lọc." /> : (
-        <div className="space-y-3 pb-10">
-          <div className="hidden xl:grid grid-cols-[1.3fr_1.5fr_1.5fr_0.8fr_0.9fr_0.95fr_0.85fr_auto] gap-5 px-5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-            <span>Mã đơn</span>
-            <span>Khách hàng</span>
-            <span>Ngày nhận / trả</span>
-            <span>Nhân viên</span>
-            <span>Trạng thái</span>
-            <span>Thanh toán</span>
-            <span className="text-right">Tổng tiền</span>
-            <span className="text-center">Menu</span>
-          </div>
+        <div className="w-full max-w-full overflow-x-auto pb-10">
+          <div className="space-y-3 min-w-0">
+            <div className={`${orderDesktopGridClass} hidden xl:grid px-8 text-[10px] font-black uppercase tracking-wider text-slate-400`}>
+              <span className="min-w-0">Mã đơn</span>
+              <span className="min-w-0">Khách hàng</span>
+              <span className="min-w-0">Ngày nhận / trả</span>
+              <span className="min-w-0">Nhân viên</span>
+              <span className="min-w-0">Trạng thái</span>
+              <span className="min-w-0">Thanh toán</span>
+              <span className="min-w-0 text-right">Tổng tiền</span>
+              <span className="min-w-0 text-center">Menu</span>
+            </div>
 
-          {orders.map(order => {
-            const loyal = (order.customer_total_orders || 0) > 20;
-            return (
-              <article
-                key={order.id}
-                onClick={() => openQuickDetail(order)}
-                className="group bg-white border border-[#ECECEC] shadow-card rounded-[22px] p-5 lg:p-6 min-h-[132px] cursor-pointer hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] transition-all"
-              >
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.3fr_1.5fr_1.5fr_0.8fr_0.9fr_0.95fr_0.85fr_auto] xl:items-center">
-                  <div className="min-w-0">
-                    <p className="font-black text-slate-950 text-sm truncate">{order.order_code}</p>
-                    <p className="text-[11px] text-slate-400 mt-1 truncate">{order.branch_name || 'Cơ sở'}</p>
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-black text-slate-900 truncate max-w-full">{order.customer_name_snapshot}</span>
-                      {order.customer_is_vip && <span className={badgeClass('bg-slate-950 text-white min-h-6 px-2 text-[9px]')}>VIP</span>}
-                      {loyal && <span className={badgeClass('bg-slate-100 text-slate-700 min-h-6 px-2 text-[9px]')}>Khách thân thiết</span>}
+            {orders.map(order => {
+              const loyal = (order.customer_total_orders || 0) > 20;
+              return (
+                <article
+                  key={order.id}
+                  onClick={() => openQuickDetail(order)}
+                  className="group w-full bg-white border border-[#ECECEC] shadow-card rounded-[22px] p-5 lg:p-6 xl:min-w-[1220px] xl:px-8 xl:py-6 xl:min-h-[148px] cursor-pointer hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] transition-all"
+                >
+                  <div className={`grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:min-w-[1220px] ${orderGridColumns} xl:items-center xl:gap-x-5 2xl:gap-x-6`}>
+                    <div className="min-w-0">
+                      <span className={mobileLabelClass}>Mã đơn</span>
+                      <p className="font-black text-slate-950 text-sm whitespace-nowrap">{order.order_code}</p>
+                      <p className="text-[11px] text-slate-400 mt-1 truncate" title={order.branch_name || 'Cơ sở'}>{order.branch_name || 'Cơ sở'}</p>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 whitespace-nowrap">{order.customer_phone_snapshot}</p>
+
+                    <div className="min-w-0">
+                      <span className={mobileLabelClass}>Khách hàng</span>
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className="font-black text-slate-900 truncate max-w-full" title={order.customer_name_snapshot}>{order.customer_name_snapshot}</span>
+                        {order.customer_is_vip && <span className={badgeClass('bg-slate-950 text-white !min-h-6 px-2 text-[9px]')}>VIP</span>}
+                        {loyal && <span className={badgeClass('bg-slate-100 text-slate-700 !min-h-6 px-2 text-[9px]')}>Khách thân thiết</span>}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 whitespace-nowrap">{order.customer_phone_snapshot}</p>
+                    </div>
+
+                    <div className="min-w-0 text-slate-600 flex flex-col gap-2">
+                      <span className={mobileLabelClass}>Ngày nhận / trả</span>
+                      <p className="text-xs font-semibold leading-snug break-words xl:whitespace-nowrap">Nhận: {formatVnDateTime(order.received_at)}</p>
+                      <p className="text-[11px] text-slate-400 leading-snug break-words xl:whitespace-nowrap">Trả: {formatVnDateTime(order.expected_return_at) || '-'}</p>
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className={mobileLabelClass}>Nhân viên</span>
+                      <p className="font-bold text-slate-700 line-clamp-2 xl:truncate" title={order.staff_name || 'Nhân viên'}>{order.staff_name || 'Nhân viên'}</p>
+                    </div>
+
+                    <div className="min-w-0" onClick={event => event.stopPropagation()}>
+                      <span className={mobileLabelClass}>Trạng thái</span>
+                      <select value={order.status} onChange={e => handleStatusChange(order, e.target.value)} className={badgeClass(`${statusBadge(order.status)} outline-none cursor-pointer min-w-[150px] max-w-full`)}>
+                        <option value="new">Đơn mới</option>
+                        <option value="washing">Đang giặt</option>
+                        <option value="drying">Đang sấy</option>
+                        <option value="ready">Đã giặt</option>
+                        <option value="delivered">Đã trả</option>
+                        <option value="cancelled">Đã hủy</option>
+                      </select>
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className={mobileLabelClass}>Thanh toán</span>
+                      <span className={badgeClass(`${paymentBadge(order.payment_status)} min-w-[150px]`)}>{paymentNames[order.payment_status]}</span>
+                    </div>
+
+                    <div className="min-w-0 sm:col-span-1 lg:col-span-2 xl:col-span-1 font-black text-slate-950 text-base xl:text-right whitespace-nowrap tabular-nums">
+                      <span className={mobileLabelClass}>Tổng tiền</span>
+                      {formatCurrency(order.total_amount)}
+                    </div>
+
+                    <div className="min-w-0 flex sm:justify-end xl:justify-center xl:w-12" onClick={e => e.stopPropagation()}>
+                      <button onClick={event => openActionMenu(event, order)} className="w-10 h-10 shrink-0 rounded-2xl hover:bg-slate-100 text-slate-500 flex items-center justify-center transition-colors" aria-label={`Mở menu đơn ${order.order_code}`}>
+                        <MoreVertical size={18} />
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="min-w-0 text-slate-600 space-y-1">
-                    <p className="font-semibold whitespace-nowrap">Nhận: {formatVnDateTime(order.received_at)}</p>
-                    <p className="text-[11px] text-slate-400 whitespace-nowrap">Trả: {formatVnDateTime(order.expected_return_at) || '-'}</p>
-                  </div>
-
-                  <div className="font-bold text-slate-700 truncate">{order.staff_name || 'Nhân viên'}</div>
-
-                  <div onClick={event => event.stopPropagation()}>
-                    <select value={order.status} onChange={e => handleStatusChange(order, e.target.value)} className={badgeClass(`${statusBadge(order.status)} outline-none cursor-pointer min-w-[112px]`)}>
-                      <option value="new">Đơn mới</option>
-                      <option value="washing">Đang giặt</option>
-                      <option value="drying">Đang sấy</option>
-                      <option value="ready">Đã giặt</option>
-                      <option value="delivered">Đã trả</option>
-                      <option value="cancelled">Đã hủy</option>
-                    </select>
-                  </div>
-
-                  <div><span className={badgeClass(`${paymentBadge(order.payment_status)} min-w-[112px]`)}>{paymentNames[order.payment_status]}</span></div>
-
-                  <div className="font-black text-slate-950 text-base xl:text-right whitespace-nowrap">{formatCurrency(order.total_amount)}</div>
-
-                  <div className="flex xl:justify-center" onClick={e => e.stopPropagation()}>
-                    <button onClick={event => openActionMenu(event, order)} className="w-10 h-10 rounded-2xl hover:bg-slate-100 text-slate-500 flex items-center justify-center transition-colors" aria-label={`Mở menu đơn ${order.order_code}`}>
-                      <MoreVertical size={18} />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
+          </div>
         </div>
       )}
 
