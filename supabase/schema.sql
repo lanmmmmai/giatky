@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS customers (
   phone      TEXT UNIQUE NOT NULL,
   email      TEXT,
   address    TEXT,
+  date_of_birth DATE,
   note       TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

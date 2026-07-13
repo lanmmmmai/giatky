@@ -43,9 +43,44 @@ export interface Order {
     email?: string | null;
     address?: string | null;
   };
+  customer_total_orders?: number;
+  customer_total_spent?: number;
+  customer_is_vip?: boolean;
 }
 
-export const getOrders = (params?: { branch_id?: string; status?: string; payment_status?: string; customer_phone?: string }) => 
+export interface CustomerProfile {
+  id: string;
+  full_name: string;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  date_of_birth?: string | null;
+  note?: string | null;
+  total_orders: number;
+  total_spent: number;
+  last_order?: string | null;
+  last_order_at?: string | null;
+  first_order?: string | null;
+  first_order_at?: string | null;
+  average_order?: number;
+  average_order_value?: number;
+  total_kg?: number;
+  total_items?: number;
+  is_vip?: boolean;
+  recent_orders?: Array<{
+    id: string;
+    order_code: string;
+    received_at?: string | null;
+    expected_return_at?: string | null;
+    delivered_at?: string | null;
+    status: string;
+    payment_status: string;
+    total_amount: number;
+    staff_name?: string;
+  }>;
+}
+
+export const getOrders = (params?: { branch_id?: string; status?: string; payment_status?: string; customer_phone?: string; search?: string; page?: number; page_size?: number }) =>
   apiClient.get<Order[]>('/orders', { params }).then(res => res.data);
   
 export const createOrder = (data: any) => apiClient.post<Order>('/orders', data).then(res => res.data);
@@ -57,3 +92,18 @@ export const updateOrderPayment = (id: string, data: { payment_status: string; p
 export const completeOrderDelivery = (id: string, data?: { payment_method?: string; note?: string }) =>
   apiClient.post<{ success: boolean; order: Order; payment?: any; payment_status?: string; delivered_at?: string }>(`/orders/${id}/complete-delivery`, data || {}).then(res => res.data);
 export const deleteOrder = (id: string) => apiClient.delete(`/orders/${id}`).then(res => res.data);
+
+export const searchCustomers = (query: string) =>
+  apiClient.get<CustomerProfile[]>('/orders/customers/search', { params: { query } }).then(res => res.data);
+
+export const createCustomer = (data: {
+  full_name: string;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  date_of_birth?: string | null;
+  note?: string | null;
+}) => apiClient.post<CustomerProfile>('/orders/customers', data).then(res => res.data);
+
+export const lookupCustomer = (phone: string) =>
+  apiClient.get<CustomerProfile | null>(`/orders/customer-lookup/${phone}`).then(res => res.data);

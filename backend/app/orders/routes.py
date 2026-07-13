@@ -20,6 +20,15 @@ class CustomerInfo(BaseModel):
     full_name: str
     email: Optional[str] = None
     address: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    note: Optional[str] = None
+
+class CustomerCreate(BaseModel):
+    phone: str
+    full_name: str
+    email: Optional[str] = None
+    address: Optional[str] = None
+    date_of_birth: Optional[date] = None
     note: Optional[str] = None
 
 class OrderItemCreate(BaseModel):
@@ -262,17 +271,57 @@ def build_order_email_context(order: dict, customer: dict, branch_name: str, ser
     }
 
 
-def generate_order_code() -> str:
-    """Generate sequential order code: LS-YYYYMMDD-XXX"""
-    today_str = date.today().strftime("%Y%m%d")
+def is_unique_violation(err: Exception) -> bool:
+    """Nhận diện lỗi UNIQUE constraint từ PostgREST/Postgres (mã 23505)."""
+    text = str(err)
+    return "23505" in text or "duplicate key" in text.lower() or "duplicate" in text.lower()
+
+
+def generate_order_code(attempt: int = 0) -> str:
+    """Generate sequential order code: LS-YYYYMMDD-XXX.
+
+    Dùng MAX(sequence)+1 thay vì COUNT+1: COUNT bị lệch khi có đơn trong ngày
+    bị xóa (VD còn 002 nhưng count=1 → sinh lại 002 → vi phạm UNIQUE(order_code)
+    → lần tạo sau bị lỗi dù lần đầu thành công). Sequence theo giờ Việt Nam để
+    không đổi prefix giữa ngày khi server chạy UTC.
+    """
+    today_str = datetime.now(VN_TZ).strftime("%Y%m%d")
     prefix = f"LS-{today_str}-"
-    
-    # Query orders with matching prefix
+
     response = supabase.table("orders").select("order_code").ilike("order_code", f"{prefix}%").execute()
-    count = len(response.data or [])
-    
-    next_seq = str(count + 1).zfill(3)
+    max_seq = 0
+    for row in (response.data or []):
+        tail = str(row.get("order_code") or "").rsplit("-", 1)[-1]
+        if tail.isdigit():
+            max_seq = max(max_seq, int(tail))
+
+    # attempt > 0: đang retry sau khi đụng unique (2 request đồng thời) → nhảy thêm
+    next_seq = str(max_seq + 1 + attempt).zfill(3)
     return f"{prefix}{next_seq}"
+
+
+def insert_order_with_unique_retry(order_data: dict, max_attempts: int = 3) -> dict:
+    """Insert đơn hàng, tự sinh lại order_code và thử lại khi 2 request đồng thời
+    sinh trùng mã (unique violation 23505). Hết số lần thử → trả 409 rõ ràng."""
+    last_err: Optional[Exception] = None
+    for attempt in range(max_attempts):
+        if attempt > 0:
+            order_data["order_code"] = generate_order_code(attempt)
+        try:
+            order_res = supabase.table("orders").insert(order_data).execute()
+            if not order_res.data:
+                raise HTTPException(status_code=500, detail="Không thể tạo đơn hàng.")
+            return order_res.data[0]
+        except HTTPException:
+            raise
+        except Exception as err:
+            if not is_unique_violation(err):
+                raise
+            last_err = err
+            logger.warning(f"order_code '{order_data['order_code']}' bị trùng (attempt {attempt + 1}), thử sinh mã mới...")
+
+    logger.error(f"Không thể sinh order_code duy nhất sau {max_attempts} lần: {str(last_err)}")
+    raise HTTPException(status_code=409, detail="Hệ thống đang có nhiều đơn tạo cùng lúc, vui lòng bấm tạo lại.")
 
 def create_order_notification(order_code: str, status_desc: str, branch_id: str, sender_id: str):
     """Log system notification about order events."""
@@ -289,12 +338,122 @@ def create_order_notification(order_code: str, status_desc: str, branch_id: str,
     except Exception as e:
         logger.error(f"Failed to create order notification: {str(e)}")
 
+def build_customer_stats(customer: dict, limit_recent: int = 5) -> dict:
+    customer_id = customer.get("id")
+    orders_res = supabase.table("orders")\
+        .select("id, order_code, received_at, expected_return_at, delivered_at, status, payment_status, total_amount, created_at, users!created_by_staff_id(full_name)")\
+        .eq("customer_id", customer_id)\
+        .order("received_at", desc=True)\
+        .execute()
+    orders = orders_res.data or []
+    order_ids = [order["id"] for order in orders]
+    total_spent = sum(int(order.get("total_amount") or 0) for order in orders)
+    total_orders = len(orders)
+    total_kg = 0.0
+    total_items = 0.0
+
+    if order_ids:
+        items_res = supabase.table("order_items").select("unit, quantity").in_("order_id", order_ids[:500]).execute()
+        for item in (items_res.data or []):
+            quantity = float(item.get("quantity") or 0)
+            if is_weight_unit(item.get("unit")):
+                total_kg += quantity
+            else:
+                total_items += quantity
+
+    first_order = min((order.get("received_at") or order.get("created_at") for order in orders if order.get("received_at") or order.get("created_at")), default=None)
+    last_order = max((order.get("received_at") or order.get("created_at") for order in orders if order.get("received_at") or order.get("created_at")), default=None)
+    average_order = round(total_spent / total_orders, 2) if total_orders else 0
+    recent_orders = []
+    for order in orders[:limit_recent]:
+        recent_orders.append({
+            "id": order["id"],
+            "order_code": order["order_code"],
+            "received_at": order.get("received_at"),
+            "expected_return_at": order.get("expected_return_at"),
+            "delivered_at": order.get("delivered_at"),
+            "status": order.get("status"),
+            "payment_status": order.get("payment_status"),
+            "total_amount": order.get("total_amount") or 0,
+            "staff_name": (order.get("users") or {}).get("full_name") or "Nhân viên",
+        })
+
+    enriched = dict(customer)
+    enriched.update({
+        "total_orders": total_orders,
+        "total_spent": total_spent,
+        "last_order": last_order,
+        "last_order_at": last_order,
+        "first_order": first_order,
+        "first_order_at": first_order,
+        "average_order": average_order,
+        "average_order_value": average_order,
+        "total_kg": round(total_kg, 2),
+        "total_items": round(total_items, 2),
+        "is_vip": total_orders >= 20 or total_spent >= 5000000,
+        "recent_orders": recent_orders,
+    })
+    return enriched
+
+def build_customer_list_stats(customer_ids: list[str]) -> dict[str, dict]:
+    unique_ids = list(dict.fromkeys([customer_id for customer_id in customer_ids if customer_id]))
+    if not unique_ids:
+        return {}
+    orders_res = supabase.table("orders")\
+        .select("customer_id, total_amount")\
+        .in_("customer_id", unique_ids[:500])\
+        .execute()
+    stats = {customer_id: {"total_orders": 0, "total_spent": 0, "is_vip": False} for customer_id in unique_ids}
+    for order in (orders_res.data or []):
+        customer_id = order.get("customer_id")
+        if not customer_id:
+            continue
+        stats.setdefault(customer_id, {"total_orders": 0, "total_spent": 0, "is_vip": False})
+        stats[customer_id]["total_orders"] += 1
+        stats[customer_id]["total_spent"] += int(order.get("total_amount") or 0)
+    for item in stats.values():
+        item["is_vip"] = item["total_orders"] >= 20 or item["total_spent"] >= 5000000
+    return stats
+
 @router.get("/customer-lookup/{phone}")
 def lookup_customer(phone: str, current_user: dict = Depends(get_current_user)):
     res = supabase.table("customers").select("*").eq("phone", phone).execute()
     if res.data:
-        return res.data[0]
+        return build_customer_stats(res.data[0])
     return None
+
+@router.get("/customers/search")
+def search_customers(query: str, current_user: dict = Depends(get_current_user)):
+    value = query.strip()
+    if len(value) < 2:
+        return []
+    response = supabase.table("customers").select("*")\
+        .or_(f"phone.ilike.%{value}%,full_name.ilike.%{value}%")\
+        .limit(8)\
+        .execute()
+    return [build_customer_stats(customer, limit_recent=3) for customer in (response.data or [])]
+
+@router.post("/customers")
+def create_customer(payload: CustomerCreate, current_user: dict = Depends(get_current_user)):
+    phone = payload.phone.strip()
+    full_name = payload.full_name.strip()
+    if not phone or not full_name:
+        raise HTTPException(status_code=400, detail="Tên và số điện thoại khách hàng là bắt buộc.")
+    existing = supabase.table("customers").select("*").eq("phone", phone).execute()
+    if existing.data:
+        raise HTTPException(status_code=409, detail="Số điện thoại khách hàng đã tồn tại.")
+    data = {
+        "phone": phone,
+        "full_name": full_name,
+        "email": payload.email,
+        "address": payload.address,
+        "date_of_birth": payload.date_of_birth.isoformat() if payload.date_of_birth else None,
+        "note": payload.note,
+    }
+    response = supabase.table("customers").insert(data).execute()
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Không thể tạo khách hàng.")
+    return build_customer_stats(response.data[0])
 
 @router.get("")
 def get_orders(
@@ -302,11 +461,14 @@ def get_orders(
     status: Optional[str] = None,
     payment_status: Optional[str] = None,
     customer_phone: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 50,
     current_user: dict = Depends(get_current_user)
 ):
     """Retrieve orders with filters and role limitations."""
     role = current_user["role"]
-    query = supabase.table("orders").select("*, branches(name), customers(full_name, phone)").order("created_at", desc=True)
+    query = supabase.table("orders").select("*, branches(name), customers(full_name, phone), users!created_by_staff_id(full_name)").order("created_at", desc=True)
     
     # Apply role limits
     if role == "manager":
@@ -333,10 +495,19 @@ def get_orders(
     if payment_status:
         query = query.eq("payment_status", payment_status)
     if customer_phone:
-        query = query.eq("customer_phone_snapshot", customer_phone)
+        query = query.ilike("customer_phone_snapshot", f"%{customer_phone}%")
+    if search:
+        needle = search.strip()
+        query = query.or_(f"order_code.ilike.%{needle}%,customer_name_snapshot.ilike.%{needle}%,customer_phone_snapshot.ilike.%{needle}%")
+
+    page = max(page, 1)
+    page_size = max(1, min(page_size, 100))
+    query = query.range((page - 1) * page_size, page * page_size - 1)
         
     response = query.execute()
     
+    customer_stats_by_id = build_customer_list_stats([order.get("customer_id") for order in (response.data or [])])
+
     # Format relations for frontend convenience
     formatted = []
     for order in (response.data or []):
@@ -348,11 +519,18 @@ def get_orders(
         o_copy["branch_name"] = branch_name
         o_copy["customer_name"] = cust_name
         o_copy["customer_phone"] = cust_phone
+        o_copy["staff_name"] = (order.get("users") or {}).get("full_name")
+        customer_stats = customer_stats_by_id.get(order.get("customer_id"), {})
+        o_copy["customer_total_orders"] = customer_stats.get("total_orders", 0)
+        o_copy["customer_total_spent"] = customer_stats.get("total_spent", 0)
+        o_copy["customer_is_vip"] = customer_stats.get("is_vip", False)
         
         if "branches" in o_copy:
             del o_copy["branches"]
         if "customers" in o_copy:
             del o_copy["customers"]
+        if "users" in o_copy:
+            del o_copy["users"]
             
         formatted.append(o_copy)
         
@@ -375,20 +553,39 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         customer = cust_res.data[0]
         # Update customer info if changed
         if payload.customer.full_name != customer["full_name"] or payload.customer.email != customer["email"]:
-            supabase.table("customers").update({
+            update_data = {
                 "full_name": payload.customer.full_name,
                 "email": payload.customer.email,
                 "address": payload.customer.address or customer["address"],
                 "updated_at": datetime.utcnow().isoformat()
-            }).eq("id", customer["id"]).execute()
+            }
+            # Cột chỉ tồn tại sau customer_order_profile_migration.sql — không gửi khi DB chưa migrate
+            if has_column("customers", "date_of_birth"):
+                update_data["date_of_birth"] = payload.customer.date_of_birth.isoformat() if payload.customer.date_of_birth else customer.get("date_of_birth")
+            supabase.table("customers").update(update_data).eq("id", customer["id"]).execute()
     else:
-        new_cust_res = supabase.table("customers").insert({
+        insert_data = {
             "full_name": payload.customer.full_name,
             "phone": payload.customer.phone,
             "email": payload.customer.email,
             "address": payload.customer.address,
             "note": payload.customer.note
-        }).execute()
+        }
+        if has_column("customers", "date_of_birth"):
+            insert_data["date_of_birth"] = payload.customer.date_of_birth.isoformat() if payload.customer.date_of_birth else None
+        try:
+            new_cust_res = supabase.table("customers").insert(insert_data).execute()
+        except Exception as cust_err:
+            # 2 request đồng thời cùng tạo khách mới: UNIQUE(customers.phone) chặn
+            # request thứ hai → dùng lại khách vừa được tạo thay vì trả 500
+            if is_unique_violation(cust_err):
+                retry = supabase.table("customers").select("*").eq("phone", payload.customer.phone).execute()
+                if retry.data:
+                    new_cust_res = retry
+                else:
+                    raise HTTPException(status_code=409, detail="Số điện thoại khách hàng đã tồn tại.")
+            else:
+                raise
         if not new_cust_res.data:
             raise HTTPException(status_code=500, detail="Không thể tạo thông tin khách hàng.")
         customer = new_cust_res.data[0]
@@ -428,10 +625,8 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         "received_at": payload.received_at.isoformat() if payload.received_at else datetime.utcnow().isoformat()
     }
     
-    order_res = supabase.table("orders").insert(order_data).execute()
-    if not order_res.data:
-        raise HTTPException(status_code=500, detail="Không thể tạo đơn hàng.")
-    order = order_res.data[0]
+    order = insert_order_with_unique_retry(order_data)
+    order_code = order["order_code"]
 
     # 3. Save Order Items
     items_to_insert = []
