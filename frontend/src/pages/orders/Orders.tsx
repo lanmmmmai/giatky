@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { completeOrderDelivery, deleteOrder, getOrderDetail, getOrders, Order, updateOrderPayment, updateOrderStatus } from '../../api/orders';
 import { getBranches, Branch } from '../../api/branches';
 import { useAuthStore } from '../../stores/authStore';
@@ -64,7 +65,7 @@ const Orders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openMenu, setOpenMenu] = useState<{ order: Order; top: number; left: number; openUp: boolean } | null>(null);
 
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -84,6 +85,22 @@ const Orders: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, [selectedBranch, selectedStatus, selectedPaymentStatus, debouncedSearch, user?.branch_id]);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    const close = () => setOpenMenu(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+    window.addEventListener('click', close);
+    window.addEventListener('resize', close);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenu]);
 
   const loadBranches = async () => {
     if (user?.role !== 'staff') {
@@ -116,7 +133,7 @@ const Orders: React.FC = () => {
   const openQuickDetail = async (order: Order) => {
     setDrawerLoading(true);
     setSelectedOrder(order);
-    setOpenMenuId(null);
+    setOpenMenu(null);
     try {
       const detail = await getOrderDetail(order.id);
       setSelectedOrder(detail);
@@ -128,7 +145,7 @@ const Orders: React.FC = () => {
   };
 
   const handleDelete = async (order: Order) => {
-    setOpenMenuId(null);
+    setOpenMenu(null);
     await confirm({
       title: 'Xóa đơn hàng?',
       description: 'Đơn hàng sẽ bị xóa vĩnh viễn khỏi danh sách. Vui lòng kiểm tra kỹ trước khi xác nhận.',
@@ -151,6 +168,7 @@ const Orders: React.FC = () => {
   };
 
   const handleStatusChange = async (order: Order, newStatus: string) => {
+    setOpenMenu(null);
     try {
       await updateOrderStatus(order.id, newStatus);
       addToast(`Cập nhật trạng thái đơn ${order.order_code} thành công.`, 'success');
@@ -162,7 +180,7 @@ const Orders: React.FC = () => {
   };
 
   const handleQuickPay = async (order: Order) => {
-    setOpenMenuId(null);
+    setOpenMenu(null);
     try {
       await updateOrderPayment(order.id, { payment_status: 'paid', payment_method: 'cash', paid_amount: order.total_amount });
       addToast(`Thanh toán đơn hàng ${order.order_code} thành công.`, 'success');
@@ -175,7 +193,7 @@ const Orders: React.FC = () => {
   };
 
   const handleDeliver = async (order: Order) => {
-    setOpenMenuId(null);
+    setOpenMenu(null);
     try {
       await completeOrderDelivery(order.id, order.payment_status === 'paid' ? {} : { payment_method: 'cash' });
       addToast(`Đã trả đồ đơn ${order.order_code}.`, 'success');
@@ -209,6 +227,20 @@ const Orders: React.FC = () => {
   const paymentBadge = (paymentStatus: string) => paymentStatus === 'paid'
     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     : 'bg-amber-50 text-amber-700 border border-amber-200';
+
+  const openActionMenu = (event: React.MouseEvent<HTMLButtonElement>, order: Order) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuHeight = 330;
+    const menuWidth = 224;
+    const openUp = rect.bottom + menuHeight > window.innerHeight - 16;
+    const left = Math.min(Math.max(12, rect.right - menuWidth), window.innerWidth - menuWidth - 12);
+    const top = openUp ? Math.max(12, rect.top - menuHeight - 8) : rect.bottom + 8;
+    setOpenMenu({ order, top, left, openUp });
+  };
+
+  const badgeClass = (extra: string) =>
+    `inline-flex items-center justify-center whitespace-nowrap shrink-0 min-h-8 px-3 py-1 rounded-full text-[11px] font-black ${extra}`;
 
   return (
     <div className="space-y-5">
@@ -264,80 +296,92 @@ const Orders: React.FC = () => {
       </div>
 
       {loading ? <LoadingSpinner /> : orders.length === 0 ? <EmptyState message="Không có đơn hàng nào khớp với bộ lọc." /> : (
-        <div className="bg-white rounded-[20px] border border-[#ECECEC] shadow-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider text-[10px] font-bold">
-                <tr>
-                  <th className="p-4 w-10"></th>
-                  <th className="p-4">Mã đơn</th>
-                  <th className="p-4">Khách hàng</th>
-                  <th className="p-4">Ngày nhận / trả</th>
-                  <th className="p-4">Nhân viên</th>
-                  <th className="p-4">Trạng thái</th>
-                  <th className="p-4">Thanh toán</th>
-                  <th className="p-4 text-right">Tổng tiền</th>
-                  <th className="p-4 text-center">Menu</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(order => {
-                  const loyal = (order.customer_total_orders || 0) > 20;
-                  return (
-                    <tr key={order.id} onClick={() => openQuickDetail(order)} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors cursor-pointer">
-                      <td className="p-4 text-slate-300"><MoreVertical size={16} /></td>
-                      <td className="p-4 min-w-44">
-                        <p className="font-black text-slate-950">{order.order_code}</p>
-                        <p className="text-[10px] text-slate-400 mt-1">{order.branch_name || 'Cơ sở'}</p>
-                      </td>
-                      <td className="p-4 min-w-56">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-slate-900">{order.customer_name_snapshot}</span>
-                          {order.customer_is_vip && <span className="px-1.5 py-0.5 rounded-md bg-slate-950 text-white text-[9px] font-black">VIP</span>}
-                          {loyal && <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[9px] font-black">Khách thân thiết</span>}
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-1">{order.customer_phone_snapshot}</p>
-                      </td>
-                      <td className="p-4 min-w-52 text-slate-600">
-                        <p className="font-semibold">Nhận: {formatVnDateTime(order.received_at)}</p>
-                        <p className="text-[11px] text-slate-400 mt-1">Trả: {formatVnDateTime(order.expected_return_at) || '-'}</p>
-                      </td>
-                      <td className="p-4 font-bold text-slate-700">{order.staff_name || 'Nhân viên'}</td>
-                      <td className="p-4">
-                        <select value={order.status} onClick={e => e.stopPropagation()} onChange={e => handleStatusChange(order, e.target.value)} className={`px-2.5 py-1 rounded-xl text-[10px] font-black outline-none ${statusBadge(order.status)}`}>
-                          <option value="new">Đơn mới</option>
-                          <option value="washing">Đang giặt</option>
-                          <option value="drying">Đang sấy</option>
-                          <option value="ready">Đã giặt</option>
-                          <option value="delivered">Đã trả</option>
-                          <option value="cancelled">Đã hủy</option>
-                        </select>
-                      </td>
-                      <td className="p-4"><span className={`px-2.5 py-1 rounded-xl text-[10px] font-black ${paymentBadge(order.payment_status)}`}>{paymentNames[order.payment_status]}</span></td>
-                      <td className="p-4 text-right font-black text-slate-950">{formatCurrency(order.total_amount)}</td>
-                      <td className="p-4 text-center relative" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setOpenMenuId(openMenuId === order.id ? null : order.id)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"><MoreVertical size={16} /></button>
-                        {openMenuId === order.id && (
-                          <div className="absolute right-4 top-12 z-20 w-44 bg-white border border-slate-200 rounded-2xl shadow-card p-1.5 text-left">
-                            <Link to={`${base}/orders/${order.id}`} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><Eye size={14} /> Xem</Link>
-                            <Link to={`${base}/orders/${order.id}`} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><ReceiptText size={14} /> Sửa</Link>
-                            <button onClick={() => openQuickDetail(order)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><ReceiptText size={14} /> Chi tiết nhanh</button>
-                            <button onClick={() => addToast('Chức năng in sẽ dùng mẫu phiếu hiện có.', 'info')} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><Printer size={14} /> In</button>
-                            {order.payment_status !== 'paid' && <button onClick={() => handleQuickPay(order)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-emerald-700"><DollarSign size={14} /> Thanh toán</button>}
-                            {order.status !== 'delivered' && <button onClick={() => handleDeliver(order)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><PackageCheck size={14} /> Trả đồ</button>}
-                            <button onClick={() => addToast('Đã sẵn sàng nhân bản từ đơn đang chọn trong bước tiếp theo.', 'info')} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><Copy size={14} /> Nhân bản</button>
-                            {order.status !== 'cancelled' && <button onClick={() => handleStatusChange(order, 'cancelled')} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-50 font-bold text-rose-700"><X size={14} /> Hủy</button>}
-                            {user?.role === 'admin' && <button onClick={() => handleDelete(order)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-50 font-bold text-rose-700"><Trash2 size={14} /> Xóa</button>}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <div className="space-y-3 pb-10">
+          <div className="hidden xl:grid grid-cols-[1.3fr_1.5fr_1.5fr_0.8fr_0.9fr_0.95fr_0.85fr_auto] gap-5 px-5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+            <span>Mã đơn</span>
+            <span>Khách hàng</span>
+            <span>Ngày nhận / trả</span>
+            <span>Nhân viên</span>
+            <span>Trạng thái</span>
+            <span>Thanh toán</span>
+            <span className="text-right">Tổng tiền</span>
+            <span className="text-center">Menu</span>
           </div>
+
+          {orders.map(order => {
+            const loyal = (order.customer_total_orders || 0) > 20;
+            return (
+              <article
+                key={order.id}
+                onClick={() => openQuickDetail(order)}
+                className="group bg-white border border-[#ECECEC] shadow-card rounded-[22px] p-5 lg:p-6 min-h-[132px] cursor-pointer hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)] transition-all"
+              >
+                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.3fr_1.5fr_1.5fr_0.8fr_0.9fr_0.95fr_0.85fr_auto] xl:items-center">
+                  <div className="min-w-0">
+                    <p className="font-black text-slate-950 text-sm truncate">{order.order_code}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 truncate">{order.branch_name || 'Cơ sở'}</p>
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-slate-900 truncate max-w-full">{order.customer_name_snapshot}</span>
+                      {order.customer_is_vip && <span className={badgeClass('bg-slate-950 text-white min-h-6 px-2 text-[9px]')}>VIP</span>}
+                      {loyal && <span className={badgeClass('bg-slate-100 text-slate-700 min-h-6 px-2 text-[9px]')}>Khách thân thiết</span>}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 whitespace-nowrap">{order.customer_phone_snapshot}</p>
+                  </div>
+
+                  <div className="min-w-0 text-slate-600 space-y-1">
+                    <p className="font-semibold whitespace-nowrap">Nhận: {formatVnDateTime(order.received_at)}</p>
+                    <p className="text-[11px] text-slate-400 whitespace-nowrap">Trả: {formatVnDateTime(order.expected_return_at) || '-'}</p>
+                  </div>
+
+                  <div className="font-bold text-slate-700 truncate">{order.staff_name || 'Nhân viên'}</div>
+
+                  <div onClick={event => event.stopPropagation()}>
+                    <select value={order.status} onChange={e => handleStatusChange(order, e.target.value)} className={badgeClass(`${statusBadge(order.status)} outline-none cursor-pointer min-w-[112px]`)}>
+                      <option value="new">Đơn mới</option>
+                      <option value="washing">Đang giặt</option>
+                      <option value="drying">Đang sấy</option>
+                      <option value="ready">Đã giặt</option>
+                      <option value="delivered">Đã trả</option>
+                      <option value="cancelled">Đã hủy</option>
+                    </select>
+                  </div>
+
+                  <div><span className={badgeClass(`${paymentBadge(order.payment_status)} min-w-[112px]`)}>{paymentNames[order.payment_status]}</span></div>
+
+                  <div className="font-black text-slate-950 text-base xl:text-right whitespace-nowrap">{formatCurrency(order.total_amount)}</div>
+
+                  <div className="flex xl:justify-center" onClick={e => e.stopPropagation()}>
+                    <button onClick={event => openActionMenu(event, order)} className="w-10 h-10 rounded-2xl hover:bg-slate-100 text-slate-500 flex items-center justify-center transition-colors" aria-label={`Mở menu đơn ${order.order_code}`}>
+                      <MoreVertical size={18} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
+      )}
+
+      {openMenu && createPortal(
+        <div
+          className="fixed z-[80] w-56 rounded-2xl border border-slate-200 bg-white p-1.5 text-left text-xs shadow-[0_22px_60px_rgba(15,23,42,0.18)]"
+          style={{ top: openMenu.top, left: openMenu.left }}
+          onClick={event => event.stopPropagation()}
+        >
+          <Link to={`${base}/orders/${openMenu.order.id}`} className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><Eye size={14} /> Xem</Link>
+          <Link to={`${base}/orders/${openMenu.order.id}`} className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><ReceiptText size={14} /> Sửa</Link>
+          <button onClick={() => openQuickDetail(openMenu.order)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><ReceiptText size={14} /> Chi tiết nhanh</button>
+          <button onClick={() => addToast('Chức năng in sẽ dùng mẫu phiếu hiện có.', 'info')} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><Printer size={14} /> In</button>
+          {openMenu.order.payment_status !== 'paid' && <button onClick={() => handleQuickPay(openMenu.order)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-emerald-700"><DollarSign size={14} /> Thanh toán</button>}
+          {openMenu.order.status !== 'delivered' && <button onClick={() => handleDeliver(openMenu.order)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><PackageCheck size={14} /> Trả đồ</button>}
+          <button onClick={() => addToast('Đã sẵn sàng nhân bản từ đơn đang chọn trong bước tiếp theo.', 'info')} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-slate-50 font-bold text-slate-700"><Copy size={14} /> Nhân bản</button>
+          {openMenu.order.status !== 'cancelled' && <button onClick={() => handleStatusChange(openMenu.order, 'cancelled')} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-rose-50 font-bold text-rose-700"><X size={14} /> Hủy đơn</button>}
+          {user?.role === 'admin' && <button onClick={() => handleDelete(openMenu.order)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-rose-50 font-bold text-rose-700"><Trash2 size={14} /> Xóa</button>}
+        </div>,
+        document.body
       )}
 
       {selectedOrder && (

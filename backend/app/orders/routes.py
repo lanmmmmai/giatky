@@ -106,11 +106,25 @@ PAYMENT_METHOD_VN = {
 }
 
 PAYMENT_METHODS = {"cash", "bank_transfer", "e_wallet"}
+_COLUMN_EXISTS_CACHE: dict[tuple[str, str], bool] = {}
 
 
 def is_weight_unit(unit: Optional[str]) -> bool:
     normalized_unit = str(unit or "").strip().lower()
     return normalized_unit in {"kg", "kilogram", "ký", "cân"}
+
+
+def has_column(table_name: str, column_name: str) -> bool:
+    """Best-effort schema probe for optional migrations."""
+    cache_key = (table_name, column_name)
+    if cache_key in _COLUMN_EXISTS_CACHE:
+        return _COLUMN_EXISTS_CACHE[cache_key]
+    try:
+        supabase.table(table_name).select(column_name).limit(1).execute()
+        _COLUMN_EXISTS_CACHE[cache_key] = True
+    except Exception:
+        _COLUMN_EXISTS_CACHE[cache_key] = False
+    return _COLUMN_EXISTS_CACHE[cache_key]
 
 
 def parse_quantity(value) -> Decimal:
@@ -447,9 +461,10 @@ def create_customer(payload: CustomerCreate, current_user: dict = Depends(get_cu
         "full_name": full_name,
         "email": payload.email,
         "address": payload.address,
-        "date_of_birth": payload.date_of_birth.isoformat() if payload.date_of_birth else None,
         "note": payload.note,
     }
+    if has_column("customers", "date_of_birth"):
+        data["date_of_birth"] = payload.date_of_birth.isoformat() if payload.date_of_birth else None
     response = supabase.table("customers").insert(data).execute()
     if not response.data:
         raise HTTPException(status_code=500, detail="Không thể tạo khách hàng.")
@@ -690,6 +705,15 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
             sent_by=current_user["id"],
         )
 
+    customer_stats = build_customer_stats(customer, limit_recent=0)
+    order["items"] = items_to_insert
+    order["branch_name"] = branch_name
+    order["customer_name"] = customer["full_name"]
+    order["customer_phone"] = customer["phone"]
+    order["staff_name"] = current_user.get("full_name")
+    order["customer_total_orders"] = customer_stats.get("total_orders", 0)
+    order["customer_total_spent"] = customer_stats.get("total_spent", 0)
+    order["customer_is_vip"] = customer_stats.get("is_vip", False)
     return order
 
 @router.get("/{id}")

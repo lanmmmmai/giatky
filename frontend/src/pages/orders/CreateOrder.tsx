@@ -46,6 +46,7 @@ const CreateOrder: React.FC = () => {
   const base = `/${user?.role}`;
 
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
@@ -332,6 +333,7 @@ const CreateOrder: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!customerPhone.trim() || !customerName.trim()) {
       addToast('Vui lòng nhập Tên và Số điện thoại khách hàng.', 'warning');
       return;
@@ -389,7 +391,7 @@ const CreateOrder: React.FC = () => {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       // Gửi ISO 8601 kèm timezone Việt Nam (+07:00) để backend lưu TIMESTAMPTZ chính xác
       const receivedAt = vnPartsToIso(receivedDate, receivedTime);
@@ -427,12 +429,20 @@ const CreateOrder: React.FC = () => {
       };
 
       await createOrder(payload);
-      addToast('Tạo đơn hàng thành công!', 'success');
+      addToast('Tạo đơn hàng thành công.', 'success');
       navigate(`${base}/orders`);
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Không thể tạo đơn hàng.', 'error');
+      const status = err.response?.status;
+      const fallbackByStatus: Record<number, string> = {
+        400: 'Dữ liệu đơn hàng không hợp lệ.',
+        403: 'Bạn không có quyền tạo đơn tại cơ sở này.',
+        409: 'Mã đơn hoặc dữ liệu đã tồn tại.',
+        422: 'Vui lòng kiểm tra lại thông tin đơn hàng.',
+        500: 'Không thể tạo đơn hàng. Vui lòng thử lại.',
+      };
+      addToast(err.response?.data?.detail || fallbackByStatus[status] || 'Không thể tạo đơn hàng. Vui lòng thử lại.', 'error');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -700,7 +710,7 @@ const CreateOrder: React.FC = () => {
               <span className="text-2xl font-black text-slate-950 tracking-tight">{formatCurrency(totalAmount)}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 pt-2">
-              <button type="submit" disabled={loading} className="col-span-2 h-11 rounded-2xl bg-slate-950 hover:bg-black text-white text-xs font-black flex items-center justify-center gap-2 disabled:opacity-60"><Save size={15} /> Lưu đơn</button>
+              <button type="submit" disabled={loading || submitting} className="col-span-2 h-11 rounded-2xl bg-slate-950 hover:bg-black text-white text-xs font-black flex items-center justify-center gap-2 disabled:opacity-60"><Save size={15} /> {submitting ? 'Đang lưu...' : 'Lưu đơn'}</button>
               <button type="button" onClick={() => addToast('Chức năng in sẽ dùng phiếu vừa lưu.', 'info')} className="h-10 rounded-2xl border border-slate-200 hover:bg-slate-50 text-xs font-black flex items-center justify-center gap-1.5"><Printer size={14} /> Lưu & In</button>
               <button type="button" onClick={() => { setPaymentStatus('paid'); addToast('Đã bật thanh toán trước. Chọn phương thức để lưu.', 'info'); }} className="h-10 rounded-2xl border border-slate-200 hover:bg-slate-50 text-xs font-black flex items-center justify-center gap-1.5"><CreditCard size={14} /> Thanh toán</button>
               <Link to={`${base}/orders`} className="col-span-2 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-xs font-black flex items-center justify-center">Hủy</Link>
