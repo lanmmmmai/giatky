@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { completeOrderDelivery, getOrderDetail, updateOrderStatus, updateOrderPayment, Order } from '../../api/orders';
+import { completeOrderDelivery, getOrderDetail, updateOrder, updateOrderStatus, updateOrderPayment, Order } from '../../api/orders';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { ArrowLeft, Printer, DollarSign, RefreshCw, Calendar, Tag, ShieldCheck, Clock, User, Phone, MapPin } from 'lucide-react';
+import {
+  toVnDateInputValue,
+  toVnTimeInputValue,
+  isValidDateTimeInput,
+  vnPartsToIso,
+  formatVnDateTime,
+} from '../../utils/vnDatetime';
 
 const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +32,15 @@ const OrderDetail: React.FC = () => {
   const [payMethod, setPayMethod] = useState<'cash' | 'bank_transfer' | 'e_wallet' | 'none'>('none');
   const [payAmount, setPayAmount] = useState<number>(0);
 
+  // Chỉnh sửa ngày giờ nhận / hẹn trả (admin & quản lý chi nhánh — theo rule của PUT /orders)
+  const canEditDates = user?.role === 'admin' || user?.role === 'manager';
+  const [receivedDate, setReceivedDate] = useState('');
+  const [receivedTime, setReceivedTime] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [returnTime, setReturnTime] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [savingDates, setSavingDates] = useState(false);
+
   useEffect(() => {
     loadOrderDetail();
   }, [id]);
@@ -38,6 +54,16 @@ const OrderDetail: React.FC = () => {
       setPayStatus(data.payment_status);
       setPayMethod(data.payment_method);
       setPayAmount(data.paid_amount);
+      // Nạp đúng ngày giờ nhận/hẹn trả ĐÃ LƯU vào form chỉnh sửa (giờ VN),
+      // không tự đổi về thời gian hiện tại
+      if (data.received_at) {
+        setReceivedDate(toVnDateInputValue(data.received_at));
+        setReceivedTime(toVnTimeInputValue(data.received_at));
+      }
+      if (data.expected_return_at) {
+        setReturnDate(toVnDateInputValue(data.expected_return_at));
+        setReturnTime(toVnTimeInputValue(data.expected_return_at));
+      }
     } catch (_) {
       addToast('Không thể tải thông tin chi tiết đơn hàng.', 'error');
       navigate(`${base}/orders`);
@@ -140,6 +166,48 @@ const OrderDetail: React.FC = () => {
     }
   };
 
+  const handleSaveDates = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order) return;
+    if (!receivedDate || !receivedTime) {
+      setDateError('Vui lòng chọn ngày và giờ nhận.');
+      return;
+    }
+    if (!isValidDateTimeInput(receivedDate, receivedTime)) {
+      setDateError('Ngày giờ nhận không hợp lệ.');
+      return;
+    }
+    const receivedIso = vnPartsToIso(receivedDate, receivedTime);
+    let returnIso: string | null = null;
+    if (returnDate) {
+      if (!isValidDateTimeInput(returnDate, returnTime || '00:00')) {
+        setDateError('Ngày giờ trả không hợp lệ.');
+        return;
+      }
+      returnIso = vnPartsToIso(returnDate, returnTime || '00:00');
+      if (new Date(returnIso).getTime() <= new Date(receivedIso).getTime()) {
+        setDateError('Ngày trả phải sau ngày nhận.');
+        return;
+      }
+    }
+
+    setSavingDates(true);
+    setDateError('');
+    try {
+      const payload: any = { received_at: receivedIso };
+      if (returnIso) payload.expected_return_at = returnIso;
+      const updated = await updateOrder(order.id, payload);
+      setOrder(prev => prev ? { ...prev, received_at: updated.received_at, expected_return_at: updated.expected_return_at } : prev);
+      addToast('Đã cập nhật ngày giờ nhận/hẹn trả.', 'success');
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || 'Cập nhật ngày giờ thất bại.';
+      setDateError(detail);
+      addToast(detail, 'error');
+    } finally {
+      setSavingDates(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -211,7 +279,7 @@ const OrderDetail: React.FC = () => {
                 }
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-medium">Nhận lúc: {new Date(order.received_at).toLocaleString('vi-VN')}</p>
+            <p className="text-xs text-slate-400 font-medium">Nhận lúc: {formatVnDateTime(order.received_at)}</p>
           </div>
         </div>
 
@@ -267,10 +335,14 @@ const OrderDetail: React.FC = () => {
               <div className="text-xs space-y-1.5">
                 <div className="font-semibold text-slate-700">Cơ sở: <span className="font-bold text-slate-800">{order.branch_name || 'Chi nhánh'}</span></div>
                 <div className="text-slate-500">Nhân viên lập: {order.staff_name || 'Nhân viên'}</div>
+                <div className="flex items-center gap-1 bg-primary/5 text-slate-700 px-2.5 py-1 rounded-lg font-medium border border-slate-200 mt-1 w-fit">
+                  <Calendar size={12} />
+                  Nhận lúc: {formatVnDateTime(order.received_at)}
+                </div>
                 {order.expected_return_at && (
                   <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg font-medium border border-amber-200 mt-1 w-fit">
                     <Clock size={12} />
-                    Hẹn trả: {new Date(order.expected_return_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    Hẹn trả: {formatVnDateTime(order.expected_return_at)}
                   </div>
                 )}
               </div>
@@ -400,6 +472,73 @@ const OrderDetail: React.FC = () => {
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Received / return datetime edit card (Non-printable) */}
+          <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-4 no-print">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">
+              Ngày giờ nhận & hẹn trả
+            </h3>
+            <form onSubmit={handleSaveDates} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ngày nhận</label>
+                  <input
+                    type="date"
+                    value={receivedDate}
+                    onChange={(e) => { setReceivedDate(e.target.value); setDateError(''); }}
+                    disabled={!canEditDates || savingDates}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary disabled:bg-slate-50 disabled:text-slate-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Giờ nhận</label>
+                  <input
+                    type="time"
+                    value={receivedTime}
+                    onChange={(e) => { setReceivedTime(e.target.value); setDateError(''); }}
+                    disabled={!canEditDates || savingDates}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary disabled:bg-slate-50 disabled:text-slate-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ngày hẹn trả</label>
+                  <input
+                    type="date"
+                    min={receivedDate || undefined}
+                    value={returnDate}
+                    onChange={(e) => { setReturnDate(e.target.value); setDateError(''); }}
+                    disabled={!canEditDates || savingDates}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary disabled:bg-slate-50 disabled:text-slate-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Giờ hẹn trả</label>
+                  <input
+                    type="time"
+                    value={returnTime}
+                    onChange={(e) => { setReturnTime(e.target.value); setDateError(''); }}
+                    disabled={!canEditDates || savingDates}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary disabled:bg-slate-50 disabled:text-slate-400"
+                  />
+                </div>
+              </div>
+              {dateError && <p className="text-[10px] text-rose-600 font-semibold">{dateError}</p>}
+              {canEditDates ? (
+                <button
+                  type="submit"
+                  disabled={savingDates}
+                  className="w-full py-2.5 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-bold text-xs shadow-sm flex items-center justify-center gap-1"
+                >
+                  <Calendar size={14} />
+                  {savingDates ? 'Đang lưu...' : 'Lưu ngày giờ'}
+                </button>
+              ) : (
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Chỉ Admin hoặc Quản lý chi nhánh mới được chỉnh ngày giờ nhận/hẹn trả.
+                </p>
+              )}
+            </form>
           </div>
 
           {/* Payment updates card (Non-printable) */}

@@ -8,6 +8,13 @@ import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import apiClient from '../../api/client';
 import { ArrowLeft, User, Phone, Mail, MapPin, Plus, Minus, Trash, ShoppingCart, DollarSign, Calendar, Search, X } from 'lucide-react';
+import {
+  vnTodayInputValue,
+  vnNowTimeInputValue,
+  addDaysToDateInput,
+  isValidDateTimeInput,
+  vnPartsToIso,
+} from '../../utils/vnDatetime';
 
 const normalizeSearchText = (value: string) =>
   value
@@ -32,16 +39,6 @@ const formatQuantity = (value: number) =>
 const isValidWeightQuantity = (value: number) =>
   Number.isFinite(value) && value > 0 && /^\d+(\.\d{1,2})?$/.test(String(value));
 
-const getVietnamDateInputValue = (dayOffset = 0) => {
-  const now = new Date();
-  const vietnamDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-  vietnamDate.setDate(vietnamDate.getDate() + dayOffset);
-  const year = vietnamDate.getFullYear();
-  const month = String(vietnamDate.getMonth() + 1).padStart(2, '0');
-  const day = String(vietnamDate.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const CreateOrder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -62,9 +59,27 @@ const CreateOrder: React.FC = () => {
 
   // Order settings state
   const [branchId, setBranchId] = useState('');
-  const [expectedReturnDate, setExpectedReturnDate] = useState(getVietnamDateInputValue(1));
+  // Ngày giờ nhận: khởi tạo MỘT LẦN khi mở form theo giờ Việt Nam hiện tại
+  // (lazy initializer — không bị tính lại mỗi lần render, không nhảy thời gian)
+  const [receivedDate, setReceivedDate] = useState(() => vnTodayInputValue());
+  const [receivedTime, setReceivedTime] = useState(() => vnNowTimeInputValue());
+  const [receivedError, setReceivedError] = useState('');
+  const [expectedReturnDate, setExpectedReturnDate] = useState(() => vnTodayInputValue(1));
   const [expectedReturnTime, setExpectedReturnTime] = useState('17:00');
+  // Người dùng đã tự chỉnh ngày trả → không tự động tính lại theo ngày nhận nữa
+  const [returnDateTouched, setReturnDateTouched] = useState(false);
+  const [returnError, setReturnError] = useState('');
   const [orderNote, setOrderNote] = useState('');
+
+  const handleReceivedDateChange = (value: string) => {
+    setReceivedDate(value);
+    setReceivedError('');
+    setReturnError('');
+    // Ngày trả mặc định = ngày nhận + 1, chỉ khi người dùng chưa chỉnh tay ngày trả
+    if (!returnDateTouched && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      setExpectedReturnDate(addDaysToDateInput(value, 1));
+    }
+  };
 
   // Items / Pricing state
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
@@ -260,9 +275,30 @@ const CreateOrder: React.FC = () => {
       addToast('Vui lòng chọn ít nhất một dịch vụ giặt.', 'warning');
       return;
     }
-    if (expectedReturnDate && expectedReturnDate < getVietnamDateInputValue(1)) {
-      addToast('Ngày trả phải từ ngày hôm sau trở đi.', 'warning');
+    if (!receivedDate || !receivedTime) {
+      setReceivedError('Vui lòng chọn ngày và giờ nhận.');
+      addToast('Vui lòng chọn ngày và giờ nhận.', 'warning');
       return;
+    }
+    if (!isValidDateTimeInput(receivedDate, receivedTime)) {
+      setReceivedError('Ngày giờ nhận không hợp lệ.');
+      addToast('Ngày giờ nhận không hợp lệ.', 'warning');
+      return;
+    }
+    if (expectedReturnDate) {
+      if (!isValidDateTimeInput(expectedReturnDate, expectedReturnTime || '00:00')) {
+        setReturnError('Ngày giờ trả không hợp lệ.');
+        addToast('Ngày giờ trả không hợp lệ.', 'warning');
+        return;
+      }
+      // Ngày trả phải sau ngày nhận (cùng ngày thì giờ trả phải lớn hơn giờ nhận)
+      const receivedMs = new Date(vnPartsToIso(receivedDate, receivedTime)).getTime();
+      const returnMs = new Date(vnPartsToIso(expectedReturnDate, expectedReturnTime || '00:00')).getTime();
+      if (returnMs <= receivedMs) {
+        setReturnError('Ngày trả phải sau ngày nhận.');
+        addToast('Ngày trả phải sau ngày nhận.', 'warning');
+        return;
+      }
     }
     if (paymentStatus === 'paid' && paymentMethod === 'none') {
       addToast('Vui lòng chọn hình thức thanh toán.', 'warning');
@@ -286,9 +322,11 @@ const CreateOrder: React.FC = () => {
 
     setLoading(true);
     try {
+      // Gửi ISO 8601 kèm timezone Việt Nam (+07:00) để backend lưu TIMESTAMPTZ chính xác
+      const receivedAt = vnPartsToIso(receivedDate, receivedTime);
       let expectedReturn: string | null = null;
       if (expectedReturnDate) {
-        expectedReturn = `${expectedReturnDate}T${expectedReturnTime}:00`;
+        expectedReturn = vnPartsToIso(expectedReturnDate, expectedReturnTime || '00:00');
       }
 
       const payload = {
@@ -301,6 +339,7 @@ const CreateOrder: React.FC = () => {
         },
         branch_id: branchId,
         note: orderNote.trim() || null,
+        received_at: receivedAt,
         expected_return_at: expectedReturn,
         items: selectedItems.map(item => ({
           service_id: item.service_id,
@@ -517,27 +556,57 @@ const CreateOrder: React.FC = () => {
               )}
             </div>
 
+            {/* Received date & time */}
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-600">Ngày nhận *</label>
+                  <input
+                    type="date"
+                    value={receivedDate}
+                    onChange={(e) => handleReceivedDateChange(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-2xl text-xs outline-none focus:border-primary ${receivedError ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-600">Giờ nhận *</label>
+                  <input
+                    type="time"
+                    value={receivedTime}
+                    onChange={(e) => { setReceivedTime(e.target.value); setReceivedError(''); setReturnError(''); }}
+                    className={`w-full px-3 py-2 border rounded-2xl text-xs outline-none focus:border-primary ${receivedError ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}
+                    required
+                  />
+                </div>
+              </div>
+              {receivedError && <p className="text-[10px] text-rose-600 font-semibold">{receivedError}</p>}
+            </div>
+
             {/* Expected return date */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600">Ngày hẹn trả</label>
-                <input
-                  type="date"
-                  min={getVietnamDateInputValue(1)}
-                  value={expectedReturnDate}
-                  onChange={(e) => setExpectedReturnDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary"
-                />
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-600">Ngày hẹn trả</label>
+                  <input
+                    type="date"
+                    min={receivedDate || undefined}
+                    value={expectedReturnDate}
+                    onChange={(e) => { setExpectedReturnDate(e.target.value); setReturnDateTouched(true); setReturnError(''); }}
+                    className={`w-full px-3 py-2 border rounded-2xl text-xs outline-none focus:border-primary ${returnError ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-600">Giờ hẹn trả</label>
+                  <input
+                    type="time"
+                    value={expectedReturnTime}
+                    onChange={(e) => { setExpectedReturnTime(e.target.value); setReturnDateTouched(true); setReturnError(''); }}
+                    className={`w-full px-3 py-2 border rounded-2xl text-xs outline-none focus:border-primary ${returnError ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600">Giờ hẹn trả</label>
-                <input
-                  type="time"
-                  value={expectedReturnTime}
-                  onChange={(e) => setExpectedReturnTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary"
-                />
-              </div>
+              {returnError && <p className="text-[10px] text-rose-600 font-semibold">{returnError}</p>}
             </div>
 
             {/* Cart Items list */}

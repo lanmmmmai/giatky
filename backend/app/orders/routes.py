@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import logging
 import uuid
@@ -33,6 +33,7 @@ class OrderItemCreate(BaseModel):
 class OrderCreate(BaseModel):
     customer: CustomerInfo
     branch_id: str
+    received_at: Optional[datetime] = None
     expected_return_at: Optional[datetime] = None
     note: Optional[str] = None
     items: List[OrderItemCreate]
@@ -55,10 +56,28 @@ class CompleteDeliveryRequest(BaseModel):
     note: Optional[str] = None
 
 class OrderUpdate(BaseModel):
+    received_at: Optional[datetime] = None
     expected_return_at: Optional[datetime] = None
     note: Optional[str] = None
     surcharge: Optional[int] = None
     discount: Optional[int] = None
+
+
+# Timezone Việt Nam — dùng để hiển thị thời gian trong email/thông báo
+VN_TZ = timezone(timedelta(hours=7))
+
+
+def as_aware_utc(dt: datetime) -> datetime:
+    """Chuẩn hóa datetime để so sánh: giá trị naive được coi là UTC
+    (đúng với cách Postgres/Supabase lưu TIMESTAMPTZ khi nhận chuỗi naive)."""
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
+
+def validate_return_after_received(received_at: Optional[datetime], expected_return_at: Optional[datetime]):
+    """Ngày trả không được nhỏ hơn hoặc bằng ngày giờ nhận."""
+    if received_at and expected_return_at:
+        if as_aware_utc(expected_return_at) <= as_aware_utc(received_at):
+            raise HTTPException(status_code=400, detail="Ngày trả phải sau ngày nhận.")
 
 # Map trạng thái đơn → trigger email (mẫu quản lý trong CMS → Email Templates).
 # Chỉ gửi khi admin đã tạo và bật mẫu cho trigger tương ứng — không hard-code nội dung.
@@ -216,7 +235,11 @@ def build_order_email_context(order: dict, customer: dict, branch_name: str, ser
         if not value:
             return ""
         try:
-            return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime("%H:%M %d/%m/%Y")
+            dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            # Giá trị tz-aware (TIMESTAMPTZ trả về +00:00) → quy về giờ Việt Nam
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(VN_TZ)
+            return dt.strftime("%H:%M %d/%m/%Y")
         except Exception:
             return str(value)
 
@@ -340,6 +363,8 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
     if current_user["role"] != "admin" and payload.branch_id != current_user.get("branch_id"):
         raise HTTPException(status_code=403, detail="Bạn chỉ được tạo đơn tại cơ sở đang chọn.")
 
+    validate_return_after_received(payload.received_at, payload.expected_return_at)
+
     calculated_items, subtotal, service_names = build_order_items_from_services(payload.items)
     if payload.payment_status not in {"unpaid", "paid"}:
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ tạo đơn chưa thanh toán hoặc đã thanh toán đủ.")
@@ -399,7 +424,8 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         "paid_at": paid_at,
         "note": payload.note,
         "expected_return_at": payload.expected_return_at.isoformat() if payload.expected_return_at else None,
-        "received_at": datetime.utcnow().isoformat()
+        # Tôn trọng ngày giờ nhận do người dùng chọn; chỉ mặc định NOW() khi không gửi
+        "received_at": payload.received_at.isoformat() if payload.received_at else datetime.utcnow().isoformat()
     }
     
     order_res = supabase.table("orders").insert(order_data).execute()
@@ -520,7 +546,26 @@ def update_order(id: str, payload: OrderUpdate, current_user: dict = Depends(get
     update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="Không có dữ liệu cập nhật.")
-        
+
+    # Ngày trả phải sau ngày nhận — so sánh với giá trị mới hoặc giá trị đang lưu
+    if payload.received_at or payload.expected_return_at:
+        cur = supabase.table("orders").select("received_at, expected_return_at").eq("id", id).execute().data[0]
+
+        def parse_dt(value):
+            if not value:
+                return None
+            try:
+                return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            except Exception:
+                return None
+
+        effective_received = payload.received_at or parse_dt(cur.get("received_at"))
+        effective_return = payload.expected_return_at or parse_dt(cur.get("expected_return_at"))
+        validate_return_after_received(effective_received, effective_return)
+
+    if "received_at" in update_data and update_data["received_at"]:
+        update_data["received_at"] = update_data["received_at"].isoformat()
+
     if "expected_return_at" in update_data and update_data["expected_return_at"]:
         update_data["expected_return_at"] = update_data["expected_return_at"].isoformat()
         

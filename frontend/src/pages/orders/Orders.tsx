@@ -6,6 +6,7 @@ import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { useConfirm } from '../../components/ConfirmDialog';
+import { formatVnDateTime } from '../../utils/vnDatetime';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
@@ -263,6 +264,7 @@ const Orders: React.FC = () => {
                     <tr key={order.id} className="border-b border-slate-100 hover:bg-primary/5 transition-colors">
                       <td className="p-4 font-bold text-primary">
                         <Link to={`${base}/orders/${order.id}`} className="hover:underline">{order.order_code}</Link>
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5 whitespace-nowrap">Nhận: {formatVnDateTime(order.received_at)}</div>
                       </td>
                       <td className="p-4">
                         <div className="font-semibold text-slate-800">{order.customer_name_snapshot}</div>
