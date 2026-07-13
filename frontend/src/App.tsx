@@ -43,7 +43,6 @@ import {
   CookiesPage,
   FAQPage,
   PrivacyPage,
-  PublicHome,
   ServicesPage,
   TermsPage,
 } from './pages/public/PublicPages';
@@ -66,7 +65,7 @@ const App: React.FC = () => {
           <Routes>
           {/* Public Auth routes */}
           <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/login" element={<Navigate to="/staff/login" replace />} />
             <Route path="/admin/login" element={<RoleLoginPage role="admin" />} />
             <Route path="/manager/login" element={<RoleLoginPage role="manager" />} />
             <Route path="/staff/login" element={<RoleLoginPage role="staff" />} />
@@ -156,7 +155,7 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Route>
 
-          <Route path="/" element={<PublicHome />} />
+          <Route path="/" element={<Navigate to="/staff/login" replace />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/faq" element={<FAQPage />} />
