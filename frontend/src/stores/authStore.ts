@@ -24,6 +24,8 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   login: (usernameOrEmail: string, password: string, expectedRole: 'admin' | 'manager' | 'staff') => Promise<{ success: boolean; message?: string }>;
+  previewLogin: (usernameOrEmail: string, password: string, expectedRole: 'admin' | 'manager' | 'staff') => Promise<{ success: boolean; token?: string; user?: User; message?: string }>;
+  completeLogin: (token: string, user: User) => void;
   loginWithGoogle: (idToken: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -71,6 +73,31 @@ export const useAuthStore = create<AuthState>((set, get) => {
         set({ error: errMsg, loading: false });
         return { success: false, message: errMsg };
       }
+    },
+
+    previewLogin: async (usernameOrEmail, password, expectedRole) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await apiClient.post('/auth/login', {
+          username_or_email: usernameOrEmail,
+          password: password,
+          expected_role: expectedRole,
+        });
+
+        const { token, user } = response.data;
+        set({ loading: false });
+        return { success: true, token, user };
+      } catch (err: any) {
+        const errMsg = err.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.';
+        set({ error: errMsg, loading: false });
+        return { success: false, message: errMsg };
+      }
+    },
+
+    completeLogin: (token, user) => {
+      localStorage.setItem('lanh_sach_token', token);
+      localStorage.setItem('lanh_sach_user', JSON.stringify(user));
+      set({ user, token, loading: false, error: null });
     },
 
     loginWithGoogle: async (idToken) => {

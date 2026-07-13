@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getServices, Service } from '../../api/services';
 import { getBranches, Branch } from '../../api/branches';
@@ -7,7 +7,16 @@ import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import apiClient from '../../api/client';
-import { ArrowLeft, User, Phone, Mail, MapPin, Plus, Minus, Trash, ShoppingCart, DollarSign, Calendar } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, MapPin, Plus, Minus, Trash, ShoppingCart, DollarSign, Calendar, Search, X } from 'lucide-react';
+
+const normalizeSearchText = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
 
 const CreateOrder: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +27,7 @@ const CreateOrder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [serviceSearch, setServiceSearch] = useState('');
 
   // Customer state
   const [customerPhone, setCustomerPhone] = useState('');
@@ -49,6 +59,20 @@ const CreateOrder: React.FC = () => {
   // Sync paidAmount automatically based on paymentStatus
   const subtotal = selectedItems.reduce((acc, item) => acc + item.amount, 0);
   const totalAmount = subtotal + surcharge - discount;
+  const normalizedServiceSearch = normalizeSearchText(serviceSearch);
+  const filteredServices = useMemo(() => {
+    if (!normalizedServiceSearch) return services;
+    return services.filter((service) => {
+      const haystack = normalizeSearchText([
+        service.name,
+        service.category_name,
+        service.category_id,
+        service.unit,
+        service.id,
+      ].filter(Boolean).join(' '));
+      return haystack.includes(normalizedServiceSearch);
+    });
+  }, [services, normalizedServiceSearch]);
 
   useEffect(() => {
     if (paymentStatus === 'paid') {
@@ -284,11 +308,46 @@ const CreateOrder: React.FC = () => {
               <ShoppingCart size={16} className="text-primary" /> Danh mục dịch vụ khả dụng
             </h3>
 
+            <div className="relative">
+              <label htmlFor="service-search" className="sr-only">Tìm kiếm dịch vụ</label>
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} strokeWidth={1.7} />
+              <input
+                id="service-search"
+                type="search"
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                placeholder="Tìm kiếm dịch vụ..."
+                aria-label="Tìm kiếm dịch vụ"
+                className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 rounded-2xl text-xs transition-all outline-none"
+              />
+              {serviceSearch && (
+                <button
+                  type="button"
+                  onClick={() => setServiceSearch('')}
+                  aria-label="Xóa từ khóa tìm kiếm"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <X size={14} strokeWidth={1.7} />
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {services.length === 0 ? (
                 <div className="col-span-full py-4 text-center text-xs text-slate-400">Không có dịch vụ nào đang hoạt động.</div>
+              ) : filteredServices.length === 0 ? (
+                <div className="col-span-full py-6 text-center space-y-3">
+                  <p className="text-xs text-slate-400">Không tìm thấy dịch vụ phù hợp.</p>
+                  <button
+                    type="button"
+                    onClick={() => setServiceSearch('')}
+                    className="px-3 py-2 border border-slate-200 hover:border-slate-900 text-slate-700 rounded-2xl text-[11px] font-bold transition-colors"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </div>
               ) : (
-                services.map(srv => (
+                filteredServices.map(srv => (
                   <div
                     key={srv.id}
                     onClick={() => handleAddService(srv)}
@@ -297,7 +356,7 @@ const CreateOrder: React.FC = () => {
                     <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[9px] font-bold uppercase rounded-md tracking-wider">
                       {srv.category_name || 'Chưa phân loại'}
                     </span>
-                    <h4 className="text-xs font-bold text-slate-800 line-clamp-1">{srv.name}</h4>
+                    <h4 className="text-xs font-bold text-slate-800 line-clamp-2 min-h-[2rem]" title={srv.name}>{srv.name}</h4>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-primary font-bold">{formatCurrency(srv.price)}</span>
                       <span className="text-slate-400 font-medium">/{srv.unit}</span>

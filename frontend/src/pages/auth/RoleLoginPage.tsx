@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import { DASHBOARD_PATH } from '../../config/roleNav';
-import { Lock, User as UserIcon, LogIn, AlertTriangle, LogOut } from 'lucide-react';
+import { Lock, User as UserIcon, LogIn, AlertTriangle, LogOut, ShieldCheck } from 'lucide-react';
 
 interface RoleLoginPageProps {
   role: 'admin' | 'manager' | 'staff';
@@ -11,12 +11,17 @@ interface RoleLoginPageProps {
 
 const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
   const navigate = useNavigate();
-  const { login, logout, user, token } = useAuthStore();
+  const { login, previewLogin, completeLogin, logout, user, token } = useAuthStore();
   const { addToast } = useToastStore();
 
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState<{ token: string; user: any } | null>(null);
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   // If user is already authenticated
   useEffect(() => {
@@ -27,6 +32,62 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
     }
   }, [token, user, role, navigate]);
 
+  useEffect(() => {
+    if (!pendingLogin) return;
+    cancelButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleCancelConfirm();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const focusable = [cancelButtonRef.current, confirmButtonRef.current].filter(Boolean) as HTMLButtonElement[];
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [pendingLogin]);
+
+  const getFacilityDisplay = (loginUser: any) => {
+    const facilities = loginUser?.facilities || [];
+    const assignedBranches = loginUser?.assigned_branches || [];
+    if (facilities.length === 1) return facilities[0].name;
+    if (facilities.length > 1) return `${facilities.length} cơ sở`;
+    if (assignedBranches.length === 1) return assignedBranches[0].branch_name;
+    if (assignedBranches.length > 1) return `${assignedBranches.length} cơ sở`;
+    if (loginUser?.branch_name) return loginUser.branch_name;
+    if (loginUser?.branch_id) return '1 cơ sở';
+    return 'Chưa phân công';
+  };
+
+  const handleCancelConfirm = () => {
+    setPendingLogin(null);
+    setPassword('');
+    setConfirming(false);
+    window.setTimeout(() => loginButtonRef.current?.focus(), 0);
+  };
+
+  const handleConfirmLogin = () => {
+    if (!pendingLogin || confirming) return;
+    setConfirming(true);
+    completeLogin(pendingLogin.token, pendingLogin.user);
+    addToast('Đăng nhập thành công!', 'success');
+    navigate(DASHBOARD_PATH.staff, { replace: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameOrEmail.trim() || !password.trim()) {
@@ -35,6 +96,21 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
     }
 
     setLoading(true);
+    if (role === 'staff') {
+      const result = await previewLogin(usernameOrEmail, password, role);
+      setLoading(false);
+      if (result.success) {
+        if (result.token && result.user) {
+          setPendingLogin({ token: result.token, user: result.user });
+        } else {
+          addToast('Không thể xác nhận phiên đăng nhập. Vui lòng thử lại.', 'error');
+        }
+      } else {
+        addToast(result.message || 'Đăng nhập thất bại.', 'error');
+      }
+      return;
+    }
+
     const result = await login(usernameOrEmail, password, role);
     setLoading(false);
 
@@ -223,9 +299,10 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
             </div>
 
             <button
+              ref={loginButtonRef}
               type="submit"
               className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-4 text-center"
-              disabled={loading}
+              disabled={loading || confirming}
             >
               <LogIn size={13} strokeWidth={1.5} />
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
@@ -233,17 +310,77 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
           </form>
         </div>
 
-        {/* Footnote */}
-        <div className="text-center pt-6 lg:pt-0">
-          <p className="text-[11px] text-slate-400 font-medium">
-            Nhân viên mới?{' '}
-            <Link to="/staff/register-shift-request" className="text-primary hover:underline font-semibold">
-              Gửi yêu cầu đăng ký ca
-            </Link>
-          </p>
-        </div>
-
       </div>
+
+      {pendingLogin && (
+        <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staff-login-confirm-title"
+            aria-describedby="staff-login-confirm-desc"
+            className="w-full max-w-[460px] bg-white rounded-2xl shadow-xl border border-slate-200 p-5 sm:p-6"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+                <ShieldCheck size={21} strokeWidth={1.7} />
+              </div>
+              <div className="min-w-0">
+                <h3 id="staff-login-confirm-title" className="text-base font-bold text-slate-950">Xác nhận đăng nhập</h3>
+                <p id="staff-login-confirm-desc" className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Bạn đang đăng nhập vào hệ thống Staff của Giặt Ký. Vui lòng xác nhận để tiếp tục.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-xs">
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500 font-semibold">Tài khoản</span>
+                <span className="text-slate-900 font-bold text-right truncate">{pendingLogin.user.username || usernameOrEmail}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500 font-semibold">Họ tên</span>
+                <span className="text-slate-900 font-bold text-right truncate">{pendingLogin.user.full_name || '-'}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500 font-semibold">Vai trò</span>
+                <span className="text-slate-900 font-bold text-right">Nhân viên</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500 font-semibold">Cơ sở</span>
+                <span className="text-slate-900 font-bold text-right truncate" title={getFacilityDisplay(pendingLogin.user)}>
+                  {getFacilityDisplay(pendingLogin.user)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500 font-semibold">Thời gian</span>
+                <span className="text-slate-900 font-bold text-right">{new Date().toLocaleString('vi-VN')}</span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+              <button
+                ref={cancelButtonRef}
+                type="button"
+                onClick={handleCancelConfirm}
+                disabled={confirming}
+                className="h-10 px-4 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-colors disabled:opacity-60"
+              >
+                Hủy
+              </button>
+              <button
+                ref={confirmButtonRef}
+                type="button"
+                onClick={handleConfirmLogin}
+                disabled={confirming}
+                className="h-10 px-4 rounded-2xl bg-slate-950 hover:bg-black text-white text-xs font-bold transition-colors disabled:opacity-60"
+              >
+                {confirming ? 'Đang đăng nhập...' : 'Xác nhận đăng nhập'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
