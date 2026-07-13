@@ -32,6 +32,16 @@ const formatQuantity = (value: number) =>
 const isValidWeightQuantity = (value: number) =>
   Number.isFinite(value) && value > 0 && /^\d+(\.\d{1,2})?$/.test(String(value));
 
+const getVietnamDateInputValue = (dayOffset = 0) => {
+  const now = new Date();
+  const vietnamDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  vietnamDate.setDate(vietnamDate.getDate() + dayOffset);
+  const year = vietnamDate.getFullYear();
+  const month = String(vietnamDate.getMonth() + 1).padStart(2, '0');
+  const day = String(vietnamDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const CreateOrder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -52,7 +62,7 @@ const CreateOrder: React.FC = () => {
 
   // Order settings state
   const [branchId, setBranchId] = useState('');
-  const [expectedReturnDate, setExpectedReturnDate] = useState('');
+  const [expectedReturnDate, setExpectedReturnDate] = useState(getVietnamDateInputValue(1));
   const [expectedReturnTime, setExpectedReturnTime] = useState('17:00');
   const [orderNote, setOrderNote] = useState('');
 
@@ -64,9 +74,8 @@ const CreateOrder: React.FC = () => {
   const [discount, setDiscount] = useState<number>(0);
   
   // Payment state
-  const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'paid' | 'partial'>('unpaid');
+  const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'paid'>('unpaid');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer' | 'e_wallet' | 'none'>('none');
-  const [paidAmount, setPaidAmount] = useState<number>(0);
 
   useEffect(() => {
     loadInitialData();
@@ -91,12 +100,10 @@ const CreateOrder: React.FC = () => {
   }, [services, normalizedServiceSearch]);
 
   useEffect(() => {
-    if (paymentStatus === 'paid') {
-      setPaidAmount(totalAmount);
-    } else if (paymentStatus === 'unpaid') {
-      setPaidAmount(0);
+    if (paymentStatus === 'unpaid') {
+      setPaymentMethod('none');
     }
-  }, [paymentStatus, totalAmount]);
+  }, [paymentStatus]);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -253,6 +260,14 @@ const CreateOrder: React.FC = () => {
       addToast('Vui lòng chọn ít nhất một dịch vụ giặt.', 'warning');
       return;
     }
+    if (expectedReturnDate && expectedReturnDate < getVietnamDateInputValue(1)) {
+      addToast('Ngày trả phải từ ngày hôm sau trở đi.', 'warning');
+      return;
+    }
+    if (paymentStatus === 'paid' && paymentMethod === 'none') {
+      addToast('Vui lòng chọn hình thức thanh toán.', 'warning');
+      return;
+    }
     const invalidItem = selectedItems.find(item => {
       if (isWeightUnit(item.unit)) {
         const inputValue = quantityInputs[String(item.service_id || '')] ?? String(item.quantity);
@@ -299,7 +314,7 @@ const CreateOrder: React.FC = () => {
         discount,
         payment_status: paymentStatus,
         payment_method: paymentMethod,
-        paid_amount: paidAmount
+        paid_amount: 0
       };
 
       await createOrder(payload);
@@ -508,6 +523,7 @@ const CreateOrder: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-600">Ngày hẹn trả</label>
                 <input
                   type="date"
+                  min={getVietnamDateInputValue(1)}
                   value={expectedReturnDate}
                   onChange={(e) => setExpectedReturnDate(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary"
@@ -651,10 +667,10 @@ const CreateOrder: React.FC = () => {
                   >
                     <option value="unpaid">Chưa trả</option>
                     <option value="paid">Đã trả hết</option>
-                    <option value="partial">Trả một phần</option>
                   </select>
                 </div>
 
+                {paymentStatus === 'paid' && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500">Phương thức</label>
                   <select
@@ -668,18 +684,13 @@ const CreateOrder: React.FC = () => {
                     <option value="e_wallet">Ví điện tử</option>
                   </select>
                 </div>
+                )}
               </div>
 
-              {paymentStatus === 'partial' && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold text-slate-500">Số tiền trả trước (VNĐ)</label>
-                  <input
-                    type="number"
-                    value={paidAmount || ''}
-                    onChange={(e) => setPaidAmount(Number(e.target.value))}
-                    placeholder="Nhập số tiền khách đưa..."
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-2xl text-xs outline-none"
-                  />
+              {paymentStatus === 'paid' && (
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 flex justify-between text-xs font-semibold">
+                  <span className="text-slate-500">Tổng cần thanh toán</span>
+                  <span className="text-slate-900">{formatCurrency(totalAmount)}</span>
                 </div>
               )}
             </div>

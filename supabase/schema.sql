@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS orders (
   surcharge               BIGINT DEFAULT 0,
   total_amount            BIGINT DEFAULT 0,
   paid_amount             BIGINT DEFAULT 0,
+  paid_at                 TIMESTAMPTZ,
   note                    TEXT,
   received_at             TIMESTAMPTZ DEFAULT NOW(),
   expected_return_at      TIMESTAMPTZ,
@@ -108,7 +109,23 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 -- ─────────────────────────────────────────────
--- 6. BẢNG ORDER_ITEMS
+-- 6. BẢNG ORDER_PAYMENTS
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS order_payments (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id       UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'bank_transfer', 'e_wallet')),
+  amount         BIGINT NOT NULL CHECK (amount > 0),
+  status         TEXT NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'failed', 'cancelled')),
+  paid_at        TIMESTAMPTZ DEFAULT NOW(),
+  created_by     UUID REFERENCES users(id) ON DELETE SET NULL,
+  note           TEXT,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(order_id, status)
+);
+
+-- ─────────────────────────────────────────────
+-- 7. BẢNG ORDER_ITEMS
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS order_items (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),

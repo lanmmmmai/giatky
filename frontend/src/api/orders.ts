@@ -30,6 +30,7 @@ export interface Order {
   surcharge: number;
   total_amount: number;
   paid_amount: number;
+  paid_at?: string | null;
   note?: string;
   received_at: string;
   expected_return_at?: string;
@@ -53,4 +54,6 @@ export const updateOrder = (id: string, data: any) => apiClient.put<Order>(`/ord
 export const updateOrderStatus = (id: string, status: string) => apiClient.patch<Order>(`/orders/${id}/status`, { status }).then(res => res.data);
 export const updateOrderPayment = (id: string, data: { payment_status: string; payment_method: string; paid_amount: number }) => 
   apiClient.patch<Order>(`/orders/${id}/payment`, data).then(res => res.data);
+export const completeOrderDelivery = (id: string, data?: { payment_method?: string; note?: string }) =>
+  apiClient.post<{ success: boolean; order: Order; payment?: any; payment_status?: string; delivered_at?: string }>(`/orders/${id}/complete-delivery`, data || {}).then(res => res.data);
 export const deleteOrder = (id: string) => apiClient.delete(`/orders/${id}`).then(res => res.data);

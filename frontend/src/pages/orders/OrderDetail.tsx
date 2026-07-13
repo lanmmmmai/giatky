@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getOrderDetail, updateOrderStatus, updateOrderPayment, Order } from '../../api/orders';
+import { completeOrderDelivery, getOrderDetail, updateOrderStatus, updateOrderPayment, Order } from '../../api/orders';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -16,6 +16,9 @@ const OrderDetail: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [deliveryPaymentOpen, setDeliveryPaymentOpen] = useState(false);
+  const [deliveryPaymentMethod, setDeliveryPaymentMethod] = useState<'cash' | 'bank_transfer' | 'e_wallet' | 'none'>('none');
+  const [deliveryPaymentNote, setDeliveryPaymentNote] = useState('');
 
   // Quick payment update state
   const [payStatus, setPayStatus] = useState<'unpaid' | 'paid' | 'partial'>('unpaid');
@@ -45,6 +48,10 @@ const OrderDetail: React.FC = () => {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!order) return;
+    if (newStatus === 'delivered') {
+      await handleCompleteDeliveryClick();
+      return;
+    }
     setUpdating(true);
     try {
       await updateOrderStatus(order.id, newStatus);
@@ -57,23 +64,74 @@ const OrderDetail: React.FC = () => {
     }
   };
 
+  const handleCompleteDeliveryClick = async () => {
+    if (!order) return;
+    if (order.status === 'delivered') return;
+    if (order.payment_status !== 'paid') {
+      setDeliveryPaymentOpen(true);
+      return;
+    }
+    setUpdating(true);
+    try {
+      const result = await completeOrderDelivery(order.id);
+      setOrder(prev => prev ? { ...prev, ...result.order } : result.order);
+      addToast('Đã hoàn tất trả đồ cho khách.', 'success');
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Không thể hoàn tất trả đơn.', 'error');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleConfirmDeliveryPayment = async () => {
+    if (!order) return;
+    if (deliveryPaymentMethod === 'none') {
+      addToast('Vui lòng chọn hình thức thanh toán.', 'warning');
+      return;
+    }
+    setUpdating(true);
+    try {
+      const result = await completeOrderDelivery(order.id, {
+        payment_method: deliveryPaymentMethod,
+        note: deliveryPaymentNote.trim() || undefined,
+      });
+      setOrder(prev => prev ? { ...prev, ...result.order } : result.order);
+      setPayStatus('paid');
+      setPayMethod(deliveryPaymentMethod);
+      setPayAmount(result.order.paid_amount);
+      setDeliveryPaymentOpen(false);
+      setDeliveryPaymentMethod('none');
+      setDeliveryPaymentNote('');
+      addToast('Đã thanh toán và trả đồ thành công.', 'success');
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Không thể thanh toán và trả đơn.', 'error');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handlePaymentUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
 
     setUpdating(true);
     try {
+      if (payStatus === 'paid' && payMethod === 'none') {
+        addToast('Vui lòng chọn hình thức thanh toán.', 'warning');
+        setUpdating(false);
+        return;
+      }
       await updateOrderPayment(order.id, {
         payment_status: payStatus,
-        payment_method: payMethod,
-        paid_amount: payAmount
+        payment_method: payStatus === 'paid' ? payMethod : 'none',
+        paid_amount: payStatus === 'paid' ? order.total_amount : 0
       });
       addToast('Cập nhật thông tin thanh toán thành công.', 'success');
       setOrder(prev => prev ? { 
         ...prev, 
         payment_status: payStatus, 
-        payment_method: payMethod, 
-        paid_amount: payAmount 
+        payment_method: payStatus === 'paid' ? payMethod : 'none',
+        paid_amount: payStatus === 'paid' ? order.total_amount : 0
       } : null);
     } catch (err: any) {
       addToast(err.response?.data?.detail || 'Cập nhật thanh toán thất bại.', 'error');
@@ -355,16 +413,20 @@ const OrderDetail: React.FC = () => {
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trạng thái thanh toán</label>
                 <select
                   value={payStatus}
-                  onChange={(e) => setPayStatus(e.target.value as any)}
+                  onChange={(e) => {
+                    const next = e.target.value as any;
+                    setPayStatus(next);
+                    if (next === 'unpaid') setPayMethod('none');
+                  }}
                   className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-primary bg-white"
                   disabled={updating}
                 >
                   <option value="unpaid">Chưa trả</option>
                   <option value="paid">Đã trả hết</option>
-                  <option value="partial">Trả một phần</option>
                 </select>
               </div>
 
+              {payStatus === 'paid' && (
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phương thức thanh toán</label>
                 <select
@@ -379,17 +441,11 @@ const OrderDetail: React.FC = () => {
                   <option value="e_wallet">Ví điện tử</option>
                 </select>
               </div>
+              )}
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Số tiền khách đã trả (VNĐ)</label>
-                <input
-                  type="number"
-                  value={payAmount || ''}
-                  onChange={(e) => setPayAmount(Number(e.target.value))}
-                  placeholder="0"
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-primary"
-                  disabled={updating}
-                />
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 flex justify-between text-xs font-semibold">
+                <span className="text-slate-500">Tổng cần thanh toán</span>
+                <span className="text-slate-900">{formatCurrency(order.total_amount)}</span>
               </div>
 
               <button
@@ -405,6 +461,93 @@ const OrderDetail: React.FC = () => {
 
         </div>
       </div>
+
+      {deliveryPaymentOpen && order && (
+        <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4 no-print">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-5 space-y-5">
+            <div>
+              <h3 className="text-base font-bold text-slate-950">Xác nhận thanh toán khi trả đơn</h3>
+              <p className="text-xs text-slate-500 mt-1">Đơn chưa thanh toán. Vui lòng chọn hình thức thanh toán để hoàn tất trả đồ.</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-xs">
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500 font-semibold">Mã đơn</span>
+                <span className="font-bold text-slate-900">{order.order_code}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500 font-semibold">Khách hàng</span>
+                <span className="font-bold text-slate-900 text-right">{order.customer_name_snapshot}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500 font-semibold">Tạm tính</span>
+                <span className="font-bold text-slate-900">{formatCurrency(order.subtotal)}</span>
+              </div>
+              {order.surcharge > 0 && (
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500 font-semibold">Phụ phí</span>
+                  <span className="font-bold text-slate-900">+{formatCurrency(order.surcharge)}</span>
+                </div>
+              )}
+              {order.discount > 0 && (
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-500 font-semibold">Giảm giá</span>
+                  <span className="font-bold text-rose-600">-{formatCurrency(order.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between gap-3 border-t border-slate-200 pt-2">
+                <span className="text-slate-700 font-bold">Tổng cần thanh toán</span>
+                <span className="font-black text-slate-950">{formatCurrency(order.total_amount)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hình thức thanh toán</label>
+              <select
+                value={deliveryPaymentMethod}
+                onChange={(e) => setDeliveryPaymentMethod(e.target.value as any)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-slate-900 bg-white"
+                disabled={updating}
+              >
+                <option value="none">Chọn hình thức</option>
+                <option value="cash">Tiền mặt</option>
+                <option value="bank_transfer">Chuyển khoản</option>
+                <option value="e_wallet">Ví điện tử</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ghi chú</label>
+              <textarea
+                value={deliveryPaymentNote}
+                onChange={(e) => setDeliveryPaymentNote(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs outline-none focus:border-slate-900 min-h-[72px]"
+                placeholder="Ghi chú thanh toán nếu có..."
+                disabled={updating}
+              />
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDeliveryPaymentOpen(false)}
+                disabled={updating}
+                className="px-4 py-2 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold disabled:opacity-60"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeliveryPayment}
+                disabled={updating}
+                className="px-4 py-2 rounded-2xl bg-slate-950 hover:bg-black text-white text-xs font-bold disabled:opacity-60"
+              >
+                {updating ? 'Đang xử lý...' : 'Xác nhận thanh toán và trả đơn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

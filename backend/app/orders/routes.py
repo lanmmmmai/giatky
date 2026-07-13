@@ -50,6 +50,10 @@ class OrderPaymentUpdate(BaseModel):
     payment_method: str = Field(..., pattern="^(cash|bank_transfer|e_wallet|none)$")
     paid_amount: int
 
+class CompleteDeliveryRequest(BaseModel):
+    payment_method: Optional[str] = None
+    note: Optional[str] = None
+
 class OrderUpdate(BaseModel):
     expected_return_at: Optional[datetime] = None
     note: Optional[str] = None
@@ -73,6 +77,8 @@ PAYMENT_METHOD_VN = {
     "none": "Chưa chọn",
 }
 
+PAYMENT_METHODS = {"cash", "bank_transfer", "e_wallet"}
+
 
 def is_weight_unit(unit: Optional[str]) -> bool:
     normalized_unit = str(unit or "").strip().lower()
@@ -95,6 +101,54 @@ def has_more_than_two_decimals(value: Decimal) -> bool:
 
 def money_from_decimal(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def validate_payment_method(payment_method: Optional[str]) -> str:
+    if not payment_method or payment_method == "none":
+        raise HTTPException(status_code=400, detail="Vui lòng chọn hình thức thanh toán.")
+    if payment_method not in PAYMENT_METHODS:
+        raise HTTPException(status_code=400, detail="Hình thức thanh toán không hợp lệ.")
+    return payment_method
+
+
+def ensure_order_access(order: dict, current_user: dict, action: str = "cập nhật") -> None:
+    if current_user["role"] == "manager":
+        chk = supabase.table("branches").select("id").eq("id", order["branch_id"]).eq("manager_id", current_user["id"]).execute()
+        if not chk.data:
+            raise HTTPException(status_code=403, detail=f"Không có quyền {action} đơn hàng ở chi nhánh này.")
+    elif current_user["role"] == "staff":
+        if order["branch_id"] != current_user.get("branch_id"):
+            raise HTTPException(status_code=403, detail=f"Không có quyền {action} đơn hàng ở chi nhánh khác.")
+
+
+def record_order_payment(order: dict, payment_method: str, current_user: dict, note: Optional[str] = None) -> Optional[dict]:
+    existing = supabase.table("order_payments").select("*").eq("order_id", order["id"]).eq("status", "success").limit(1).execute()
+    if existing.data:
+        return existing.data[0]
+
+    amount = int(order.get("total_amount") or 0)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Đơn hàng chưa có tổng tiền hợp lệ.")
+
+    paid_at = datetime.utcnow().isoformat()
+    try:
+        payment_res = supabase.table("order_payments").insert({
+            "order_id": order["id"],
+            "payment_method": payment_method,
+            "amount": amount,
+            "status": "success",
+            "paid_at": paid_at,
+            "created_by": current_user["id"],
+            "note": note,
+        }).execute()
+    except Exception as payment_err:
+        duplicate = supabase.table("order_payments").select("*").eq("order_id", order["id"]).eq("status", "success").limit(1).execute()
+        if duplicate.data:
+            return duplicate.data[0]
+        logger.error(f"Failed to record order payment: {str(payment_err)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Không thể ghi nhận thanh toán.")
+
+    return payment_res.data[0] if payment_res.data else None
 
 
 def build_order_items_from_services(items: List[OrderItemCreate]) -> tuple[list[dict], int, str]:
@@ -279,6 +333,8 @@ def get_orders(
 @router.post("")
 def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_user)):
     calculated_items, subtotal, service_names = build_order_items_from_services(payload.items)
+    if payload.payment_status not in {"unpaid", "paid"}:
+        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ tạo đơn chưa thanh toán hoặc đã thanh toán đủ.")
 
     # 1. Customer verification / creation
     cust_res = supabase.table("customers").select("*").eq("phone", payload.customer.phone).execute()
@@ -305,6 +361,15 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         customer = new_cust_res.data[0]
 
     total_amount = subtotal + payload.surcharge - payload.discount
+    if total_amount < 0:
+        raise HTTPException(status_code=400, detail="Tổng tiền đơn hàng không hợp lệ.")
+    payment_method = "none"
+    paid_amount = 0
+    paid_at = None
+    if payload.payment_status == "paid":
+        payment_method = validate_payment_method(payload.payment_method)
+        paid_amount = total_amount
+        paid_at = datetime.utcnow().isoformat()
     
     # 2. Save Order
     order_code = generate_order_code()
@@ -317,12 +382,13 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         "customer_phone_snapshot": customer["phone"],
         "status": "new",
         "payment_status": payload.payment_status,
-        "payment_method": payload.payment_method,
+        "payment_method": payment_method,
         "subtotal": subtotal,
         "discount": payload.discount,
         "surcharge": payload.surcharge,
         "total_amount": total_amount,
-        "paid_amount": payload.paid_amount,
+        "paid_amount": paid_amount,
+        "paid_at": paid_at,
         "note": payload.note,
         "expected_return_at": payload.expected_return_at.isoformat() if payload.expected_return_at else None,
         "received_at": datetime.utcnow().isoformat()
@@ -346,6 +412,9 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
             "amount": item["amount"]
         })
     supabase.table("order_items").insert(items_to_insert).execute()
+
+    if payload.payment_status == "paid":
+        record_order_payment(order, payment_method, current_user, "Thanh toán khi nhận đơn")
 
     # Get branch name
     branch_name_res = supabase.table("branches").select("name").eq("id", payload.branch_id).execute()
@@ -467,14 +536,12 @@ def update_order_status(id: str, payload: OrderStatusUpdate, current_user: dict 
         raise HTTPException(status_code=404, detail="Không tìm thấy đơn hàng.")
     order = order_res.data[0]
     
-    # Check branch access
-    if current_user["role"] == "manager":
-        chk = supabase.table("branches").select("id").eq("id", order["branch_id"]).eq("manager_id", current_user["id"]).execute()
-        if not chk.data:
-            raise HTTPException(status_code=403, detail="Không có quyền cập nhật đơn hàng ở chi nhánh này.")
-    elif current_user["role"] == "staff":
-        if order["branch_id"] != current_user.get("branch_id"):
-            raise HTTPException(status_code=403, detail="Không có quyền cập nhật đơn hàng ở chi nhánh khác.")
+    ensure_order_access(order, current_user)
+    if payload.status == "delivered":
+        detail_res = supabase.table("orders").select("*").eq("id", id).limit(1).execute()
+        detail = detail_res.data[0] if detail_res.data else order
+        if detail.get("payment_status") != "paid":
+            raise HTTPException(status_code=400, detail="Không thể trả đơn khi chưa hoàn tất thanh toán.")
 
     update_fields = {
         "status": payload.status,
@@ -522,24 +589,32 @@ def update_order_status(id: str, payload: OrderStatusUpdate, current_user: dict 
 
 @router.patch("/{id}/payment")
 def update_order_payment(id: str, payload: OrderPaymentUpdate, current_user: dict = Depends(get_current_user)):
-    order_res = supabase.table("orders").select("branch_id").eq("id", id).execute()
+    order_res = supabase.table("orders").select("*").eq("id", id).execute()
     if not order_res.data:
         raise HTTPException(status_code=404, detail="Không tìm thấy đơn hàng.")
     order = order_res.data[0]
-    
-    # Permission checks
-    if current_user["role"] == "manager":
-        chk = supabase.table("branches").select("id").eq("id", order["branch_id"]).eq("manager_id", current_user["id"]).execute()
-        if not chk.data:
-            raise HTTPException(status_code=403, detail="Không có quyền cập nhật thanh toán đơn hàng ở chi nhánh khác.")
-    elif current_user["role"] == "staff":
-        if order["branch_id"] != current_user.get("branch_id"):
-            raise HTTPException(status_code=403, detail="Không có quyền cập nhật thanh toán đơn hàng ở chi nhánh khác.")
+    ensure_order_access(order, current_user, "cập nhật thanh toán")
+
+    if order.get("status") == "cancelled":
+        raise HTTPException(status_code=400, detail="Không thể thanh toán đơn hàng đã hủy.")
+    if payload.payment_status == "partial":
+        raise HTTPException(status_code=400, detail="Luồng này chỉ hỗ trợ chưa thanh toán hoặc đã thanh toán đủ.")
+
+    paid_at = None
+    payment_method = "none"
+    paid_amount = 0
+    if payload.payment_status == "paid":
+        payment_method = validate_payment_method(payload.payment_method)
+        paid_amount = int(order.get("total_amount") or 0)
+        paid_at = datetime.utcnow().isoformat()
+        if order.get("payment_status") != "paid":
+            record_order_payment(order, payment_method, current_user, "Cập nhật thanh toán đơn hàng")
 
     update_fields = {
         "payment_status": payload.payment_status,
-        "payment_method": payload.payment_method,
-        "paid_amount": payload.paid_amount,
+        "payment_method": payment_method,
+        "paid_amount": paid_amount,
+        "paid_at": paid_at,
         "updated_at": datetime.utcnow().isoformat()
     }
 
@@ -564,6 +639,55 @@ def update_order_payment(id: str, payload: OrderPaymentUpdate, current_user: dic
             logger.error(f"Failed to send payment trigger email: {str(e)}")
 
     return response.data[0]
+
+@router.post("/{id}/complete-delivery")
+def complete_order_delivery(id: str, payload: CompleteDeliveryRequest, current_user: dict = Depends(get_current_user)):
+    order_res = supabase.table("orders").select("*").eq("id", id).execute()
+    if not order_res.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đơn hàng.")
+    order = order_res.data[0]
+    ensure_order_access(order, current_user, "trả")
+
+    if order.get("status") == "cancelled":
+        raise HTTPException(status_code=400, detail="Không thể trả đơn hàng đã hủy.")
+    if order.get("status") == "delivered":
+        existing_payment = None
+        if order.get("payment_status") == "paid":
+            existing = supabase.table("order_payments").select("*").eq("order_id", id).eq("status", "success").limit(1).execute()
+            existing_payment = existing.data[0] if existing.data else None
+        return {"success": True, "order": order, "payment": existing_payment}
+
+    payment = None
+    payment_method = order.get("payment_method") or "none"
+    paid_amount = int(order.get("paid_amount") or 0)
+    paid_at = order.get("paid_at")
+
+    if order.get("payment_status") != "paid":
+        payment_method = validate_payment_method(payload.payment_method)
+        payment = record_order_payment(order, payment_method, current_user, payload.note)
+        paid_amount = int(order.get("total_amount") or 0)
+        paid_at = (payment or {}).get("paid_at") or datetime.utcnow().isoformat()
+
+    now = datetime.utcnow().isoformat()
+    update_fields = {
+        "status": "delivered",
+        "delivered_at": now,
+        "payment_status": "paid",
+        "payment_method": payment_method,
+        "paid_amount": paid_amount,
+        "paid_at": paid_at,
+        "updated_at": now,
+    }
+    updated_res = supabase.table("orders").update(update_fields).eq("id", id).execute()
+    updated = updated_res.data[0] if updated_res.data else {**order, **update_fields}
+    create_order_notification(updated["order_code"], "Đã giao khách", updated["branch_id"], current_user["id"])
+    return {
+        "success": True,
+        "order": updated,
+        "payment": payment,
+        "payment_status": updated.get("payment_status"),
+        "delivered_at": updated.get("delivered_at"),
+    }
 
 @router.delete("/{id}", dependencies=[Depends(require_role(["admin"]))])
 def delete_order(id: str):
