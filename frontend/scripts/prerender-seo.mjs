@@ -163,6 +163,38 @@ const contentForRoute = (route, seo) => {
       ${faqData.map(item => `<section id="${escapeHtml(item.id)}"><h2>${escapeHtml(item.question)}</h2><p>${escapeHtml(item.answer)}</p></section>`).join('')}
     </main>`;
   }
+  if (route === '/about') {
+    return `<main>
+      <h1>Giới thiệu Giặt Ký</h1>
+      <p>Giặt Ký là hệ thống quản lý tiệm giặt sấy, tập trung vào việc giúp cửa hàng theo dõi đơn hàng, khách hàng, nhân sự và doanh thu bằng dữ liệu dễ hiểu. Sứ mệnh của chúng tôi là làm cho vận hành tại quầy nhẹ hơn, minh bạch hơn và dễ mở rộng hơn khi cửa hàng phát triển thành chuỗi nhiều cơ sở. Xem thêm tại <a href="/">trang chủ</a> hoặc <a href="/contact">liên hệ</a>.</p>
+      <section><h2>Giặt Ký dành cho ai?</h2><p>Chủ tiệm theo dõi doanh thu, công nợ và hiệu quả từng cơ sở. Quản lý cơ sở điều phối đơn hàng, chấm công và duyệt dữ liệu trong phạm vi chi nhánh. Nhân viên quầy nhận đồ, tạo đơn theo kilogram hoặc theo món, thu tiền và trả đồ trên một màn hình.</p></section>
+      <section><h2>Các nhóm chức năng chính</h2><ul>
+        <li>Đơn hàng: nhận đồ, dịch vụ theo kg hoặc theo món, trạng thái, thanh toán, in phiếu.</li>
+        <li>Khách hàng: hồ sơ, tổng đơn, tổng chi tiêu và lịch sử giao dịch.</li>
+        <li>Cơ sở và nhân sự: phân công nhiều cơ sở, phân quyền theo vai trò.</li>
+        <li>Chấm công và lương: nhiều phiên mỗi ngày, chỉnh công có lý do, lương theo giờ.</li>
+        <li>Báo cáo: doanh thu theo tháng, năm và từng cơ sở.</li>
+        <li>Nội dung: email tự động, CMS SEO, blog và tuyển dụng.</li>
+      </ul></section>
+      <section><h2>Tài liệu và tiêu chuẩn tham khảo</h2>
+        <p>Giặt Ký được xây dựng dựa trên các tiêu chuẩn web và tài liệu chính thức dưới đây. Các nguồn này là tài liệu tham khảo kỹ thuật, không phải chứng nhận cho Giặt Ký.</p>
+        <ul>
+          <li><a href="https://schema.org/" rel="noopener noreferrer">Schema.org</a> — từ vựng structured data mà website dùng cho Organization, FAQPage, BreadcrumbList và BlogPosting.</li>
+          <li><a href="https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data" rel="noopener noreferrer">Google Search Central — Structured data</a> — hướng dẫn chính thức về cách công cụ tìm kiếm đọc JSON-LD.</li>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML" rel="noopener noreferrer">MDN Web Docs — HTML</a> — tiêu chuẩn semantic HTML áp dụng cho header, main, section và accordion FAQ.</li>
+          <li><a href="https://owasp.org/www-project-top-ten/" rel="noopener noreferrer">OWASP Top Ten</a> — danh mục rủi ro bảo mật ứng dụng web được tham chiếu khi xây dựng phân quyền và xử lý dữ liệu.</li>
+          <li><a href="https://react.dev/" rel="noopener noreferrer">React</a> và <a href="https://fastapi.tiangolo.com/" rel="noopener noreferrer">FastAPI</a> — tài liệu chính thức của hai framework tạo nên giao diện và API.</li>
+          <li><a href="https://www.postgresql.org/docs/" rel="noopener noreferrer">PostgreSQL Documentation</a> — cơ sở dữ liệu lưu đơn hàng, khách hàng và dữ liệu vận hành.</li>
+        </ul>
+      </section>
+    </main>`;
+  }
+  if (route === '/contact') {
+    return `<main>
+      <h1>Liên hệ Giặt Ký</h1>
+      <p>Email hỗ trợ: <a href="mailto:support@giatky.site">support@giatky.site</a>. Đội hỗ trợ thường phản hồi trong 1-2 ngày làm việc. Với câu hỏi phổ biến về tính năng, xem trang <a href="/faq">câu hỏi thường gặp</a> hoặc quay lại <a href="/">trang chủ</a>. Thông tin gửi qua form chỉ dùng để phản hồi yêu cầu và được xử lý theo <a href="/privacy">chính sách bảo mật</a>.</p>
+    </main>`;
+  }
   return `<main><h1>${escapeHtml(seo.title.replace(` | ${SITE_NAME}`, ''))}</h1><p>${escapeHtml(seo.description)}</p></main>`;
 };
 
