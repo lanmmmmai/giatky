@@ -26,3 +26,6 @@ _archived_lanh-sach-laundry-temp/
 
 # docker
 *.log
+
+# root lockfile (npm ghi thiếu optional deps đa nền tảng, làm hỏng build Vercel)
+/package-lock.json
