@@ -8,6 +8,7 @@ import SEO, {
   buildSoftwareSchema,
   buildWebsiteSchema,
 } from '../../components/SEO';
+import routeSeo from '../../config/routeSeo.json';
 
 const navLinks = [
   { to: '/services', label: 'Dịch vụ' },
@@ -86,16 +87,19 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 export const PublicHome: React.FC = () => (
   <PublicShell>
     <SEO
-      title="Giặt Ký - Phần mềm quản lý tiệm giặt là"
-      description="Giặt Ký là hệ thống quản lý tiệm giặt là chuyên nghiệp cho đơn hàng, khách hàng, cơ sở, nhân viên, doanh thu, CMS SEO và tuyển dụng."
+      title={routeSeo['/'].title}
+      description={routeSeo['/'].description}
       path="/"
+      image={routeSeo['/'].image}
+      imageAlt={routeSeo['/'].imageAlt}
+      robots={routeSeo['/'].robots}
       jsonLd={[buildOrganizationSchema(), buildWebsiteSchema(), buildSoftwareSchema()]}
     />
     <main>
       <section className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.1fr_0.9fr] md:items-center">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Laundry management platform</p>
-          <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">Quản lý tiệm giặt là gọn hơn mỗi ngày</h1>
+          <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">Hệ thống quản lý tiệm giặt sấy Giặt Ký</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">Giặt Ký gom đơn hàng, khách hàng, nhân sự, doanh thu và truyền thông vào một bảng điều khiển rõ ràng cho đội vận hành nhiều cơ sở.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/services" className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-black">Xem dịch vụ</Link>
@@ -113,6 +117,39 @@ export const PublicHome: React.FC = () => (
           </div>
         </div>
       </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <aside className="rounded-[28px] bg-white p-6 shadow-card">
+            <h2 className="text-xl font-black text-slate-950">Giặt Ký là gì?</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600">Giặt Ký là phần mềm quản lý tiệm giặt sấy được xây dựng cho các cơ sở cần theo dõi đơn hàng, khách hàng, nhân viên và dòng tiền trong cùng một nơi. Thay vì ghi phiếu thủ công, lưu thông tin rời rạc hoặc trao đổi qua nhiều nhóm chat, đội vận hành có thể tạo đơn, chọn dịch vụ, ghi nhận thanh toán, theo dõi trạng thái xử lý và xem lịch sử khách hàng theo thời gian thực.</p>
+            <p className="mt-4 text-sm leading-7 text-slate-600">Website public của Giặt Ký cung cấp thông tin sản phẩm, bài viết, tuyển dụng, FAQ và kênh liên hệ. Các trang này được tối ưu để công cụ tìm kiếm và hệ thống AI có thể hiểu đúng thực thể Giặt Ký, nội dung chính và các liên kết quan trọng.</p>
+          </aside>
+          <div className="space-y-6">
+            <section className="rounded-[28px] bg-white p-6 shadow-card">
+              <h2 className="text-xl font-black text-slate-950">Các chức năng chính.</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">Giặt Ký tập trung vào các nghiệp vụ thường gặp tại quầy: nhận đồ, chọn dịch vụ theo kg hoặc theo món, lưu thông tin khách, đặt ngày trả, quản lý trạng thái giặt sấy, thanh toán và in phiếu. Với tài khoản quản lý, hệ thống hỗ trợ xem danh sách đơn hàng, lọc theo cơ sở, theo trạng thái và theo tình trạng thanh toán.</p>
+            </section>
+            <section className="rounded-[28px] bg-white p-6 shadow-card">
+              <h2 className="text-xl font-black text-slate-950">Quản lý đơn hàng và khách hàng.</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">Mỗi đơn hàng có mã riêng, thông tin khách, danh sách dịch vụ, tổng tiền, phụ thu, giảm giá và trạng thái thanh toán. Khi khách quay lại, nhân viên có thể tra cứu lịch sử, số điện thoại và thông tin liên quan để phục vụ nhanh hơn. Cách tổ chức này giúp hạn chế thất lạc phiếu và giảm lỗi khi nhiều nhân viên cùng thao tác.</p>
+            </section>
+            <section className="rounded-[28px] bg-white p-6 shadow-card">
+              <h2 className="text-xl font-black text-slate-950">Quản lý cơ sở và nhân viên.</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">Hệ thống hỗ trợ vai trò admin, quản lý và nhân viên. Dữ liệu có thể được phân theo cơ sở làm việc, giúp quản lý theo dõi đúng phạm vi phụ trách. Các chức năng như chấm công, bảng lương, đăng ký ca và thông báo nội bộ giúp đội vận hành phối hợp rõ ràng hơn.</p>
+            </section>
+            <section className="rounded-[28px] bg-white p-6 shadow-card">
+              <h2 className="text-xl font-black text-slate-950">Báo cáo doanh thu.</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">Giặt Ký cung cấp khu vực báo cáo để tổng hợp doanh thu, thanh toán và kết quả vận hành theo thời gian. Các báo cáo này không thay thế kế toán chuyên sâu, nhưng giúp chủ cơ sở và quản lý có cái nhìn nhanh về tình hình đơn hàng, tiền đã thu và các khoản còn nợ.</p>
+            </section>
+            <section className="rounded-[28px] bg-white p-6 shadow-card">
+              <h2 className="text-xl font-black text-slate-950">Câu hỏi thường gặp.</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">Nếu bạn muốn tìm hiểu nhanh về đối tượng sử dụng, khả năng quản lý nhiều cơ sở, module tuyển dụng hoặc dữ liệu SEO/AI discovery, hãy xem trang FAQ. Nội dung FAQ được hiển thị công khai và đồng bộ với FAQPage schema để công cụ tìm kiếm hiểu đúng câu hỏi và câu trả lời.</p>
+              <Link to="/faq" className="mt-4 inline-flex rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white">Xem FAQ</Link>
+            </section>
+          </div>
+        </div>
+      </section>
     </main>
   </PublicShell>
 );
@@ -120,9 +157,12 @@ export const PublicHome: React.FC = () => (
 export const ServicesPage: React.FC = () => (
   <PublicShell>
     <SEO
-      title="Dịch vụ phần mềm quản lý giặt là"
-      description="Các tính năng chính của Giặt Ký: quản lý đơn hàng, khách hàng, nhân sự, chấm công, lương, báo cáo, CMS SEO và tuyển dụng."
+      title={routeSeo['/services'].title}
+      description={routeSeo['/services'].description}
       path="/services"
+      image={routeSeo['/services'].image}
+      imageAlt={routeSeo['/services'].imageAlt}
+      robots={routeSeo['/services'].robots}
       jsonLd={[buildOrganizationSchema(), buildSoftwareSchema(), buildBreadcrumbSchema([{ name: 'Trang chủ', path: '/' }, { name: 'Dịch vụ', path: '/services' }])]}
     />
     <main className="mx-auto max-w-6xl px-4 py-12">
@@ -143,9 +183,12 @@ export const ServicesPage: React.FC = () => (
 export const AboutPage: React.FC = () => (
   <PublicShell>
     <SEO
-      title="Giới thiệu Giặt Ký"
-      description="Giặt Ký xây dựng phần mềm quản lý tiệm giặt là cho vận hành rõ ràng, dữ liệu tập trung và trải nghiệm khách hàng nhất quán."
+      title={routeSeo['/about'].title}
+      description={routeSeo['/about'].description}
       path="/about"
+      image={routeSeo['/about'].image}
+      imageAlt={routeSeo['/about'].imageAlt}
+      robots={routeSeo['/about'].robots}
       jsonLd={[buildOrganizationSchema(), buildBreadcrumbSchema([{ name: 'Trang chủ', path: '/' }, { name: 'Giới thiệu', path: '/about' }])]}
     />
     <main className="mx-auto max-w-6xl px-4 py-12">
@@ -173,9 +216,12 @@ export const AboutPage: React.FC = () => (
 export const FAQPage: React.FC = () => (
   <PublicShell>
     <SEO
-      title="FAQ - Câu hỏi thường gặp"
-      description="Câu hỏi thường gặp về Giặt Ký, phần mềm quản lý tiệm giặt là, nhiều cơ sở, tuyển dụng, SEO và AI discovery."
+      title={routeSeo['/faq'].title}
+      description={routeSeo['/faq'].description}
       path="/faq"
+      image={routeSeo['/faq'].image}
+      imageAlt={routeSeo['/faq'].imageAlt}
+      robots={routeSeo['/faq'].robots}
       jsonLd={[
         buildOrganizationSchema(),
         {
@@ -208,9 +254,12 @@ export const FAQPage: React.FC = () => (
 export const ContactPage: React.FC = () => (
   <PublicShell>
     <SEO
-      title="Liên hệ Giặt Ký"
-      description="Liên hệ Giặt Ký để tư vấn phần mềm quản lý tiệm giặt là, quản lý nhiều cơ sở, báo cáo doanh thu và CMS SEO."
+      title={routeSeo['/contact'].title}
+      description={routeSeo['/contact'].description}
       path="/contact"
+      image={routeSeo['/contact'].image}
+      imageAlt={routeSeo['/contact'].imageAlt}
+      robots={routeSeo['/contact'].robots}
       jsonLd={[buildOrganizationSchema(), buildBreadcrumbSchema([{ name: 'Trang chủ', path: '/' }, { name: 'Liên hệ', path: '/contact' }])]}
     />
     <main className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-[0.9fr_1.1fr]">
@@ -218,7 +267,7 @@ export const ContactPage: React.FC = () => (
         <h1 className="text-3xl font-black tracking-tight text-slate-950">Liên hệ</h1>
         <div className="mt-6 grid gap-3 text-sm font-semibold text-slate-700">
           <p className="flex items-center gap-2"><Mail size={17} /> support@giatky.site</p>
-          <p className="flex items-center gap-2"><Phone size={17} /> 1900 0000</p>
+          <p className="flex items-center gap-2"><Phone size={17} /> Số điện thoại sẽ được cập nhật khi được phép công khai</p>
           <p className="flex items-center gap-2"><MapPin size={17} /> Việt Nam</p>
         </div>
       </section>
@@ -241,9 +290,17 @@ const PolicyPage: React.FC<{ kind: 'privacy' | 'terms' | 'cookies' }> = ({ kind 
     cookies: 'Cookie Policy',
   };
   const path = kind === 'privacy' ? '/privacy' : kind === 'terms' ? '/terms' : '/cookies';
+  const seo = routeSeo[path as '/privacy' | '/terms' | '/cookies'];
   return (
     <PublicShell>
-      <SEO title={`${titleMap[kind]} - Giặt Ký`} description={`${titleMap[kind]} của website Giặt Ký.`} path={path} />
+      <SEO
+        title={seo.title}
+        description={seo.description}
+        path={path}
+        image={seo.image}
+        imageAlt={seo.imageAlt}
+        robots={seo.robots}
+      />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <ShieldCheck size={28} />
         <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950">{titleMap[kind]}</h1>

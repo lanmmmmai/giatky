@@ -501,7 +501,14 @@ def create_customer(payload: CustomerCreate, current_user: dict = Depends(get_cu
     }
     if has_column("customers", "date_of_birth"):
         data["date_of_birth"] = payload.date_of_birth.isoformat() if payload.date_of_birth else None
-    response = supabase.table("customers").insert(data).execute()
+    try:
+        response = supabase.table("customers").insert(data).execute()
+    except Exception as err:
+        # Double-click / 2 tab cùng tạo: UNIQUE(customers.phone) chặn bản ghi thứ hai
+        # → trả 409 nghiệp vụ rõ ràng thay vì 500
+        if is_unique_violation(err):
+            raise HTTPException(status_code=409, detail="Số điện thoại khách hàng đã tồn tại.")
+        raise
     if not response.data:
         raise HTTPException(status_code=500, detail="Không thể tạo khách hàng.")
     return build_customer_stats(response.data[0])

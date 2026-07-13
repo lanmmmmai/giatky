@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Hệ thống quản lý tiệm giặt sấy Giặt Ký</title>
+  <desc id="desc">Ảnh chia sẻ cho trang chủ Giặt Ký</desc>
+  <rect width="1200" height="630" fill="#111111"/>
+  <rect x="78" y="74" width="1044" height="482" rx="44" fill="#ffffff" opacity="0.08"/>
+  <circle cx="946" cy="162" r="138" fill="#ffffff" opacity="0.10"/>
+  <text x="112" y="214" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="76" font-weight="800">Giặt Ký</text>
+  <text x="116" y="292" fill="#e5e5e5" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700">Hệ thống quản lý tiệm giặt sấy</text>
+  <text x="116" y="370" fill="#a3a3a3" font-family="Inter, Arial, sans-serif" font-size="24">Đơn hàng · Khách hàng · Nhân viên · Doanh thu</text>
+</svg>

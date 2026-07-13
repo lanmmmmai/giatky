@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Send } from 'lucide-react';
 import { getPublicPost, Post, submitJobApplication } from '../../api/content';
 import { getPublicBranches } from '../../api/branches';
@@ -18,6 +18,7 @@ const contentToParagraphs = (content?: string) =>
 
 const PublicPostDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [post, setPost] = useState<Post | null>(null);
   const [branches, setBranches] = useState<{ id: string; name: string; address?: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ const PublicPostDetail: React.FC = () => {
 
   const jobBranches = useMemo(() => post?.job_post?.branches || [], [post]);
   const canApply = post?.post_type === 'recruitment' && post.job_post?.allow_online_application && post.allow_application_form;
+  const postPath = post ? `/${post.post_type === 'recruitment' ? 'tuyen-dung' : location.pathname.startsWith('/bai-viet') ? 'bai-viet' : 'blog'}/${post.slug}` : location.pathname;
 
   const loadPost = async () => {
     if (!slug) return;
@@ -136,7 +138,7 @@ const PublicPostDetail: React.FC = () => {
       <SEO
         title={post.meta_title || post.title}
         description={post.meta_description || post.excerpt || 'Bài viết từ Giặt Ký.'}
-        path={`/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}`}
+        path={postPath}
         keywords={post.keywords || [post.category, ...(post.tags || [])].filter(Boolean).join(', ')}
         image={post.og_image || post.featured_image || undefined}
         type="article"
@@ -147,7 +149,7 @@ const PublicPostDetail: React.FC = () => {
           buildBreadcrumbSchema([
             { name: 'Trang chủ', path: '/' },
             { name: post.post_type === 'recruitment' ? 'Tuyển dụng' : 'Blog', path: post.post_type === 'recruitment' ? '/tuyen-dung' : '/blog' },
-            { name: post.title, path: `/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}` },
+            { name: post.title, path: postPath },
           ]),
           {
             '@context': 'https://schema.org',
@@ -155,7 +157,7 @@ const PublicPostDetail: React.FC = () => {
             headline: post.title,
             description: post.meta_description || post.excerpt || post.title,
             image: post.og_image || post.featured_image,
-            url: `${SITE_URL}/${post.post_type === 'recruitment' ? 'tuyen-dung' : 'blog'}/${post.slug}`,
+            url: `${SITE_URL}${postPath}`,
             datePublished: post.published_at,
             dateModified: post.updated_at || post.published_at,
             author: {

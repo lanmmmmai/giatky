@@ -4,6 +4,8 @@ import { getUserBranchOptions, useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import { DASHBOARD_PATH } from '../../config/roleNav';
 import { Lock, User as UserIcon, LogIn, AlertTriangle, LogOut, ShieldCheck } from 'lucide-react';
+import SEO from '../../components/SEO';
+import routeSeo from '../../config/routeSeo.json';
 
 interface RoleLoginPageProps {
   role: 'admin' | 'manager' | 'staff';
@@ -155,10 +157,20 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
   };
 
   const details = getRoleDetails();
+  const seoPath = `/${role}/login`;
+  const seo = routeSeo[seoPath as keyof typeof routeSeo];
 
   if (token && user && user.role !== role) {
     return (
       <div className="text-center space-y-6 max-w-sm mx-auto my-auto p-6">
+        <SEO
+          title={seo.title}
+          description={seo.description}
+          path={seoPath}
+          image={seo.image}
+          imageAlt={seo.imageAlt}
+          robots={seo.robots}
+        />
         <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-[20px] flex items-center justify-center mx-auto shadow-sm animate-pulse">
           <AlertTriangle size={28} />
         </div>
@@ -193,6 +205,14 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
 
   return (
     <>
+      <SEO
+        title={seo.title}
+        description={seo.description}
+        path={seoPath}
+        image={seo.image}
+        imageAlt={seo.imageAlt}
+        robots={seo.robots}
+      />
       {/* Left visual panel */}
       <div 
         className="hidden lg:flex lg:w-[52.5%] relative flex-col justify-between p-12 text-white overflow-hidden"

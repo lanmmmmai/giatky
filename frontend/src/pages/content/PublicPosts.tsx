@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Calendar, Search } from 'lucide-react';
 import { getPublicPosts, Post, PostType } from '../../api/content';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -20,10 +20,12 @@ interface PublicPostsProps {
 
 const PublicPosts: React.FC<PublicPostsProps> = ({ defaultType }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [type, setType] = useState<PostType | ''>((defaultType || searchParams.get('type') || '') as PostType | '');
+  const seoPath = defaultType === 'recruitment' ? '/tuyen-dung' : location.pathname.startsWith('/bai-viet') ? '/bai-viet' : '/blog';
 
   useEffect(() => {
     loadPosts();
@@ -49,13 +51,13 @@ const PublicPosts: React.FC<PublicPostsProps> = ({ defaultType }) => {
       <SEO
         title={defaultType === 'recruitment' ? 'Tuyển dụng Giặt Ký' : 'Blog Giặt Ký'}
         description={defaultType === 'recruitment' ? 'Cơ hội làm việc tại các cơ sở Giặt Ký và thông tin tuyển dụng mới nhất.' : 'Tin tức, hướng dẫn vận hành, thông báo và kiến thức quản lý tiệm giặt là từ Giặt Ký.'}
-        path={defaultType === 'recruitment' ? '/tuyen-dung' : '/blog'}
+        path={seoPath}
         jsonLd={[
           buildOrganizationSchema(),
           buildWebsiteSchema(),
           buildBreadcrumbSchema([
             { name: 'Trang chủ', path: '/' },
-            { name: defaultType === 'recruitment' ? 'Tuyển dụng' : 'Blog', path: defaultType === 'recruitment' ? '/tuyen-dung' : '/blog' },
+            { name: defaultType === 'recruitment' ? 'Tuyển dụng' : 'Blog', path: seoPath },
           ]),
           {
             '@context': 'https://schema.org',

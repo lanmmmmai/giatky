@@ -12,6 +12,7 @@ interface SEOProps {
   path?: string;
   keywords?: string;
   image?: string;
+  imageAlt?: string;
   type?: 'website' | 'article';
   robots?: string;
   jsonLd?: JsonLd;
@@ -47,7 +48,6 @@ export const buildOrganizationSchema = () => ({
   logo: `${SITE_URL}/favicon.svg`,
   image: DEFAULT_IMAGE,
   email: 'support@giatky.site',
-  telephone: '+84-1900-0000',
   address: {
     '@type': 'PostalAddress',
     addressCountry: 'VN',
@@ -56,13 +56,11 @@ export const buildOrganizationSchema = () => ({
   contactPoint: [{
     '@type': 'ContactPoint',
     contactType: 'customer support',
-    telephone: '+84-1900-0000',
     email: 'support@giatky.site',
-    availableLanguage: ['vi', 'en'],
+    availableLanguage: ['vi'],
   }],
   sameAs: [
-    'https://giatky.site',
-    'https://github.com/lanmmmmai/giatky',
+    'https://github.com/lanmmmmai/giatky'
   ],
 });
 
@@ -117,6 +115,7 @@ const SEO: React.FC<SEOProps> = ({
   path = '/',
   keywords = 'Giặt Ký, phần mềm quản lý tiệm giặt, quản lý giặt là, laundry management software, quản lý đơn hàng giặt là',
   image = DEFAULT_IMAGE,
+  imageAlt = 'Giặt Ký',
   type = 'website',
   robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
   jsonLd,
@@ -150,6 +149,11 @@ const SEO: React.FC<SEOProps> = ({
     upsertMeta('meta[property="og:title"]', { property: 'og:title', content: fullTitle });
     upsertMeta('meta[property="og:description"]', { property: 'og:description', content: description });
     upsertMeta('meta[property="og:image"]', { property: 'og:image', content: image });
+    upsertMeta('meta[property="og:image:secure_url"]', { property: 'og:image:secure_url', content: image });
+    upsertMeta('meta[property="og:image:type"]', { property: 'og:image:type', content: image.endsWith('.svg') ? 'image/svg+xml' : 'image/jpeg' });
+    upsertMeta('meta[property="og:image:width"]', { property: 'og:image:width', content: '1200' });
+    upsertMeta('meta[property="og:image:height"]', { property: 'og:image:height', content: '630' });
+    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt', content: imageAlt });
     if (publishedTime) upsertMeta('meta[property="article:published_time"]', { property: 'article:published_time', content: publishedTime });
     if (modifiedTime) upsertMeta('meta[property="article:modified_time"]', { property: 'article:modified_time', content: modifiedTime });
 
@@ -168,7 +172,7 @@ const SEO: React.FC<SEOProps> = ({
       buildBreadcrumbSchema([{ name: 'Trang chủ', path }]),
     ]);
     if (!schema.parentElement) document.head.appendChild(schema);
-  }, [description, image, jsonLd, keywords, modifiedTime, path, publishedTime, robots, title, type]);
+  }, [description, image, imageAlt, jsonLd, keywords, modifiedTime, path, publishedTime, robots, title, type]);
 
   return null;
 };

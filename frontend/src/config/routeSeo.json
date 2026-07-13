@@ -1,0 +1,114 @@
+{
+  "/": {
+    "title": "Hệ thống quản lý tiệm giặt sấy Giặt Ký",
+    "description": "Giặt Ký là hệ thống quản lý tiệm giặt sấy chuyên nghiệp cho đơn hàng, khách hàng, cơ sở, nhân viên, doanh thu, CMS SEO và tuyển dụng.",
+    "canonical": "https://giatky.site/",
+    "image": "https://giatky.site/images/og/home-v2.svg",
+    "imageAlt": "Hệ thống quản lý tiệm giặt sấy Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/about": {
+    "title": "Giới thiệu Giặt Ký | Giặt Ký",
+    "description": "Giới thiệu Giặt Ký, hệ thống quản lý tiệm giặt sấy giúp vận hành đơn hàng, khách hàng, nhân viên, cơ sở và doanh thu rõ ràng hơn.",
+    "canonical": "https://giatky.site/about",
+    "image": "https://giatky.site/images/og/about-v2.svg",
+    "imageAlt": "Giới thiệu Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/services": {
+    "title": "Dịch vụ phần mềm quản lý giặt sấy | Giặt Ký",
+    "description": "Các tính năng chính của Giặt Ký: quản lý đơn hàng, khách hàng, nhân sự, chấm công, lương, báo cáo, CMS SEO và tuyển dụng.",
+    "canonical": "https://giatky.site/services",
+    "image": "https://giatky.site/images/og/home-v2.svg",
+    "imageAlt": "Dịch vụ phần mềm quản lý giặt sấy Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/contact": {
+    "title": "Liên hệ Giặt Ký | Giặt Ký",
+    "description": "Liên hệ Giặt Ký để tư vấn phần mềm quản lý tiệm giặt sấy, quản lý nhiều cơ sở, báo cáo doanh thu và CMS SEO.",
+    "canonical": "https://giatky.site/contact",
+    "image": "https://giatky.site/images/og/contact-v2.svg",
+    "imageAlt": "Liên hệ Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/blog": {
+    "title": "Blog Giặt Ký | Giặt Ký",
+    "description": "Tin tức, hướng dẫn vận hành, thông báo và kiến thức quản lý tiệm giặt sấy từ Giặt Ký.",
+    "canonical": "https://giatky.site/blog",
+    "image": "https://giatky.site/images/og/blog-v2.svg",
+    "imageAlt": "Blog Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/bai-viet": {
+    "title": "Bài viết Giặt Ký | Giặt Ký",
+    "description": "Tin tức, thông báo và hướng dẫn từ Giặt Ký dành cho tiệm giặt sấy và đội vận hành.",
+    "canonical": "https://giatky.site/bai-viet",
+    "image": "https://giatky.site/images/og/blog-v2.svg",
+    "imageAlt": "Bài viết Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/tuyen-dung": {
+    "title": "Tuyển dụng Giặt Ký | Giặt Ký",
+    "description": "Cơ hội làm việc tại các cơ sở Giặt Ký và thông tin tuyển dụng mới nhất.",
+    "canonical": "https://giatky.site/tuyen-dung",
+    "image": "https://giatky.site/images/og/blog-v2.svg",
+    "imageAlt": "Tuyển dụng Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/faq": {
+    "title": "FAQ - Câu hỏi thường gặp | Giặt Ký",
+    "description": "Câu hỏi thường gặp về Giặt Ký, phần mềm quản lý tiệm giặt sấy, nhiều cơ sở, tuyển dụng, SEO và AI discovery.",
+    "canonical": "https://giatky.site/faq",
+    "image": "https://giatky.site/images/og/faq-v2.svg",
+    "imageAlt": "FAQ Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/privacy": {
+    "title": "Privacy Policy | Giặt Ký",
+    "description": "Chính sách quyền riêng tư của Giặt Ký về dữ liệu tài khoản, đơn hàng, tuyển dụng và liên hệ.",
+    "canonical": "https://giatky.site/privacy",
+    "image": "https://giatky.site/images/og/legal-v2.svg",
+    "imageAlt": "Privacy Policy Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/terms": {
+    "title": "Terms of Service | Giặt Ký",
+    "description": "Điều khoản sử dụng website và hệ thống Giặt Ký.",
+    "canonical": "https://giatky.site/terms",
+    "image": "https://giatky.site/images/og/legal-v2.svg",
+    "imageAlt": "Terms of Service Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/cookies": {
+    "title": "Cookie Policy | Giặt Ký",
+    "description": "Chính sách cookie của website Giặt Ký.",
+    "canonical": "https://giatky.site/cookies",
+    "image": "https://giatky.site/images/og/legal-v2.svg",
+    "imageAlt": "Cookie Policy Giặt Ký",
+    "robots": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  },
+  "/admin/login": {
+    "title": "Đăng nhập quản trị | Giặt Ký",
+    "description": "Đăng nhập khu vực quản trị Giặt Ký dành cho quản trị viên được cấp quyền.",
+    "canonical": "https://giatky.site/admin/login",
+    "image": "https://giatky.site/images/og/admin-login-v2.svg",
+    "imageAlt": "Đăng nhập khu vực quản trị Giặt Ký",
+    "robots": "noindex,nofollow"
+  },
+  "/manager/login": {
+    "title": "Đăng nhập quản lý | Giặt Ký",
+    "description": "Đăng nhập khu vực quản lý Giặt Ký dành cho quản lý cơ sở được cấp quyền.",
+    "canonical": "https://giatky.site/manager/login",
+    "image": "https://giatky.site/images/og/manager-login-v2.svg",
+    "imageAlt": "Đăng nhập khu vực quản lý Giặt Ký",
+    "robots": "noindex,nofollow"
+  },
+  "/staff/login": {
+    "title": "Đăng nhập nhân viên | Giặt Ký",
+    "description": "Đăng nhập khu vực nhân viên Giặt Ký dành cho nhân viên được cấp quyền.",
+    "canonical": "https://giatky.site/staff/login",
+    "image": "https://giatky.site/images/og/staff-login-v2.svg",
+    "imageAlt": "Đăng nhập khu vực nhân viên Giặt Ký",
+    "robots": "noindex,nofollow"
+  }
+}

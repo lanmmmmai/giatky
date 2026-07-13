@@ -25,3 +25,9 @@
 
 - https://giatky.site/rss.xml - RSS feed.
 - https://giatky.site/atom.xml - Atom feed.
+
+## Optional
+
+- https://giatky.site/privacy - Thông tin về cách Giặt Ký xử lý dữ liệu cá nhân.
+- https://giatky.site/terms - Điều khoản sử dụng website và hệ thống.
+- https://giatky.site/cookies - Chính sách cookie cho trình duyệt và phân tích website.
