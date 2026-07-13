@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   createPost,
   deletePost,
@@ -16,11 +16,12 @@ import {
   updatePost,
 } from '../../api/content';
 import { getBranches, Branch } from '../../api/branches';
+import { uploadSeoImage } from '../../api/seo';
 import { useToastStore } from '../../stores/toastStore';
 import { useConfirm } from '../../components/ConfirmDialog';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
-import { Copy, Eye, FileText, Plus, Save, Search, Trash2, X } from 'lucide-react';
+import { Copy, Eye, FileText, Image, Plus, Save, Search, Trash2, Upload, X } from 'lucide-react';
 
 const typeLabels: Record<string, string> = {
   news: 'Tin tức',
@@ -91,6 +92,8 @@ const ContentAdmin: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingFeaturedImage, setUploadingFeaturedImage] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -150,6 +153,7 @@ const ContentAdmin: React.FC = () => {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setUploadingFeaturedImage(false);
     setFormOpen(true);
   };
 
@@ -166,6 +170,7 @@ const ContentAdmin: React.FC = () => {
         branch_ids: post.job_post.branches?.map(b => b.branch_id) || [],
       } : null,
     });
+    setUploadingFeaturedImage(false);
     setFormOpen(true);
   };
 
@@ -193,6 +198,34 @@ const ContentAdmin: React.FC = () => {
         [field]: value,
       },
     }));
+  };
+
+  const handleFeaturedImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      addToast('Vui lòng chọn file ảnh hợp lệ.', 'warning');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('Ảnh đại diện không được vượt quá 5 MB.', 'warning');
+      return;
+    }
+
+    setUploadingFeaturedImage(true);
+    try {
+      const result = await uploadSeoImage(file, 'giatky.site', 'og');
+      updateForm('featured_image', result.public_url);
+      if (!form.og_image) updateForm('og_image', result.public_url);
+      addToast('Upload ảnh đại diện thành công.', 'success');
+    } catch (err: any) {
+      addToast(err.response?.data?.detail || 'Upload ảnh đại diện thất bại.', 'error');
+    } finally {
+      setUploadingFeaturedImage(false);
+    }
   };
 
   const handleSave = async (event: React.FormEvent) => {
@@ -464,7 +497,52 @@ const ContentAdmin: React.FC = () => {
               <label className="space-y-1 text-xs font-semibold text-slate-600 block">Mô tả ngắn<textarea value={form.excerpt || ''} onChange={e => updateForm('excerpt', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary" /></label>
               <label className="space-y-1 text-xs font-semibold text-slate-600 block">Nội dung chi tiết<textarea value={form.content || ''} onChange={e => updateForm('content', e.target.value)} rows={8} className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary font-mono" /></label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="space-y-1 text-xs font-semibold text-slate-600">Ảnh đại diện URL<input value={form.featured_image || ''} onChange={e => updateForm('featured_image', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary" /></label>
+                <div className="space-y-2 text-xs font-semibold text-slate-600">
+                  <div>Ảnh đại diện</div>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={handleFeaturedImageSelect}
+                  />
+                  {form.featured_image ? (
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                      <img src={form.featured_image} alt="Ảnh đại diện bài viết" className="h-36 w-full object-cover" />
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+                        <span className="min-w-0 flex-1 truncate text-[10px] font-medium text-slate-500">{form.featured_image}</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={uploadingFeaturedImage}
+                            className="inline-flex items-center gap-1 rounded-xl bg-primary/10 px-3 py-2 text-[10px] font-bold text-primary hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Upload size={12} /> {uploadingFeaturedImage ? 'Đang upload...' : 'Thay ảnh'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateForm('featured_image', '')}
+                            disabled={uploadingFeaturedImage}
+                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingFeaturedImage}
+                      className="flex h-[72px] w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:border-primary hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Image size={16} />
+                      {uploadingFeaturedImage ? 'Đang upload ảnh...' : 'Chọn ảnh từ máy'}
+                    </button>
+                  )}
+                </div>
                 <label className="space-y-1 text-xs font-semibold text-slate-600">Tag<input value={(form.tags || []).join(', ')} onChange={e => updateForm('tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean))} className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary" /></label>
                 <label className="space-y-1 text-xs font-semibold text-slate-600">Meta title<input value={form.meta_title || ''} onChange={e => updateForm('meta_title', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary" /></label>
                 <label className="space-y-1 text-xs font-semibold text-slate-600">Meta description<input value={form.meta_description || ''} onChange={e => updateForm('meta_description', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-2xl outline-none focus:border-primary" /></label>
@@ -507,7 +585,7 @@ const ContentAdmin: React.FC = () => {
 
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setFormOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold">Hủy</button>
-                <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold flex items-center gap-1.5"><Save size={14} />{saving ? 'Đang lưu...' : 'Lưu bài viết'}</button>
+                <button type="submit" disabled={saving || uploadingFeaturedImage} className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"><Save size={14} />{saving ? 'Đang lưu...' : uploadingFeaturedImage ? 'Đang upload ảnh...' : 'Lưu bài viết'}</button>
               </div>
             </form>
           </div>
