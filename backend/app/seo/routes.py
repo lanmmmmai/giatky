@@ -1,3 +1,4 @@
+import html
 import logging
 import re
 import uuid
@@ -7,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from pydantic import BaseModel
 
+from app.common.db_features import filter_columns, has_column
 from app.common.dependencies import get_current_user, require_role
 from app.database import supabase
 
@@ -67,6 +69,15 @@ def sniff_image_mime(content: bytes) -> Optional[str]:
     return None
 
 
+# Các cột chỉ tồn tại sau khi chạy migration seo_email_module_migration.sql —
+# payload được lọc qua filter_columns() nên backend chạy được cả trước migration.
+SEO_EXTENDED_COLUMNS = {
+    "robots", "og_title", "og_description",
+    "twitter_card", "twitter_title", "twitter_description", "twitter_image",
+    "favicon",
+}
+
+
 class SeoSettingsBase(BaseModel):
     domain: str
     page_key: Optional[str] = None
@@ -75,6 +86,14 @@ class SeoSettingsBase(BaseModel):
     keywords: Optional[str] = None
     canonical_url: Optional[str] = None
     og_image: Optional[str] = None
+    robots: Optional[str] = None
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    twitter_card: Optional[str] = None
+    twitter_title: Optional[str] = None
+    twitter_description: Optional[str] = None
+    twitter_image: Optional[str] = None
+    favicon: Optional[str] = None
 
 
 class SeoSettingsCreate(SeoSettingsBase):
@@ -89,6 +108,14 @@ class SeoSettingsUpdate(BaseModel):
     keywords: Optional[str] = None
     canonical_url: Optional[str] = None
     og_image: Optional[str] = None
+    robots: Optional[str] = None
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    twitter_card: Optional[str] = None
+    twitter_title: Optional[str] = None
+    twitter_description: Optional[str] = None
+    twitter_image: Optional[str] = None
+    favicon: Optional[str] = None
 
 
 def _format_row(row: dict) -> dict:
@@ -124,6 +151,82 @@ def get_seo_by_domain(request: Request, host: Optional[str] = Query(None)):
     raise HTTPException(status_code=404, detail=f"Chưa có cấu hình SEO cho domain '{domain}'.")
 
 
+def build_head_tags(seo: dict) -> str:
+    """Sinh đầy đủ <title>, <meta>, OpenGraph, Twitter Card, Canonical từ một
+    cấu hình SEO. Mọi giá trị đều được escape để chèn thẳng vào <head>."""
+    domain = seo.get("domain") or ""
+    title = seo.get("meta_title") or ""
+    description = seo.get("meta_description") or ""
+    keywords = seo.get("keywords") or ""
+    canonical = seo.get("canonical_url") or (f"https://{domain}" if domain else "")
+    robots = seo.get("robots") or "index, follow"
+    og_title = seo.get("og_title") or title
+    og_description = seo.get("og_description") or description
+    og_image = seo.get("og_image") or ""
+    twitter_card = seo.get("twitter_card") or "summary_large_image"
+    twitter_title = seo.get("twitter_title") or og_title
+    twitter_description = seo.get("twitter_description") or og_description
+    twitter_image = seo.get("twitter_image") or og_image
+    favicon = seo.get("favicon") or ""
+
+    e = lambda v: html.escape(str(v), quote=True)
+    lines = []
+    if title:
+        lines.append(f"<title>{e(title)}</title>")
+        lines.append(f'<meta name="title" content="{e(title)}" />')
+    if description:
+        lines.append(f'<meta name="description" content="{e(description)}" />')
+    if keywords:
+        lines.append(f'<meta name="keywords" content="{e(keywords)}" />')
+    lines.append(f'<meta name="robots" content="{e(robots)}" />')
+    if canonical:
+        lines.append(f'<link rel="canonical" href="{e(canonical)}" />')
+    if favicon:
+        lines.append(f'<link rel="icon" href="{e(favicon)}" />')
+    # Open Graph
+    lines.append('<meta property="og:type" content="website" />')
+    if canonical:
+        lines.append(f'<meta property="og:url" content="{e(canonical)}" />')
+    if og_title:
+        lines.append(f'<meta property="og:title" content="{e(og_title)}" />')
+    if og_description:
+        lines.append(f'<meta property="og:description" content="{e(og_description)}" />')
+    if og_image:
+        lines.append(f'<meta property="og:image" content="{e(og_image)}" />')
+    # Twitter Card
+    lines.append(f'<meta name="twitter:card" content="{e(twitter_card)}" />')
+    if twitter_title:
+        lines.append(f'<meta name="twitter:title" content="{e(twitter_title)}" />')
+    if twitter_description:
+        lines.append(f'<meta name="twitter:description" content="{e(twitter_description)}" />')
+    if twitter_image:
+        lines.append(f'<meta name="twitter:image" content="{e(twitter_image)}" />')
+    return "\n".join(lines)
+
+
+@router.get("/head-tags")
+def get_seo_head_tags(request: Request, host: Optional[str] = Query(None), id: Optional[str] = Query(None)):
+    """Trả về bộ thẻ <head> hoàn chỉnh cho website sử dụng.
+
+    - ?host=domain (hoặc theo Host header như /by-domain) — dùng cho website public.
+    - ?id=<uuid> — dùng cho nút Preview trong trang quản trị.
+    """
+    if id:
+        res = supabase.table("seo_settings").select("*").eq("id", id).limit(1).execute()
+    else:
+        raw = host or request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+        raw = raw.split(",")[0].strip()
+        if not raw:
+            raise HTTPException(status_code=400, detail="Không xác định được domain từ request.")
+        domain = normalize_domain(raw)
+        res = supabase.table("seo_settings").select("*").eq("domain", domain).limit(1).execute()
+
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Chưa có cấu hình SEO phù hợp.")
+    seo = res.data[0]
+    return {"domain": seo.get("domain"), "html": build_head_tags(seo)}
+
+
 @router.get("/{id}")
 def get_seo_setting(id: str):
     res = supabase.table("seo_settings").select("*, users!updated_by(full_name)").eq("id", id).execute()
@@ -141,7 +244,7 @@ def create_seo_settings(payload: SeoSettingsCreate, current_user: dict = Depends
     if chk.data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Domain này đã có cấu hình SEO.")
 
-    insert_data = payload.model_dump()
+    insert_data = filter_columns("seo_settings", payload.model_dump(), SEO_EXTENDED_COLUMNS)
     insert_data["domain"] = domain
     # page_key mirrors the normalized domain: reuses the existing UNIQUE(page_key)
     # constraint as a database-level duplicate-domain guard.
@@ -159,6 +262,7 @@ def create_seo_settings(payload: SeoSettingsCreate, current_user: dict = Depends
 @router.put("/{id}", dependencies=[Depends(require_role(["admin", "manager"]))])
 def update_seo_settings(id: str, payload: SeoSettingsUpdate, current_user: dict = Depends(get_current_user)):
     update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update_data = filter_columns("seo_settings", update_data, SEO_EXTENDED_COLUMNS)
     if not update_data:
         raise HTTPException(status_code=400, detail="Không có dữ liệu cập nhật.")
 
@@ -246,7 +350,7 @@ async def upload_seo_image(
     Validates size and real MIME (magic bytes), renames to UUID, and returns
     the storage path + public URL to be saved on the SEO record.
     """
-    if kind not in ("og", "favicon", "logo"):
+    if kind not in ("og", "favicon", "logo", "twitter"):
         raise HTTPException(status_code=400, detail="Loại ảnh không hợp lệ.")
 
     content = await file.read()

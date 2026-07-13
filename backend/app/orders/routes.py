@@ -5,8 +5,9 @@ from datetime import datetime, date
 import logging
 
 from app.common.dependencies import get_current_user, require_role, require_branch_access
+from app.config import settings
 from app.database import supabase
-from app.email.email_service import send_template_email
+from app.email.email_service import send_template_email, send_trigger_email
 
 logger = logging.getLogger("app.orders")
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -52,6 +53,53 @@ class OrderUpdate(BaseModel):
     note: Optional[str] = None
     surcharge: Optional[int] = None
     discount: Optional[int] = None
+
+# Map trạng thái đơn → trigger email (mẫu quản lý trong CMS → Email Templates).
+# Chỉ gửi khi admin đã tạo và bật mẫu cho trigger tương ứng — không hard-code nội dung.
+ORDER_STATUS_TRIGGER_MAP = {
+    "washing": "ORDER_WASHING",
+    "drying": "ORDER_DRYING",
+    "ready": "ORDER_COMPLETED",
+    "delivered": "ORDER_DELIVERED",
+    "cancelled": "ORDER_CANCELLED",
+}
+
+PAYMENT_METHOD_VN = {
+    "cash": "Tiền mặt",
+    "bank_transfer": "Chuyển khoản",
+    "e_wallet": "Ví điện tử",
+    "none": "Chưa chọn",
+}
+
+
+def build_order_email_context(order: dict, customer: dict, branch_name: str, service_name: str = "", order_status: str = "") -> dict:
+    """Gom placeholder chuẩn ({{customer_name}}, {{order_code}}, ...) cho email đơn hàng."""
+    def fmt_time(value):
+        if not value:
+            return ""
+        try:
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime("%H:%M %d/%m/%Y")
+        except Exception:
+            return str(value)
+
+    return {
+        "customer_name": customer.get("full_name") or "",
+        "customer_email": customer.get("email") or "",
+        "customer_phone": customer.get("phone") or "",
+        "order_code": order.get("order_code") or "",
+        "order_date": fmt_time(order.get("received_at") or order.get("created_at")),
+        "branch_name": branch_name,
+        "service_name": service_name,
+        "order_status": order_status,
+        "total": "{:,}đ".format(order.get("total_amount") or 0),
+        "payment_method": PAYMENT_METHOD_VN.get(order.get("payment_method") or "none", order.get("payment_method") or ""),
+        "pickup_time": fmt_time(order.get("received_at")),
+        "delivery_time": fmt_time(order.get("expected_return_at") or order.get("delivered_at")),
+        "website": settings.FRONTEND_URL or "https://giatky.site",
+        "support_phone": "1900 0000",
+        "company_name": "Giặt Ký",
+    }
+
 
 def generate_order_code() -> str:
     """Generate sequential order code: LS-YYYYMMDD-XXX"""
@@ -253,6 +301,16 @@ def create_order(payload: OrderCreate, current_user: dict = Depends(get_current_
         except Exception as e:
             logger.error(f"Failed to send order success email: {str(e)}")
 
+        # Trigger ORDER_CREATED: nội dung lấy hoàn toàn từ Email Template (không hard-code).
+        # send_trigger_email tự bỏ qua khi chưa có mẫu active và không bao giờ raise.
+        service_names = ", ".join(i.service_name_snapshot for i in payload.items)
+        send_trigger_email(
+            "ORDER_CREATED",
+            customer["email"],
+            build_order_email_context(order, customer, branch_name, service_names, "Đặt đơn thành công"),
+            sent_by=current_user["id"],
+        )
+
     return order
 
 @router.get("/{id}")
@@ -359,7 +417,26 @@ def update_order_status(id: str, payload: OrderStatusUpdate, current_user: dict 
     }
     
     create_order_notification(order["order_code"], status_vn[payload.status], order["branch_id"], current_user["id"])
-    
+
+    # Trigger email theo trạng thái mới (mẫu quản lý trong Email Templates)
+    trigger_code = ORDER_STATUS_TRIGGER_MAP.get(payload.status)
+    if trigger_code:
+        try:
+            updated = response.data[0]
+            cust_res = supabase.table("customers").select("*").eq("id", updated["customer_id"]).execute()
+            customer = cust_res.data[0] if cust_res.data else {}
+            if customer.get("email"):
+                branch_res = supabase.table("branches").select("name").eq("id", updated["branch_id"]).execute()
+                branch_name = branch_res.data[0]["name"] if branch_res.data else "Cơ sở"
+                send_trigger_email(
+                    trigger_code,
+                    customer["email"],
+                    build_order_email_context(updated, customer, branch_name, "", status_vn[payload.status]),
+                    sent_by=current_user["id"],
+                )
+        except Exception as e:
+            logger.error(f"Failed to send status trigger email: {str(e)}")
+
     return response.data[0]
 
 @router.patch("/{id}/payment")
@@ -384,8 +461,27 @@ def update_order_payment(id: str, payload: OrderPaymentUpdate, current_user: dic
         "paid_amount": payload.paid_amount,
         "updated_at": datetime.utcnow().isoformat()
     }
-    
+
     response = supabase.table("orders").update(update_fields).eq("id", id).execute()
+
+    # Trigger PAYMENT_SUCCESS khi đơn được ghi nhận thanh toán đủ
+    if payload.payment_status == "paid":
+        try:
+            updated = response.data[0]
+            cust_res = supabase.table("customers").select("*").eq("id", updated["customer_id"]).execute()
+            customer = cust_res.data[0] if cust_res.data else {}
+            if customer.get("email"):
+                branch_res = supabase.table("branches").select("name").eq("id", updated["branch_id"]).execute()
+                branch_name = branch_res.data[0]["name"] if branch_res.data else "Cơ sở"
+                send_trigger_email(
+                    "PAYMENT_SUCCESS",
+                    customer["email"],
+                    build_order_email_context(updated, customer, branch_name, "", "Thanh toán thành công"),
+                    sent_by=current_user["id"],
+                )
+        except Exception as e:
+            logger.error(f"Failed to send payment trigger email: {str(e)}")
+
     return response.data[0]
 
 @router.delete("/{id}", dependencies=[Depends(require_role(["admin"]))])

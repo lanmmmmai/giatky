@@ -9,6 +9,14 @@ export interface SeoSettings {
   keywords?: string;
   canonical_url?: string;
   og_image?: string;
+  robots?: string;
+  og_title?: string;
+  og_description?: string;
+  twitter_card?: string;
+  twitter_title?: string;
+  twitter_description?: string;
+  twitter_image?: string;
+  favicon?: string;
   updated_by?: string;
   updated_by_name?: string | null;
   created_at: string;
@@ -32,7 +40,10 @@ export const createSeoSettings = (data: Partial<SeoSettings>) => apiClient.post<
 export const updateSeoSettings = (id: string, data: Partial<SeoSettings>) => apiClient.put<SeoSettings>(`/seo-settings/${id}`, data).then(res => res.data);
 export const deleteSeoSettings = (id: string) => apiClient.delete<{ message: string }>(`/seo-settings/${id}`).then(res => res.data);
 
-export const uploadSeoImage = (file: File, domain: string, kind: 'og' | 'favicon' | 'logo' = 'og') => {
+export const getSeoHeadTags = (id: string) =>
+  apiClient.get<{ domain: string; html: string }>('/seo-settings/head-tags', { params: { id } }).then(res => res.data);
+
+export const uploadSeoImage = (file: File, domain: string, kind: 'og' | 'favicon' | 'logo' | 'twitter' = 'og') => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('domain', domain || 'general');
