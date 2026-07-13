@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getChatRooms, getChatMessages, createChatRoom, sendChatMessage, ChatRoom, ChatMessage } from '../../api/chat';
+import { getChatRooms, getChatMessages, createChatRoom, sendChatMessage, ChatRoom, ChatMessage, ChatMember, ChatMention } from '../../api/chat';
 import { getUsers } from '../../api/users';
 import { useAuthStore, User } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
@@ -17,6 +17,11 @@ const Chat: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [inputText, setInputText] = useState('');
+  const [mentions, setMentions] = useState<ChatMention[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [highlightedMentionIndex, setHighlightedMentionIndex] = useState(0);
   
   // Create Room modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -27,6 +32,7 @@ const Chat: React.FC = () => {
 
   const wsRef = useRef<WebSocket | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadRooms();
@@ -43,6 +49,8 @@ const Chat: React.FC = () => {
       connectWebSocket(activeRoom.id);
     } else {
       setMessages([]);
+      setMentions([]);
+      setMentionOpen(false);
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -131,21 +139,136 @@ const Chat: React.FC = () => {
     };
   };
 
+  const normalizeText = (value: string) => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  const roomMembers = (activeRoom?.members || []).filter(member => member.id !== user?.id);
+  const mentionOptions = roomMembers
+    .filter(member => {
+      const haystack = normalizeText(`${member.full_name} ${member.username || ''} ${member.email || ''}`);
+      return haystack.includes(normalizeText(mentionQuery));
+    })
+    .slice(0, 8);
+
+  const findMentionToken = (value: string, caret: number) => {
+    const beforeCaret = value.slice(0, caret);
+    const match = beforeCaret.match(/(^|[\s.,;:!?([{])@([\p{L}\p{N}._-]*)$/u);
+    if (!match || match.index === undefined) return null;
+    const atIndex = match.index + match[1].length;
+    return { start: atIndex, query: match[2] || '' };
+  };
+
+  const updateMentionState = (value: string, caret: number) => {
+    if (!activeRoom || activeRoom.type === 'direct') {
+      setMentionOpen(false);
+      return;
+    }
+    const token = findMentionToken(value, caret);
+    if (!token) {
+      setMentionOpen(false);
+      return;
+    }
+    setMentionStart(token.start);
+    setMentionQuery(token.query);
+    setHighlightedMentionIndex(0);
+    setMentionOpen(true);
+  };
+
+  const handleInputChange = (value: string, caret: number) => {
+    setInputText(value);
+    setMentions(prev => prev.filter(mention => value.slice(mention.start, mention.end) === `@${mention.display_name}`));
+    updateMentionState(value, caret);
+  };
+
+  const insertMention = (member: ChatMember) => {
+    if (mentionStart === null || !inputRef.current) return;
+    const caret = inputRef.current.selectionStart ?? inputText.length;
+    const mentionText = `@${member.full_name}`;
+    const nextText = `${inputText.slice(0, mentionStart)}${mentionText} ${inputText.slice(caret)}`;
+    const nextStart = mentionStart;
+    const nextEnd = mentionStart + mentionText.length;
+    const diff = nextText.length - inputText.length;
+
+    setInputText(nextText);
+    setMentions(prev => {
+      const shifted = prev
+        .filter(item => !(item.start >= mentionStart && item.end <= caret))
+        .map(item => item.start >= caret ? { ...item, start: item.start + diff, end: item.end + diff } : item);
+      return [...shifted, { user_id: member.id, display_name: member.full_name, start: nextStart, end: nextEnd }]
+        .sort((a, b) => a.start - b.start);
+    });
+    setMentionOpen(false);
+    setMentionQuery('');
+    setMentionStart(null);
+
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(nextEnd + 1, nextEnd + 1);
+    });
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!mentionOpen) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedMentionIndex(prev => mentionOptions.length ? (prev + 1) % mentionOptions.length : 0);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedMentionIndex(prev => mentionOptions.length ? (prev - 1 + mentionOptions.length) % mentionOptions.length : 0);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (mentionOptions[highlightedMentionIndex]) {
+        e.preventDefault();
+        insertMention(mentionOptions[highlightedMentionIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setMentionOpen(false);
+    }
+  };
+
+  const renderMessageText = (message: ChatMessage, isMine: boolean) => {
+    const sortedMentions = [...(message.mentions || [])].sort((a, b) => a.start - b.start);
+    if (sortedMentions.length === 0) return <p>{message.message}</p>;
+
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+    sortedMentions.forEach((mention, index) => {
+      if (mention.start > cursor) nodes.push(message.message.slice(cursor, mention.start));
+      nodes.push(
+        <span key={`${mention.user_id}-${mention.start}-${index}`} className={`px-1 py-0.5 rounded-md font-bold ${isMine ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+          {message.message.slice(mention.start, mention.end)}
+        </span>
+      );
+      cursor = mention.end;
+    });
+    if (cursor < message.message.length) nodes.push(message.message.slice(cursor));
+    return <p>{nodes}</p>;
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activeRoom) return;
 
+    const payloadMentions = mentions.filter(mention => inputText.slice(mention.start, mention.end) === `@${mention.display_name}`);
+
     // Send via WebSocket if open, else fallback to REST API
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        message: inputText.trim()
+        message: inputText,
+        mentions: payloadMentions
       }));
       setInputText('');
+      setMentions([]);
+      setMentionOpen(false);
     } else {
-      sendChatMessage(activeRoom.id, inputText.trim())
+      sendChatMessage(activeRoom.id, inputText, undefined, payloadMentions)
         .then(newMsg => {
           setMessages(prev => [...prev, newMsg]);
           setInputText('');
+          setMentions([]);
+          setMentionOpen(false);
         });
     }
   };
@@ -290,7 +413,7 @@ const Chat: React.FC = () => {
                             ? 'bg-primary border-primary text-white rounded-tr-none shadow-md'
                             : 'bg-white border-slate-200 text-slate-800 rounded-tl-none shadow-sm'
                         }`}>
-                          <p>{m.message}</p>
+                          {renderMessageText(m, isMine)}
                         </div>
                         <span className={`text-[9px] text-slate-400 block pl-1 ${isMine ? 'text-right pr-1' : ''}`}>
                           {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -304,12 +427,41 @@ const Chat: React.FC = () => {
             </div>
 
             {/* Input message form */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-200 bg-white flex items-center gap-3">
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-200 bg-white flex items-center gap-3 relative">
+              {mentionOpen && (
+                <div className="absolute left-4 bottom-[68px] w-72 max-h-64 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-2 z-20">
+                  {mentionOptions.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-slate-400 text-center font-medium">Không tìm thấy thành viên</div>
+                  ) : (
+                    mentionOptions.map((member, index) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          insertMention(member);
+                        }}
+                        className={`w-full p-2 rounded-xl flex items-center gap-2 text-left transition-colors ${index === highlightedMentionIndex ? 'bg-primary/10 text-primary' : 'hover:bg-slate-50 text-slate-700'}`}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-xs overflow-hidden">
+                          {member.avatar_url ? <img src={member.avatar_url} alt="" className="w-full h-full object-cover" /> : member.full_name[0]?.toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-xs truncate">{member.full_name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{member.role}</div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
               <input
+                ref={inputRef}
                 type="text"
                 placeholder="Nhập nội dung tin nhắn và ấn Enter để gửi..."
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value, e.target.selectionStart ?? e.target.value.length)}
+                onKeyDown={handleInputKeyDown}
                 className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl text-xs outline-none focus:border-primary transition-all bg-slate-50 focus:bg-white"
               />
               <button

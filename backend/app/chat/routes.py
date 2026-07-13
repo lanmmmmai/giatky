@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 import json
@@ -22,6 +22,123 @@ class ChatRoomCreate(BaseModel):
 class MessageCreate(BaseModel):
     message: str
     attachment_url: Optional[str] = None
+    mentions: List["MessageMentionCreate"] = Field(default_factory=list)
+
+class MessageMentionCreate(BaseModel):
+    user_id: str
+    display_name: str
+    start: int = Field(..., ge=0)
+    end: int = Field(..., ge=0)
+
+MessageCreate.model_rebuild()
+
+def _get_room_member_ids(room: dict) -> List[str]:
+    room_id = room["id"]
+    if room["type"] in ["direct", "group"]:
+        member_res = supabase.table("chat_room_members").select("user_id").eq("room_id", room_id).execute()
+        return [row["user_id"] for row in (member_res.data or [])]
+
+    if room["type"] == "branch" and room.get("branch_id"):
+        users_res = supabase.table("users").select("id").eq("branch_id", room["branch_id"]).execute()
+        member_ids = [row["id"] for row in (users_res.data or [])]
+        try:
+            ub_res = supabase.table("user_branches").select("user_id").eq("branch_id", room["branch_id"]).execute()
+            member_ids.extend([row["user_id"] for row in (ub_res.data or [])])
+        except Exception as ub_err:
+            logger.warning(f"Failed to read branch chat user_branches: {ub_err}")
+        return list(set(member_ids))
+
+    return []
+
+def _normalize_mentions(mentions: List[MessageMentionCreate], member_ids: List[str], sender_id: str) -> List[dict]:
+    normalized = []
+    seen = set()
+    allowed = set(member_ids)
+    for mention in mentions or []:
+        user_id = str(mention.user_id)
+        if user_id not in allowed:
+            raise HTTPException(status_code=400, detail="Không thể mention người không thuộc phòng chat.")
+        if mention.end <= mention.start:
+            raise HTTPException(status_code=400, detail="Vị trí mention không hợp lệ.")
+        key = (user_id, mention.start, mention.end)
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append({
+            "mentioned_user_id": user_id,
+            "display_name_snapshot": mention.display_name[:150],
+            "start_index": mention.start,
+            "end_index": mention.end
+        })
+    return normalized
+
+def _save_mentions_and_notifications(message: dict, room: dict, mentions: List[dict], sender: dict):
+    if not mentions:
+        message["mentions"] = []
+        return message
+
+    rows = []
+    for mention in mentions:
+        rows.append({
+            "message_id": message["id"],
+            "mentioned_user_id": mention["mentioned_user_id"],
+            "display_name_snapshot": mention["display_name_snapshot"],
+            "start_index": mention["start_index"],
+            "end_index": mention["end_index"]
+        })
+
+    supabase.table("message_mentions").insert(rows).execute()
+
+    room_name = room.get("name") or room.get("branch_name") or "nhóm chat"
+    snippet = (message.get("message") or "")[:120]
+    notified_user_ids = sorted({row["mentioned_user_id"] for row in mentions if row["mentioned_user_id"] != sender["id"]})
+    if notified_user_ids:
+        supabase.table("notifications").insert([
+            {
+                "title": "Bạn được nhắc đến trong chat",
+                "content": f"{sender['full_name']} đã nhắc đến bạn trong nhóm {room_name}: {snippet}",
+                "type": "chat",
+                "sender_id": sender["id"],
+                "target_user_id": user_id
+            }
+            for user_id in notified_user_ids
+        ]).execute()
+
+    message["mentions"] = [
+        {
+            "user_id": row["mentioned_user_id"],
+            "display_name": row["display_name_snapshot"],
+            "start": row["start_index"],
+            "end": row["end_index"]
+        }
+        for row in mentions
+    ]
+    return message
+
+def _attach_message_mentions(messages: List[dict]) -> List[dict]:
+    if not messages:
+        return messages
+    message_ids = [message["id"] for message in messages]
+    try:
+        mention_res = supabase.table("message_mentions")\
+            .select("message_id, mentioned_user_id, display_name_snapshot, start_index, end_index")\
+            .in_("message_id", message_ids)\
+            .execute()
+    except Exception as err:
+        logger.warning(f"Failed to fetch message mentions (table may not exist yet): {err}")
+        mention_res = None
+
+    mention_map = {}
+    for row in ((mention_res.data if mention_res else None) or []):
+        mention_map.setdefault(row["message_id"], []).append({
+            "user_id": row["mentioned_user_id"],
+            "display_name": row["display_name_snapshot"],
+            "start": row["start_index"],
+            "end": row["end_index"]
+        })
+    for message in messages:
+        message["mentions"] = mention_map.get(message["id"], [])
+    return messages
 
 @router.get("/rooms")
 def get_rooms(current_user: dict = Depends(get_current_user)):
@@ -79,12 +196,14 @@ def get_rooms(current_user: dict = Depends(get_current_user)):
         # Get members for direct/group rooms
         members = []
         if r["type"] in ["direct", "group"]:
-            mbr_res = supabase.table("chat_room_members").select("user_id, users(full_name, avatar_url, role)").eq("room_id", r["id"]).execute()
+            mbr_res = supabase.table("chat_room_members").select("user_id, users(full_name, username, email, avatar_url, role)").eq("room_id", r["id"]).execute()
             for m in (mbr_res.data or []):
                 if m.get("users"):
                     members.append({
                         "id": m["user_id"],
                         "full_name": m["users"]["full_name"],
+                        "username": m["users"].get("username"),
+                        "email": m["users"].get("email"),
                         "avatar_url": m["users"]["avatar_url"],
                         "role": m["users"]["role"]
                     })
@@ -110,7 +229,7 @@ def get_rooms(current_user: dict = Depends(get_current_user)):
         
         formatted.append(r_copy)
         
-    return formatted
+    return _attach_message_mentions(formatted)
 
 @router.post("/rooms")
 def create_room(payload: ChatRoomCreate, current_user: dict = Depends(get_current_user)):
@@ -217,6 +336,13 @@ def send_message(id: str, payload: MessageCreate, current_user: dict = Depends(g
     if not room_res.data:
         raise HTTPException(status_code=404, detail="Không tìm thấy phòng chat.")
         
+    room = room_res.data[0]
+    member_ids = _get_room_member_ids(room)
+    if current_user["role"] != "admin" and current_user["id"] not in member_ids:
+        raise HTTPException(status_code=403, detail="Bạn không thuộc phòng chat này.")
+
+    normalized_mentions = _normalize_mentions(payload.mentions, member_ids, current_user["id"])
+
     insert_data = {
         "room_id": id,
         "sender_id": current_user["id"],
@@ -232,6 +358,7 @@ def send_message(id: str, payload: MessageCreate, current_user: dict = Depends(g
     msg = response.data[0]
     msg["sender_name"] = current_user["full_name"]
     msg["sender_avatar"] = current_user["avatar_url"]
+    msg = _save_mentions_and_notifications(msg, room, normalized_mentions, current_user)
     
     return msg
 
@@ -251,7 +378,7 @@ async def chat_websocket(websocket: WebSocket, room_id: str):
         
     user_id = payload.get("sub")
     # Verify user exists in database
-    u_res = supabase.table("users").select("id, full_name, avatar_url").eq("id", user_id).execute()
+    u_res = supabase.table("users").select("id, full_name, avatar_url, role").eq("id", user_id).execute()
     if not u_res.data:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
@@ -259,9 +386,14 @@ async def chat_websocket(websocket: WebSocket, room_id: str):
     current_user = u_res.data[0]
     
     # Check room exists
-    room_res = supabase.table("chat_rooms").select("id").eq("id", room_id).execute()
+    room_res = supabase.table("chat_rooms").select("*").eq("id", room_id).execute()
     if not room_res.data:
         await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        return
+    room = room_res.data[0]
+    member_ids = _get_room_member_ids(room)
+    if current_user["role"] != "admin" and current_user["id"] not in member_ids:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
         
     # Accept and register connection
@@ -274,10 +406,17 @@ async def chat_websocket(websocket: WebSocket, room_id: str):
             data = json.loads(data_str)
             text_message = data.get("message", "")
             attachment_url = data.get("attachment_url", None)
+            mentions_payload = data.get("mentions") or []
             
             if not text_message.strip() and not attachment_url:
                 continue
                 
+            normalized_mentions = _normalize_mentions(
+                [MessageMentionCreate(**item) for item in mentions_payload],
+                member_ids,
+                current_user["id"]
+            )
+
             # Log to DB
             insert_data = {
                 "room_id": room_id,
@@ -292,6 +431,7 @@ async def chat_websocket(websocket: WebSocket, room_id: str):
                 msg = db_res.data[0]
                 msg["sender_name"] = current_user["full_name"]
                 msg["sender_avatar"] = current_user["avatar_url"]
+                msg = _save_mentions_and_notifications(msg, room, normalized_mentions, current_user)
                 
                 # Broadcast message to all active room subscribers
                 await manager.broadcast_to_room(msg, room_id)
