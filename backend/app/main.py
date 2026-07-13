@@ -19,6 +19,7 @@ from app.email.routes import router as email_router
 from app.seo.routes import router as seo_router
 from app.chat.routes import router as chat_router
 from app.revenue_reports.routes import router as revenue_reports_router
+from app.content.routes import router as content_router, admin_router as admin_content_router
 
 # Configure logging
 logging.basicConfig(
@@ -68,6 +69,8 @@ app.include_router(email_router)
 app.include_router(seo_router)
 app.include_router(chat_router)
 app.include_router(revenue_reports_router)
+app.include_router(content_router)
+app.include_router(admin_content_router)
 
 # Custom exception handler for validation/uncaught errors
 @app.exception_handler(Exception)

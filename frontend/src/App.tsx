@@ -34,6 +34,9 @@ import Cms from './pages/cms/Cms';
 import Chat from './pages/chat/Chat';
 import Settings from './pages/settings/Settings';
 import Notifications from './pages/notifications/Notifications';
+import ContentAdmin from './pages/content/ContentAdmin';
+import PublicPosts from './pages/content/PublicPosts';
+import PublicPostDetail from './pages/content/PublicPostDetail';
 
 // Redirects "/" and any unmatched path to the user's own dashboard,
 // or to /login when not authenticated.
@@ -85,6 +88,7 @@ const App: React.FC = () => {
             <Route path="payroll" element={<Payroll />} />
             <Route path="services" element={<Services />} />
             <Route path="cms" element={<Cms />} />
+            <Route path="content" element={<ContentAdmin />} />
             <Route path="chat" element={<Chat />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="settings" element={<Settings />} />
@@ -142,6 +146,10 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Route>
 
+          <Route path="/bai-viet" element={<PublicPosts />} />
+          <Route path="/bai-viet/:slug" element={<PublicPostDetail />} />
+          <Route path="/tuyen-dung" element={<PublicPosts defaultType="recruitment" />} />
+          <Route path="/tuyen-dung/:slug" element={<PublicPostDetail />} />
           <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<RootRedirect />} />
           </Routes>
