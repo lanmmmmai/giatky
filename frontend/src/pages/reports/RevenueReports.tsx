@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuthStore, User } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -34,6 +34,8 @@ const RevenueReports: React.FC = () => {
   const [reports, setReports] = useState<RevenueReport[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const lastMonthlyRequestKeyRef = useRef('');
 
   // Filters
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
@@ -64,7 +66,12 @@ const RevenueReports: React.FC = () => {
     if (user) {
       const activeBranchId = user.role === 'staff' ? user.branch_id : selectedBranchId;
       if (activeBranchId) {
+        const requestKey = `${activeBranchId}:${selectedMonth}:${selectedYear}`;
+        if (lastMonthlyRequestKeyRef.current === requestKey) return;
+        lastMonthlyRequestKeyRef.current = requestKey;
         loadMonthlyReports(activeBranchId, selectedMonth, selectedYear);
+      } else {
+        setReports([]);
       }
     }
   }, [selectedMonth, selectedYear, selectedBranchId, user]);
@@ -91,13 +98,24 @@ const RevenueReports: React.FC = () => {
     try {
       const data = await getMonthlyReports(branchId, month, year);
       setReports(Array.isArray(data) ? data : []);
+      setLoadError('');
       // Reset editing states on load
       setEditedData({});
     } catch (err: any) {
+      setReports([]);
+      setEditedData({});
+      setLoadError('Không thể tải báo cáo doanh thu. Vui lòng thử lại.');
       addToast(err.response?.data?.detail || 'Không thể tải báo cáo doanh thu.', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const retryMonthlyReports = () => {
+    const activeBranchId = user?.role === 'staff' ? user.branch_id : selectedBranchId;
+    if (!activeBranchId) return;
+    lastMonthlyRequestKeyRef.current = '';
+    loadMonthlyReports(activeBranchId, selectedMonth, selectedYear);
   };
 
   const getBranchName = () => {
@@ -398,6 +416,23 @@ const RevenueReports: React.FC = () => {
         {loading ? (
           <div className="p-20 flex justify-center">
             <LoadingSpinner />
+          </div>
+        ) : loadError ? (
+          <div className="p-16">
+            <EmptyState
+              message="Không thể tải báo cáo doanh thu"
+              subMessage="Vui lòng thử lại hoặc kiểm tra quyền truy cập cơ sở."
+            />
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={retryMonthlyReports}
+                className="px-4 py-2 rounded-2xl bg-slate-900 hover:bg-black text-white text-xs font-bold inline-flex items-center gap-2"
+              >
+                <RotateCcw size={14} strokeWidth={1.7} />
+                Thử lại
+              </button>
+            </div>
           </div>
         ) : reports.length === 0 ? (
           <div className="p-16">
