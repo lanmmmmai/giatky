@@ -237,7 +237,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
         <div className="text-center pt-6 lg:pt-0">
           <p className="text-[11px] text-slate-400 font-medium">
             Nhân viên mới?{' '}
-            <Link to="/register" className="text-primary hover:underline font-semibold">
+            <Link to="/staff/register-shift-request" className="text-primary hover:underline font-semibold">
               Gửi yêu cầu đăng ký ca
             </Link>
           </p>

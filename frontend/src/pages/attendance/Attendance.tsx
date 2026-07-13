@@ -139,7 +139,9 @@ const Attendance: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Thời gian vào ca:</span>
                     <span className="font-semibold text-slate-700">
-                      {new Date(summary.current_shift.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {summary.current_shift.check_in_at || summary.current_shift.check_in_time
+                        ? new Date(summary.current_shift.check_in_at || summary.current_shift.check_in_time || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : '-'}
                     </span>
                   </div>
                 )}
@@ -273,7 +275,9 @@ const Attendance: React.FC = () => {
                             {new Date(rec.work_date).toLocaleDateString('vi-VN')}
                           </td>
                           <td className="p-4 font-semibold text-slate-700">
-                            {new Date(rec.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {rec.check_in_at || rec.check_in_time
+                              ? new Date(rec.check_in_at || rec.check_in_time || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : '-'}
                           </td>
                           <td className="p-4 font-semibold text-slate-700">
                             {rec.check_out_time 

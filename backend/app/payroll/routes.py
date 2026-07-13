@@ -114,9 +114,9 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
             raise HTTPException(status_code=400, detail="Bảng lương của nhân viên này trong tháng đã tồn tại.")
 
         # Real attendance data for the selected month
-        att_res = supabase.table("attendance").select("total_hours")\
+        att_res = supabase.table("attendance").select("total_hours, work_minutes")\
             .eq("staff_id", staff["id"])\
-            .eq("status", "completed")\
+            .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
             .execute()
@@ -124,7 +124,7 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
         if not att_rows:
             raise HTTPException(status_code=400, detail="Nhân viên chưa có dữ liệu chấm công trong tháng này.")
 
-        total_hours = sum(float(a["total_hours"]) for a in att_rows)
+        total_hours = sum((float(a.get("work_minutes") or 0) / 60) if a.get("work_minutes") is not None else float(a.get("total_hours") or 0) for a in att_rows)
         hourly_rate = staff["hourly_rate"] or 0
         insert_data = {
             "staff_id": staff["id"],
@@ -166,14 +166,14 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
     for staff in staff_members:
         # Sum completed attendance total_hours in this date range
         att_res = supabase.table("attendance")\
-            .select("total_hours")\
+            .select("total_hours, work_minutes")\
             .eq("staff_id", staff["id"])\
-            .eq("status", "completed")\
+            .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
             .execute()
             
-        total_hours = sum(float(a["total_hours"]) for a in (att_res.data or []))
+        total_hours = sum((float(a.get("work_minutes") or 0) / 60) if a.get("work_minutes") is not None else float(a.get("total_hours") or 0) for a in (att_res.data or []))
         
         # Calculate salary
         hourly_rate = staff["hourly_rate"] or 0

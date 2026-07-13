@@ -29,10 +29,15 @@ apiClient.interceptors.response.use(
       requestUrl.includes('/auth/login') ||
       requestUrl.includes('/auth/google') ||
       requestUrl.includes('/auth/register') ||
+      requestUrl.includes('/auth/register-staff') ||
       requestUrl.includes('/auth/verify-email') ||
       requestUrl.includes('/auth/reset-password');
+
+    const isPublicEndpoint =
+      requestUrl.includes('/staff/shift-registration-requests') ||
+      requestUrl.includes('/branches/public');
       
-    if (status === 401 && !isAuthEndpoint) {
+    if (status === 401 && !isAuthEndpoint && !isPublicEndpoint) {
       localStorage.removeItem('lanh_sach_token');
       localStorage.removeItem('lanh_sach_user');
       // Redirect to login page

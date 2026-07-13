@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
-from datetime import datetime, date, timezone
+from datetime import datetime, date, time, timezone, timedelta
 import logging
 
 from app.common.dependencies import get_current_user, require_role
@@ -9,12 +9,156 @@ from app.database import supabase
 
 logger = logging.getLogger("app.attendance")
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
+admin_router = APIRouter(prefix="/admin/attendance", tags=["Admin Attendance"])
 
 class AttendanceCheckIn(BaseModel):
     note: Optional[str] = None
 
 class AttendanceCheckOut(BaseModel):
     note: Optional[str] = None
+
+class ManualAttendancePayload(BaseModel):
+    staff_id: str
+    work_date: date
+    shift_id: Optional[str] = None
+    shift_name: str = Field(..., min_length=1)
+    shift_start_time: Optional[time] = None
+    shift_end_time: Optional[time] = None
+    check_in_at: Optional[datetime] = None
+    check_out_at: Optional[datetime] = None
+    break_minutes: int = Field(default=0, ge=0)
+    adjustment_type: str = Field(..., min_length=1)
+    manual_reason: str = Field(..., min_length=1)
+    note: Optional[str] = None
+
+    @field_validator("manual_reason", "adjustment_type", "shift_name")
+    @classmethod
+    def strip_required(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Trường này là bắt buộc.")
+        return value
+
+class AttendanceUpdatePayload(BaseModel):
+    shift_id: Optional[str] = None
+    shift_name: Optional[str] = None
+    shift_start_time: Optional[time] = None
+    shift_end_time: Optional[time] = None
+    check_in_at: Optional[datetime] = None
+    check_out_at: Optional[datetime] = None
+    break_minutes: Optional[int] = Field(default=None, ge=0)
+    adjustment_type: Optional[str] = None
+    manual_reason: str = Field(..., min_length=1)
+    note: Optional[str] = None
+
+    @field_validator("manual_reason")
+    @classmethod
+    def strip_reason(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Bắt buộc nhập lý do chỉnh sửa.")
+        return value
+
+def _parse_dt(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+def _combine_work_datetime(work_date: date, value: Optional[time], overnight: bool = False):
+    if not value:
+        return None
+    target_date = work_date + timedelta(days=1) if overnight else work_date
+    return datetime.combine(target_date, value).replace(tzinfo=timezone.utc)
+
+def _calculate_attendance(
+    work_date: date,
+    check_in_at: Optional[datetime],
+    check_out_at: Optional[datetime],
+    shift_start_time: Optional[time],
+    shift_end_time: Optional[time],
+    break_minutes: int
+):
+    if check_in_at and check_in_at.tzinfo is None:
+        check_in_at = check_in_at.replace(tzinfo=timezone.utc)
+    if check_out_at and check_out_at.tzinfo is None:
+        check_out_at = check_out_at.replace(tzinfo=timezone.utc)
+
+    if check_in_at and check_out_at and check_out_at <= check_in_at:
+        raise HTTPException(status_code=400, detail="Giờ ra không được nhỏ hơn hoặc bằng giờ vào.")
+
+    overnight_shift = bool(shift_start_time and shift_end_time and shift_end_time <= shift_start_time)
+    expected_start = _combine_work_datetime(work_date, shift_start_time)
+    expected_end = _combine_work_datetime(work_date, shift_end_time, overnight_shift)
+
+    work_minutes = 0
+    late_minutes = 0
+    early_leave_minutes = 0
+    overtime_minutes = 0
+    status_value = "completed"
+
+    if check_in_at and check_out_at:
+        work_minutes = max(0, int((check_out_at - check_in_at).total_seconds() // 60) - break_minutes)
+        if expected_start and check_in_at > expected_start:
+            late_minutes = int((check_in_at - expected_start).total_seconds() // 60)
+        if expected_end:
+            if check_out_at < expected_end:
+                early_leave_minutes = int((expected_end - check_out_at).total_seconds() // 60)
+            elif check_out_at > expected_end:
+                overtime_minutes = int((check_out_at - expected_end).total_seconds() // 60)
+        status_value = "late" if late_minutes else "early_leave" if early_leave_minutes else "on_time"
+    elif check_in_at:
+        status_value = "missing_checkout"
+    elif check_out_at:
+        status_value = "missing_checkin"
+    else:
+        status_value = "manual_adjusted"
+
+    return {
+        "work_minutes": work_minutes,
+        "total_hours": round(work_minutes / 60, 2),
+        "late_minutes": late_minutes,
+        "early_leave_minutes": early_leave_minutes,
+        "overtime_minutes": overtime_minutes,
+        "status": status_value,
+    }
+
+def _format_admin_attendance(record: dict):
+    staff = record.get("users") or {}
+    branch = record.get("branches") or {}
+    updated_by_user = record.get("updated_by_user") or {}
+    item = dict(record)
+    item["staff_name"] = staff.get("full_name")
+    item["staff_username"] = staff.get("username")
+    item["branch_name"] = branch.get("name")
+    item["updated_by_name"] = updated_by_user.get("full_name")
+    item.pop("users", None)
+    item.pop("branches", None)
+    item.pop("updated_by_user", None)
+    return item
+
+def _recalculate_draft_payrolls(staff_id: str, work_date_value: date):
+    payroll_res = supabase.table("payrolls").select("*")\
+        .eq("staff_id", staff_id)\
+        .eq("month", work_date_value.month)\
+        .eq("year", work_date_value.year)\
+        .eq("status", "draft")\
+        .execute()
+    for payroll in (payroll_res.data or []):
+        start_date = f"{payroll['year']}-{payroll['month']:02d}-01"
+        end_date = f"{payroll['year']}-{payroll['month']:02d}-31"
+        att_res = supabase.table("attendance").select("total_hours")\
+            .eq("staff_id", staff_id)\
+            .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
+            .gte("work_date", start_date)\
+            .lte("work_date", end_date)\
+            .execute()
+        total_hours = sum(float(a.get("total_hours") or 0) for a in (att_res.data or []))
+        supabase.table("payrolls").update({
+            "total_hours": total_hours,
+            "total_salary": int(total_hours * float(payroll.get("hourly_rate_snapshot") or 0))
+        }).eq("id", payroll["id"]).execute()
 
 @router.post("/check-in")
 def check_in(payload: AttendanceCheckIn, current_user: dict = Depends(get_current_user)):
@@ -58,7 +202,10 @@ def check_in(payload: AttendanceCheckIn, current_user: dict = Depends(get_curren
         "branch_id": branch_id,
         "work_date": date.today().isoformat(),
         "check_in_time": now.isoformat(),
+        "check_in_at": now.isoformat(),
         "status": "checked_in",
+        "source": "STAFF_CHECK_IN",
+        "is_manual": False,
         "note": payload.note
     }
     
@@ -95,11 +242,15 @@ def check_out(payload: AttendanceCheckOut, current_user: dict = Depends(get_curr
     
     # Standard hour calculation (rounded to 2 decimal places)
     total_hours = round(max(0.0, total_seconds / 3600.0), 2)
+    work_minutes = max(0, int(total_seconds // 60))
     
     update_data = {
         "check_out_time": now.isoformat(),
+        "check_out_at": now.isoformat(),
+        "work_minutes": work_minutes,
         "total_hours": total_hours,
         "status": "completed",
+        "source": "STAFF_CHECK_OUT",
         "note": payload.note if payload.note else record["note"],
         "updated_at": now.isoformat()
     }
@@ -211,3 +362,225 @@ def get_attendance_summary(current_user: dict = Depends(get_current_user)):
         "total_hours_today": total_hours_today,
         "total_hours_month": total_hours_month
     }
+
+@admin_router.get("", dependencies=[Depends(require_role(["admin", "manager"]))])
+def get_admin_attendance(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    staff_id: Optional[str] = None,
+    branch_id: Optional[str] = None,
+    shift_id: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    source: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 50,
+    current_user: dict = Depends(get_current_user)
+):
+    query = supabase.table("attendance")\
+        .select("*, branches(name), users!staff_id(full_name, username), updated_by_user:users!attendance_updated_by_fkey(full_name)")\
+        .order("work_date", desc=True)\
+        .range(max(page - 1, 0) * page_size, max(page, 1) * page_size - 1)
+
+    if current_user["role"] == "manager":
+        branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
+        branch_ids = [b["id"] for b in (branch_res.data or [])]
+        if not branch_ids:
+            return []
+        query = query.in_("branch_id", branch_ids)
+
+    if date_from:
+        query = query.gte("work_date", date_from)
+    if date_to:
+        query = query.lte("work_date", date_to)
+    if staff_id:
+        query = query.eq("staff_id", staff_id)
+    if branch_id:
+        query = query.eq("branch_id", branch_id)
+    if shift_id:
+        query = query.eq("shift_id", shift_id)
+    if status_filter:
+        query = query.eq("status", status_filter)
+    if source:
+        query = query.eq("source", source)
+
+    response = query.execute()
+    records = [_format_admin_attendance(row) for row in (response.data or [])]
+    if search:
+        needle = search.lower().strip()
+        records = [
+            row for row in records
+            if needle in (row.get("staff_name") or "").lower()
+            or needle in (row.get("staff_username") or "").lower()
+        ]
+    return records
+
+@admin_router.post("/manual", dependencies=[Depends(require_role(["admin", "manager"]))])
+def create_manual_attendance(payload: ManualAttendancePayload, current_user: dict = Depends(get_current_user)):
+    staff_res = supabase.table("users").select("id, full_name, role, branch_id").eq("id", payload.staff_id).execute()
+    if not staff_res.data or staff_res.data[0]["role"] != "staff":
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhân viên hợp lệ.")
+    staff = staff_res.data[0]
+
+    if current_user["role"] == "manager":
+        branch_res = supabase.table("branches").select("id").eq("id", staff.get("branch_id")).eq("manager_id", current_user["id"]).execute()
+        if not branch_res.data:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền nhập chấm công cho nhân viên này.")
+
+    duplicate_query = supabase.table("attendance").select("id")\
+        .eq("staff_id", payload.staff_id)\
+        .eq("work_date", payload.work_date.isoformat())
+    if payload.shift_id:
+        duplicate_query = duplicate_query.eq("shift_id", payload.shift_id)
+    else:
+        duplicate_query = duplicate_query.eq("shift_name", payload.shift_name)
+    duplicate_res = duplicate_query.execute()
+    if duplicate_res.data:
+        raise HTTPException(status_code=409, detail="Đã có bản ghi chấm công cho nhân viên, ngày và ca này. Vui lòng mở bản ghi để cập nhật.")
+
+    calculated = _calculate_attendance(
+        payload.work_date,
+        payload.check_in_at,
+        payload.check_out_at,
+        payload.shift_start_time,
+        payload.shift_end_time,
+        payload.break_minutes
+    )
+    now = datetime.now(timezone.utc).isoformat()
+    insert_data = {
+        "staff_id": payload.staff_id,
+        "branch_id": staff.get("branch_id"),
+        "work_date": payload.work_date.isoformat(),
+        "shift_id": payload.shift_id,
+        "shift_name": payload.shift_name,
+        "shift_start_time": payload.shift_start_time.isoformat() if payload.shift_start_time else None,
+        "shift_end_time": payload.shift_end_time.isoformat() if payload.shift_end_time else None,
+        "check_in_time": payload.check_in_at.isoformat() if payload.check_in_at else None,
+        "check_out_time": payload.check_out_at.isoformat() if payload.check_out_at else None,
+        "check_in_at": payload.check_in_at.isoformat() if payload.check_in_at else None,
+        "check_out_at": payload.check_out_at.isoformat() if payload.check_out_at else None,
+        "break_minutes": payload.break_minutes,
+        "total_hours": calculated["total_hours"],
+        "work_minutes": calculated["work_minutes"],
+        "late_minutes": calculated["late_minutes"],
+        "early_leave_minutes": calculated["early_leave_minutes"],
+        "overtime_minutes": calculated["overtime_minutes"],
+        "status": "manual_adjusted" if payload.adjustment_type != "Nghỉ có phép" else "leave_paid",
+        "source": "ADMIN_MANUAL",
+        "is_manual": True,
+        "adjustment_type": payload.adjustment_type,
+        "manual_reason": payload.manual_reason,
+        "note": payload.note,
+        "created_by": current_user["id"],
+        "updated_by": current_user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    response = supabase.table("attendance").insert(insert_data).execute()
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Không thể tạo bản ghi chấm công.")
+
+    attendance = response.data[0]
+    supabase.table("attendance_audit_logs").insert({
+        "attendance_id": attendance["id"],
+        "action": "CREATE_MANUAL",
+        "old_data": None,
+        "new_data": attendance,
+        "reason": payload.manual_reason,
+        "changed_by": current_user["id"],
+        "changed_at": now
+    }).execute()
+    _recalculate_draft_payrolls(payload.staff_id, payload.work_date)
+    return attendance
+
+@admin_router.get("/{id}", dependencies=[Depends(require_role(["admin", "manager"]))])
+def get_admin_attendance_detail(id: str):
+    response = supabase.table("attendance")\
+        .select("*, branches(name), users!staff_id(full_name, username), updated_by_user:users!attendance_updated_by_fkey(full_name)")\
+        .eq("id", id)\
+        .execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bản ghi chấm công.")
+    return _format_admin_attendance(response.data[0])
+
+@admin_router.put("/{id}", dependencies=[Depends(require_role(["admin", "manager"]))])
+def update_admin_attendance(id: str, payload: AttendanceUpdatePayload, current_user: dict = Depends(get_current_user)):
+    old_res = supabase.table("attendance").select("*").eq("id", id).execute()
+    if not old_res.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bản ghi chấm công.")
+    old_record = old_res.data[0]
+
+    if current_user["role"] == "manager":
+        branch_res = supabase.table("branches").select("id").eq("id", old_record.get("branch_id")).eq("manager_id", current_user["id"]).execute()
+        if not branch_res.data:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền chỉnh sửa chấm công này.")
+
+    work_date_value = date.fromisoformat(old_record["work_date"])
+    check_in_at = payload.check_in_at if payload.check_in_at is not None else _parse_dt(old_record.get("check_in_at") or old_record.get("check_in_time"))
+    check_out_at = payload.check_out_at if payload.check_out_at is not None else _parse_dt(old_record.get("check_out_at") or old_record.get("check_out_time"))
+    break_minutes = payload.break_minutes if payload.break_minutes is not None else int(old_record.get("break_minutes") or 0)
+    shift_start_time = payload.shift_start_time
+    shift_end_time = payload.shift_end_time
+
+    if shift_start_time is None and old_record.get("shift_start_time"):
+        shift_start_time = time.fromisoformat(old_record["shift_start_time"])
+    if shift_end_time is None and old_record.get("shift_end_time"):
+        shift_end_time = time.fromisoformat(old_record["shift_end_time"])
+
+    calculated = _calculate_attendance(work_date_value, check_in_at, check_out_at, shift_start_time, shift_end_time, break_minutes)
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {
+        "shift_id": payload.shift_id if payload.shift_id is not None else old_record.get("shift_id"),
+        "shift_name": payload.shift_name if payload.shift_name is not None else old_record.get("shift_name"),
+        "shift_start_time": shift_start_time.isoformat() if shift_start_time else None,
+        "shift_end_time": shift_end_time.isoformat() if shift_end_time else None,
+        "check_in_time": check_in_at.isoformat() if check_in_at else None,
+        "check_out_time": check_out_at.isoformat() if check_out_at else None,
+        "check_in_at": check_in_at.isoformat() if check_in_at else None,
+        "check_out_at": check_out_at.isoformat() if check_out_at else None,
+        "break_minutes": break_minutes,
+        "total_hours": calculated["total_hours"],
+        "work_minutes": calculated["work_minutes"],
+        "late_minutes": calculated["late_minutes"],
+        "early_leave_minutes": calculated["early_leave_minutes"],
+        "overtime_minutes": calculated["overtime_minutes"],
+        "status": "manual_adjusted",
+        "source": "ADMIN_MANUAL",
+        "is_manual": True,
+        "adjustment_type": payload.adjustment_type or old_record.get("adjustment_type"),
+        "manual_reason": payload.manual_reason,
+        "note": payload.note if payload.note is not None else old_record.get("note"),
+        "updated_by": current_user["id"],
+        "updated_at": now
+    }
+    response = supabase.table("attendance").update(update_data).eq("id", id).execute()
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Không thể cập nhật bản ghi chấm công.")
+    new_record = response.data[0]
+
+    supabase.table("attendance_audit_logs").insert({
+        "attendance_id": id,
+        "action": "UPDATE_MANUAL",
+        "old_data": old_record,
+        "new_data": new_record,
+        "reason": payload.manual_reason,
+        "changed_by": current_user["id"],
+        "changed_at": now
+    }).execute()
+    _recalculate_draft_payrolls(old_record["staff_id"], work_date_value)
+    return new_record
+
+@admin_router.get("/{id}/history", dependencies=[Depends(require_role(["admin", "manager"]))])
+def get_admin_attendance_history(id: str):
+    response = supabase.table("attendance_audit_logs")\
+        .select("*, users!changed_by(full_name)")\
+        .eq("attendance_id", id)\
+        .order("changed_at", desc=True)\
+        .execute()
+    logs = []
+    for row in (response.data or []):
+        item = dict(row)
+        item["changed_by_name"] = (row.get("users") or {}).get("full_name")
+        item.pop("users", None)
+        logs.append(item)
+    return logs

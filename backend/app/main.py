@@ -10,7 +10,9 @@ from app.branches.routes import router as branches_router
 from app.services.routes import router as services_router
 from app.orders.routes import router as orders_router
 from app.attendance.routes import router as attendance_router
+from app.attendance.routes import admin_router as admin_attendance_router
 from app.payroll.routes import router as payroll_router
+from app.staff.routes import router as staff_router
 from app.reports.routes import router as reports_router
 from app.notifications.routes import router as notifications_router
 from app.email.routes import router as email_router
@@ -57,7 +59,9 @@ app.include_router(branches_router)
 app.include_router(services_router)
 app.include_router(orders_router)
 app.include_router(attendance_router)
+app.include_router(admin_attendance_router)
 app.include_router(payroll_router)
+app.include_router(staff_router)
 app.include_router(reports_router)
 app.include_router(notifications_router)
 app.include_router(email_router)

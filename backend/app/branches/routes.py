@@ -21,6 +21,16 @@ class BranchUpdate(BaseModel):
     manager_id: Optional[str] = None
     status: Optional[str] = None
 
+@router.get("/public")
+def get_public_branches():
+    """Public branch list used by unauthenticated staff shift requests."""
+    response = supabase.table("branches")\
+        .select("id, name, address")\
+        .eq("status", "active")\
+        .order("name")\
+        .execute()
+    return response.data or []
+
 @router.get("")
 def get_branches(current_user: dict = Depends(get_current_user)):
     """List branches based on user role.

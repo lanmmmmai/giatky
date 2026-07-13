@@ -16,6 +16,7 @@ import Register from './pages/auth/Register';
 import VerifyEmail from './pages/auth/VerifyEmail';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import ShiftRegistrationRequest from './pages/auth/ShiftRegistrationRequest';
 
 import Dashboard from './pages/dashboard/Dashboard';
 import Orders from './pages/orders/Orders';
@@ -59,6 +60,7 @@ const App: React.FC = () => {
             <Route path="/verify-account" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/staff/register-shift-request" element={<ShiftRegistrationRequest />} />
           </Route>
 
           {/* Admin */}

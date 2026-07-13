@@ -12,6 +12,7 @@ export interface Branch {
 }
 
 export const getBranches = () => apiClient.get<Branch[]>('/branches').then(res => res.data);
+export const getPublicBranches = () => apiClient.get<Pick<Branch, 'id' | 'name' | 'address'>[]>('/branches/public').then(res => res.data);
 export const createBranch = (data: any) => apiClient.post<Branch>('/branches', data).then(res => res.data);
 export const updateBranch = (id: string, data: any) => apiClient.put<Branch>(`/branches/${id}`, data).then(res => res.data);
 export const deleteBranch = (id: string) => apiClient.delete(`/branches/${id}`).then(res => res.data);
