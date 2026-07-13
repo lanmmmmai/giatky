@@ -147,7 +147,7 @@ const EmailSettingsTab: React.FC = () => {
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
-          <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="accent-[#6C63FF] w-4 h-4" />
+          <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="accent-[#171717] w-4 h-4" />
           <span className="text-xs font-semibold text-slate-600">Gửi email qua SMTP (tắt = dùng Brevo API)</span>
         </label>
 

@@ -5,11 +5,13 @@ import { useAuthStore, User } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import { Plus, Edit2, ShieldAlert, CheckCircle, Ban, Trash, Mail, Phone, Clock, DollarSign, X } from 'lucide-react';
 
 const Users: React.FC = () => {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
 
   const [usersList, setUsersList] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -228,27 +230,46 @@ const Users: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
     const action = currentStatus === 'active' ? 'Khóa' : 'Kích hoạt';
     
-    if (!window.confirm(`Bạn có chắc chắn muốn ${action} tài khoản của ${name}?`)) return;
-
-    try {
-      await updateUserStatus(id, newStatus);
-      addToast(`Đã ${action} tài khoản thành công.`, 'success');
-      setUsersList(prev => prev.map(u => u.id === id ? { ...u, status: newStatus as any } : u));
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Thay đổi trạng thái thất bại.', 'error');
-    }
+    await confirm({
+      title: `${action} tài khoản?`,
+      description: currentStatus === 'active'
+        ? 'Tài khoản sẽ không thể đăng nhập cho đến khi được kích hoạt lại.'
+        : 'Tài khoản sẽ được phép đăng nhập và sử dụng hệ thống trở lại.',
+      objectName: name,
+      confirmText: `${action} tài khoản`,
+      variant: currentStatus === 'active' ? 'warning' : 'default',
+      onConfirm: async () => {
+        try {
+          await updateUserStatus(id, newStatus);
+          addToast(`Đã ${action} tài khoản thành công.`, 'success');
+          setUsersList(prev => prev.map(u => u.id === id ? { ...u, status: newStatus as any } : u));
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Thay đổi trạng thái thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const handleDeleteClick = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản của ${name}? Nghiệp vụ có liên quan sẽ bị chuyển về trạng thái khóa thay vì xóa vĩnh viễn.`)) return;
-
-    try {
-      const result = await deleteUser(id);
-      addToast(result.message || 'Xóa tài khoản thành công.', 'success');
-      loadUsers();
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Xóa tài khoản thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Xóa tài khoản nhân viên?',
+      description: 'Nếu tài khoản đã có dữ liệu nghiệp vụ liên quan, hệ thống sẽ chuyển sang trạng thái khóa thay vì xóa vĩnh viễn.',
+      objectName: name,
+      confirmText: 'Xóa tài khoản',
+      variant: 'danger',
+      disableBackdropClose: true,
+      onConfirm: async () => {
+        try {
+          const result = await deleteUser(id);
+          addToast(result.message || 'Xóa tài khoản thành công.', 'success');
+          await loadUsers();
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Xóa tài khoản thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const formatCurrency = (val: number) => {

@@ -5,11 +5,13 @@ import { useAuthStore, User } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import { Plus, Edit2, Trash2, MapPin, Phone, User as UserIcon, X, Check, CheckSquare } from 'lucide-react';
 
 const Branches: React.FC = () => {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [managers, setManagers] = useState<User[]>([]);
@@ -122,15 +124,24 @@ const Branches: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa cơ sở ${name}?`)) return;
-
-    try {
-      await deleteBranch(id);
-      addToast(`Đã xóa cơ sở ${name} thành công.`, 'success');
-      setBranches(prev => prev.filter(b => b.id !== id));
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Xóa chi nhánh thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Xóa cơ sở?',
+      description: 'Cơ sở chỉ có thể xóa khi không còn nhân viên hoặc đơn hàng liên quan.',
+      objectName: name,
+      confirmText: 'Xóa cơ sở',
+      variant: 'danger',
+      disableBackdropClose: true,
+      onConfirm: async () => {
+        try {
+          await deleteBranch(id);
+          addToast(`Đã xóa cơ sở ${name} thành công.`, 'success');
+          setBranches(prev => prev.filter(b => b.id !== id));
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Xóa chi nhánh thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   return (

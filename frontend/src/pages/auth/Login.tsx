@@ -57,7 +57,7 @@ const Login: React.FC = () => {
       <div 
         className="hidden lg:flex lg:w-[52.5%] relative flex-col justify-between p-12 text-white overflow-hidden"
         style={{
-          background: 'radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.24), transparent 34%), radial-gradient(circle at 82% 78%, rgba(155, 140, 255, 0.34), transparent 42%), #6C63FF'
+          background: 'radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 34%), radial-gradient(circle at 82% 78%, rgba(255, 255, 255, 0.08), transparent 42%), #111111'
         }}
       >
         {/* Soft abstract decorative lines */}
@@ -185,7 +185,7 @@ const Login: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-semibold text-xs shadow-[0_12px_26px_rgba(108,99,255,0.24)] transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
+              className="w-full h-11 bg-primary hover:bg-primary-dark disabled:bg-secondary text-white rounded-2xl font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-2"
               disabled={loading}
             >
               <LogIn size={13} strokeWidth={1.5} />

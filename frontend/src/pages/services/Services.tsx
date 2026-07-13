@@ -10,6 +10,7 @@ import {
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import * as XLSX from 'xlsx';
 import {
   Plus,
@@ -47,6 +48,7 @@ const defaultFormState: ServiceFormState = {
 
 const Services: React.FC = () => {
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
 
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,15 +163,24 @@ const Services: React.FC = () => {
   };
 
   const handleDelete = async (id: string, serviceName: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa dịch vụ: ${serviceName}?`)) return;
-
-    try {
-      const result = await deleteService(id);
-      addToast(result.message || 'Xóa dịch vụ thành công.', 'success');
-      await loadServices();
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Xóa dịch vụ thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Xóa dịch vụ?',
+      description: 'Dịch vụ sẽ bị xóa khỏi danh sách sử dụng. Thao tác này không thể hoàn tác.',
+      objectName: serviceName,
+      confirmText: 'Xóa dịch vụ',
+      variant: 'danger',
+      disableBackdropClose: true,
+      onConfirm: async () => {
+        try {
+          const result = await deleteService(id);
+          addToast(result.message || 'Xóa dịch vụ thành công.', 'success');
+          await loadServices();
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Xóa dịch vụ thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -696,7 +707,7 @@ const Services: React.FC = () => {
 
               <button
                 onClick={handleImportSubmit}
-                className="w-full py-3 bg-primary hover:bg-primary-dark disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-[20px] font-semibold text-xs shadow-[0_12px_26px_rgba(108,99,255,0.24)] transition-all btn-press flex items-center justify-center gap-1.5 mt-3"
+                className="w-full py-3 bg-primary hover:bg-primary-dark disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-[20px] font-semibold text-xs shadow-sm transition-all btn-press flex items-center justify-center gap-1.5 mt-3"
                 disabled={importLoading || importPreview.length === 0 || importErrors.length > 0}
               >
                 {importLoading ? 'Đang nhập dữ liệu...' : `Xác nhận nhập ${importPreview.length} dịch vụ`}

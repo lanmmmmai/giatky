@@ -131,7 +131,7 @@ const OrderDetail: React.FC = () => {
                 {
                   new: 'bg-primary/10 text-primary border-primary/20',
                   washing: 'bg-secondary/10 text-secondary border-secondary/20',
-                  drying: 'bg-purple-50 text-purple-600 border-purple-200',
+                  drying: 'bg-neutral-100 text-neutral-700 border-neutral-200',
                   ready: 'bg-amber-50 text-amber-600 border-amber-200',
                   delivered: 'bg-emerald-50 text-emerald-600 border-emerald-200',
                   cancelled: 'bg-rose-50 text-rose-600 border-rose-200',

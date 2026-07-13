@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const COLORS = ['#6C63FF', '#9B8CFF', '#22C55E', '#F59E0B', '#EF4444'];
+const COLORS = ['#171717', '#737373', '#16A34A', '#D97706', '#DC2626'];
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
@@ -122,7 +122,7 @@ const Dashboard: React.FC = () => {
 
         return (
           <div className="surface-card p-6 border-2 border-primary/20 relative overflow-hidden">
-            <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_80%_30%,rgba(108,99,255,0.14),transparent_55%)] pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_80%_30%,rgba(23,23,23,0.08),transparent_55%)] pointer-events-none" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6 justify-between">
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
@@ -198,7 +198,7 @@ const Dashboard: React.FC = () => {
 
       {/* Welcome Banner */}
       <div className="bg-white border border-[#ECECEC] text-slate-900 rounded-[24px] p-7 relative overflow-hidden shadow-card">
-        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_70%_40%,rgba(108,99,255,0.22),transparent_45%)] pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_70%_40%,rgba(23,23,23,0.10),transparent_45%)] pointer-events-none" />
         <div className="relative z-10 space-y-2 max-w-xl">
           <span className="inline-block px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-full text-[9px] font-bold uppercase tracking-wider text-primary">
             Hệ thống quản trị
@@ -271,8 +271,8 @@ const Dashboard: React.FC = () => {
                 <AreaChart data={data.daily_revenue || []} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6C63FF" stopOpacity={0.18}/>
-                      <stop offset="95%" stopColor="#6C63FF" stopOpacity={0.0}/>
+                      <stop offset="5%" stopColor="#171717" stopOpacity={0.16}/>
+                      <stop offset="95%" stopColor="#171717" stopOpacity={0.0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
@@ -283,7 +283,7 @@ const Dashboard: React.FC = () => {
                     labelClassName="text-slate-400 text-[10px] font-bold"
                     formatter={(value: any) => [formatCurrency(value), 'Doanh thu']} 
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#6C63FF" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#171717" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -434,7 +434,7 @@ const Dashboard: React.FC = () => {
                   const statusColors = {
                     new: 'bg-primary/10 text-primary border-primary/20',
                     washing: 'bg-secondary/10 text-secondary border-secondary/20',
-                    drying: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+                    drying: 'bg-neutral-100 text-neutral-700 border-neutral-200',
                     ready: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
                     delivered: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
                     cancelled: 'bg-rose-500/10 text-rose-600 border-rose-500/20',

@@ -8,13 +8,13 @@
   }
 
   body {
-    @apply bg-[#F7F8FC] text-[#222222] font-sans antialiased selection:bg-primary/15 selection:text-primary-dark;
+    @apply bg-[#F5F5F5] text-[#171717] font-sans antialiased selection:bg-neutral-200 selection:text-neutral-950;
     font-variant-numeric: tabular-nums;
   }
   
   /* Smooth focus states for all interactive elements */
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary/35 ring-offset-2 ring-offset-white transition-all;
+    @apply outline-none ring-2 ring-neutral-900/25 ring-offset-2 ring-offset-white transition-all;
   }
 }
 
@@ -24,15 +24,15 @@
   }
 
   .surface-card {
-    @apply bg-white rounded-[20px] border border-[#ECECEC] shadow-card;
+    @apply bg-white rounded-[20px] border border-[#E5E7EB] shadow-card;
   }
 
   .form-control {
-    @apply w-full rounded-[20px] border border-[#ECECEC] bg-[#F7F8FC] px-4 py-2.5 text-xs text-[#222222] outline-none transition-all duration-200 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10;
+    @apply w-full rounded-[20px] border border-[#E5E7EB] bg-white px-4 py-2.5 text-xs text-[#171717] outline-none transition-all duration-200 focus:border-neutral-900 focus:bg-white focus:ring-4 focus:ring-neutral-900/10;
   }
 
   .primary-action {
-    @apply inline-flex items-center justify-center gap-2 rounded-[20px] bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-[0_12px_26px_rgba(108,99,255,0.24)] transition-all duration-200 hover:bg-primary-dark active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-[20px] bg-neutral-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:bg-neutral-800 active:scale-[0.98];
   }
 
   .secondary-action {
@@ -51,7 +51,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary/20 rounded-full transition-colors hover:bg-primary/40;
+    @apply bg-neutral-300 rounded-full transition-colors hover:bg-neutral-500;
 }
 
 /* Double-Bezel nested container styling (Doppelrand) */
@@ -69,7 +69,7 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 30px rgba(108, 99, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 8px 30px rgba(0, 0, 0, 0.06);
 }
 
 .glass-dark {

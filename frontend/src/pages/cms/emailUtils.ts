@@ -32,7 +32,7 @@ export const generateHtmlFromText = (text: string): string => {
   return `<html>
   <body style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6; margin: 0;">
     <div style="max-width: 640px; margin: 0 auto; padding: 24px;">
-      <h2 style="color: #6C63FF; margin: 0 0 16px;">Giặt Ký</h2>
+      <h2 style="color: #171717; margin: 0 0 16px;">Giặt Ký</h2>
 ${paragraphs}
     </div>
   </body>

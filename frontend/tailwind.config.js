@@ -10,37 +10,37 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#6C63FF',
-          dark: '#5A50E8',
-          light: '#F5F6FF',
+          DEFAULT: '#111111',
+          dark: '#2A2A2A',
+          light: '#F5F5F5',
         },
         secondary: {
-          DEFAULT: '#9B8CFF',
+          DEFAULT: '#525252',
         },
         accent: {
-          cyan: '#9B8CFF',
+          cyan: '#737373',
         },
         dark: {
-          DEFAULT: '#0F172A',
+          DEFAULT: '#171717',
         },
         muted: {
-          DEFAULT: '#666666',
+          DEFAULT: '#6B7280',
         },
         success: {
-          DEFAULT: '#22C55E',
+          DEFAULT: '#16A34A',
         },
         warning: {
-          DEFAULT: '#F59E0B',
+          DEFAULT: '#D97706',
         },
         danger: {
-          DEFAULT: '#EF4444',      // Soft Rose
+          DEFAULT: '#DC2626',
         },
         border: {
-          DEFAULT: '#ECECEC',
+          DEFAULT: '#E5E7EB',
         },
         sidebar: {
-          DEFAULT: '#FFFFFF',
-          dark: '#F5F6FF',
+          DEFAULT: '#111111',
+          dark: '#181818',
         }
       },
       fontFamily: {
@@ -48,8 +48,8 @@ export default {
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
-        card: '0 8px 30px rgba(0, 0, 0, 0.06)',
-        diffusion: '0 24px 60px rgba(108, 99, 255, 0.10)',
+        card: '0 8px 24px rgba(0, 0, 0, 0.05)',
+        diffusion: '0 20px 50px rgba(0, 0, 0, 0.10)',
       }
     },
   },

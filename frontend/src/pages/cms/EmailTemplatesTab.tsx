@@ -10,6 +10,7 @@ import { sanitizeHtml, generateHtmlFromText } from './emailUtils';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import {
   Mail, Eye, Edit3, Trash2, Copy, Send, Plus, Save, X, Monitor, Smartphone,
   Bold, Italic, Underline, Palette, Type, Link2, Image as ImageIcon, Table2,
@@ -33,7 +34,7 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
   { icon: <Underline size={13} />, title: 'Underline', wrap: ['<u>', '</u>'] },
   {
     icon: <Palette size={13} />, title: 'Color',
-    prompt: { message: 'Mã màu (VD: #6C63FF hoặc red):', build: (v) => [`<span style="color: ${v};">`, '</span>'] },
+    prompt: { message: 'Mã màu (VD: #171717 hoặc red):', build: (v) => [`<span style="color: ${v};">`, '</span>'] },
   },
   {
     icon: <Type size={13} />, title: 'Font Size',
@@ -41,7 +42,7 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
   },
   {
     icon: <Link2 size={13} />, title: 'Link',
-    prompt: { message: 'URL liên kết:', build: (v, sel) => `<a href="${v}" style="color: #6C63FF;">${sel || 'liên kết'}</a>` },
+    prompt: { message: 'URL liên kết:', build: (v, sel) => `<a href="${v}" style="color: #171717;">${sel || 'liên kết'}</a>` },
   },
   {
     icon: <ImageIcon size={13} />, title: 'Image',
@@ -65,7 +66,7 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
     prompt: {
       message: 'URL khi bấm nút:',
       build: (v, sel) =>
-        `<a href="${v}" style="display: inline-block; background: #6C63FF; color: #ffffff; padding: 12px 28px; border-radius: 12px; text-decoration: none; font-weight: bold;">${sel || 'Xem chi tiết'}</a>`,
+        `<a href="${v}" style="display: inline-block; background: #171717; color: #ffffff; padding: 12px 28px; border-radius: 12px; text-decoration: none; font-weight: bold;">${sel || 'Xem chi tiết'}</a>`,
     },
   },
 ];
@@ -74,6 +75,7 @@ const inputCls = 'w-full px-3 py-2 border border-slate-200 rounded-2xl text-xs o
 
 const EmailTemplatesTab: React.FC = () => {
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [triggers, setTriggers] = useState<EmailTrigger[]>([]);
@@ -251,14 +253,24 @@ const EmailTemplatesTab: React.FC = () => {
   /* ─────────────── Row actions ─────────────── */
 
   const handleDelete = async (tmpl: EmailTemplate) => {
-    if (!window.confirm(`Xóa mẫu email "${tmpl.name}"? Hành động này không thể hoàn tác.`)) return;
-    try {
-      await deleteEmailTemplate(tmpl.id);
-      addToast('Đã xóa mẫu email.', 'success');
-      loadData();
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Xóa mẫu email thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Xóa mẫu email?',
+      description: 'Mẫu email này sẽ bị xóa khỏi hệ thống và không thể hoàn tác.',
+      objectName: tmpl.name,
+      confirmText: 'Xóa mẫu email',
+      variant: 'danger',
+      disableBackdropClose: true,
+      onConfirm: async () => {
+        try {
+          await deleteEmailTemplate(tmpl.id);
+          addToast('Đã xóa mẫu email.', 'success');
+          await loadData();
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Xóa mẫu email thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const handleDuplicate = async (tmpl: EmailTemplate) => {
@@ -269,6 +281,33 @@ const EmailTemplatesTab: React.FC = () => {
     } catch (err: any) {
       addToast(err.response?.data?.detail || 'Nhân bản mẫu thất bại.', 'error');
     }
+  };
+
+  const handleGenerateHtmlFromText = async () => {
+    if (!form.body_text.trim()) {
+      addToast('Vui lòng nhập nội dung văn bản thường trước.', 'warning');
+      return;
+    }
+
+    const applyGeneratedHtml = () => {
+      setForm(p => ({ ...p, body_html: generateHtmlFromText(p.body_text) }));
+      addToast('Đã sinh mã HTML từ nội dung văn bản.', 'success');
+    };
+
+    if (!form.body_html.trim()) {
+      applyGeneratedHtml();
+      return;
+    }
+
+    await confirm({
+      title: 'Thay thế nội dung HTML?',
+      description: 'Nội dung HTML hiện tại sẽ được thay bằng phiên bản sinh từ văn bản thường.',
+      confirmText: 'Tạo HTML',
+      variant: 'warning',
+      onConfirm: async () => {
+        applyGeneratedHtml();
+      },
+    });
   };
 
   const openPreviewModal = async (tmpl: EmailTemplate) => {
@@ -593,7 +632,7 @@ const EmailTemplatesTab: React.FC = () => {
                 {formErrors.subject && <p className="text-[10px] text-rose-600 font-semibold">{formErrors.subject}</p>}
               </div>
               <label className="flex items-center gap-2 pb-2 cursor-pointer select-none">
-                <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="accent-[#6C63FF] w-4 h-4" />
+                <input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="accent-[#171717] w-4 h-4" />
                 <span className="text-xs font-semibold text-slate-600">Kích hoạt (Active)</span>
               </label>
             </div>
@@ -603,17 +642,12 @@ const EmailTemplatesTab: React.FC = () => {
           <div className="bg-white p-5 rounded-[20px] border border-[#ECECEC] shadow-card space-y-3">
             <div className="flex justify-between items-center border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-violet-50 text-violet-600 rounded-lg"><Globe size={16} /></span>
+                <span className="p-1.5 bg-neutral-100 text-neutral-700 rounded-lg"><Globe size={16} /></span>
                 <h4 className="font-bold text-slate-800 text-xs">Trình soạn email (HTML)</h4>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  if (!form.body_text.trim()) { addToast('Vui lòng nhập nội dung văn bản thường trước.', 'warning'); return; }
-                  if (form.body_html.trim() && !window.confirm('Nội dung HTML hiện tại sẽ bị thay thế. Tiếp tục?')) return;
-                  setForm(p => ({ ...p, body_html: generateHtmlFromText(p.body_text) }));
-                  addToast('Đã sinh mã HTML từ nội dung văn bản.', 'success');
-                }}
+                onClick={handleGenerateHtmlFromText}
                 className="px-3 py-1.5 bg-primary/10 hover:bg-primary/15 text-primary text-[11px] font-bold rounded-2xl transition-all"
               >
                 Tạo HTML từ text

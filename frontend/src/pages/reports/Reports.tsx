@@ -10,7 +10,7 @@ import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import * as XLSX from 'xlsx';
 import { Calendar, Filter, CircleDollarSign, BarChart3, TrendingUp, Download, Users, Briefcase } from 'lucide-react';
 
-const COLORS = ['#6C63FF', '#9B8CFF', '#22C55E', '#F59E0B', '#EF4444', '#A78BFA'];
+const COLORS = ['#171717', '#737373', '#16A34A', '#D97706', '#DC2626', '#A3A3A3'];
 
 const Reports: React.FC = () => {
   const { user } = useAuthStore();

@@ -112,7 +112,7 @@ const RoleLoginPage: React.FC<RoleLoginPageProps> = ({ role }) => {
       <div 
         className="hidden lg:flex lg:w-[52.5%] relative flex-col justify-between p-12 text-white overflow-hidden"
         style={{
-          background: 'radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.24), transparent 34%), radial-gradient(circle at 82% 78%, rgba(155, 140, 255, 0.34), transparent 42%), #6C63FF'
+          background: 'radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 34%), radial-gradient(circle at 82% 78%, rgba(255, 255, 255, 0.08), transparent 42%), #111111'
         }}
       >
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">

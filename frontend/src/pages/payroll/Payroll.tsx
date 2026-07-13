@@ -7,11 +7,13 @@ import { useAuthStore, User } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import { CircleDollarSign, PlusCircle, Check, Filter, CreditCard, Clock, X } from 'lucide-react';
 
 const Payroll: React.FC = () => {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
 
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -142,27 +144,43 @@ const Payroll: React.FC = () => {
   };
 
   const handleConfirm = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xác nhận bảng lương cho nhân viên ${name}? Hành động này sẽ gửi email và thông báo lương tới nhân viên.`)) return;
-
-    try {
-      await confirmPayroll(id);
-      addToast('Xác nhận bảng lương thành công.', 'success');
-      setPayrolls(prev => prev.map(p => p.id === id ? { ...p, status: 'confirmed' } : p));
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Xác nhận thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Chốt bảng lương?',
+      description: 'Hành động này sẽ xác nhận bảng lương, gửi email và thông báo lương tới nhân viên.',
+      objectName: name,
+      confirmText: 'Chốt bảng lương',
+      variant: 'warning',
+      onConfirm: async () => {
+        try {
+          await confirmPayroll(id);
+          addToast('Xác nhận bảng lương thành công.', 'success');
+          setPayrolls(prev => prev.map(p => p.id === id ? { ...p, status: 'confirmed' } : p));
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Xác nhận thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const handlePay = async (id: string, name: string) => {
-    if (!window.confirm(`Xác nhận đã thanh toán/chi trả lương cho nhân viên ${name}?`)) return;
-
-    try {
-      await payPayroll(id);
-      addToast('Cập nhật trạng thái Đã thanh toán lương thành công.', 'success');
-      setPayrolls(prev => prev.map(p => p.id === id ? { ...p, status: 'paid' } : p));
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Thanh toán lương thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Xác nhận chi trả lương?',
+      description: 'Bảng lương sẽ được chuyển sang trạng thái đã thanh toán.',
+      objectName: name,
+      confirmText: 'Xác nhận chi trả',
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          await payPayroll(id);
+          addToast('Cập nhật trạng thái Đã thanh toán lương thành công.', 'success');
+          setPayrolls(prev => prev.map(p => p.id === id ? { ...p, status: 'paid' } : p));
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Thanh toán lương thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const toDateTimeIso = (workDate: string, clock?: string, addDay = false) => {

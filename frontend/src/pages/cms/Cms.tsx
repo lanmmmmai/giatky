@@ -15,6 +15,7 @@ import EmailSettingsTab from './EmailSettingsTab';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import {
   Globe, Mail, Eye, Edit3, ClipboardList, CheckCircle, XCircle, Save,
   Plus, Trash2, UploadCloud, Image as ImageIcon, X, Search, Settings2, Facebook,
@@ -92,6 +93,7 @@ const FacebookPreview: React.FC<{ data: SeoPreviewData }> = ({ data }) => (
 
 const Cms: React.FC = () => {
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'seo' | 'templates' | 'settings' | 'logs'>('seo');
   const [loading, setLoading] = useState(true);
 
@@ -322,14 +324,24 @@ const Cms: React.FC = () => {
   };
 
   const handleDeleteSeo = async (s: SeoSettings) => {
-    if (!window.confirm(`Xóa cấu hình SEO của domain "${s.domain}"? Hành động này không thể hoàn tác.`)) return;
-    try {
-      await deleteSeoSettings(s.id);
-      addToast('Đã xóa cấu hình SEO.', 'success');
-      loadData();
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Xóa cấu hình SEO thất bại.', 'error');
-    }
+    await confirm({
+      title: 'Xóa cấu hình SEO?',
+      description: 'Cấu hình SEO của domain này sẽ bị xóa và không thể hoàn tác.',
+      objectName: s.domain,
+      confirmText: 'Xóa cấu hình',
+      variant: 'danger',
+      disableBackdropClose: true,
+      onConfirm: async () => {
+        try {
+          await deleteSeoSettings(s.id);
+          addToast('Đã xóa cấu hình SEO.', 'success');
+          await loadData();
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Xóa cấu hình SEO thất bại.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const previewImageUrl = pendingImage ? pendingImage.public_url : (imageRemoved ? '' : savedImageUrl);

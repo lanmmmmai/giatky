@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { useConfirm } from '../../components/ConfirmDialog';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
@@ -23,6 +24,7 @@ import {
 const Orders: React.FC = () => {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const confirm = useConfirm();
   const base = `/${user?.role}`;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -72,15 +74,24 @@ const Orders: React.FC = () => {
   };
 
   const handleDelete = async (id: string, code: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng ${code}?`)) return;
-
-    try {
-      await deleteOrder(id);
-      addToast(`Xóa đơn hàng ${code} thành công.`, 'success');
-      setOrders(prev => prev.filter(o => o.id !== id));
-    } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Không thể xóa đơn hàng.', 'error');
-    }
+    await confirm({
+      title: 'Xóa đơn hàng?',
+      description: 'Đơn hàng sẽ bị xóa vĩnh viễn khỏi danh sách. Vui lòng kiểm tra kỹ trước khi xác nhận.',
+      objectName: code,
+      confirmText: 'Xóa đơn hàng',
+      variant: 'danger',
+      disableBackdropClose: true,
+      onConfirm: async () => {
+        try {
+          await deleteOrder(id);
+          addToast(`Xóa đơn hàng ${code} thành công.`, 'success');
+          setOrders(prev => prev.filter(o => o.id !== id));
+        } catch (err: any) {
+          addToast(err.response?.data?.detail || 'Không thể xóa đơn hàng.', 'error');
+          throw err;
+        }
+      },
+    });
   };
 
   const handleStatusChange = async (id: string, newStatus: string, code: string) => {
@@ -221,7 +232,7 @@ const Orders: React.FC = () => {
                   const statusColors = {
                     new: 'bg-primary/10 text-primary border-primary/20',
                     washing: 'bg-secondary/10 text-secondary border-secondary/20',
-                    drying: 'bg-purple-50 text-purple-600 border-purple-200',
+                    drying: 'bg-neutral-100 text-neutral-700 border-neutral-200',
                     ready: 'bg-amber-50 text-amber-600 border-amber-200',
                     delivered: 'bg-emerald-50 text-emerald-600 border-emerald-200',
                     cancelled: 'bg-rose-50 text-rose-600 border-rose-200',

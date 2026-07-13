@@ -8,6 +8,7 @@ import AuthLayout from './layouts/AuthLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastContainer from './components/ToastContainer';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ConfirmDialogProvider } from './components/ConfirmDialog';
 
 // Pages
 import Login from './pages/auth/Login';
@@ -47,8 +48,9 @@ const RootRedirect: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <Routes>
+      <ConfirmDialogProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public Auth routes */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Navigate to="/admin/login" replace />} />
@@ -142,9 +144,10 @@ const App: React.FC = () => {
 
           <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<RootRedirect />} />
-        </Routes>
-      </BrowserRouter>
-      <ToastContainer />
+          </Routes>
+        </BrowserRouter>
+        <ToastContainer />
+      </ConfirmDialogProvider>
     </ErrorBoundary>
   );
 };
