@@ -8,6 +8,7 @@ import {
   getJobApplicationLogs,
   getJobApplications,
   JobApplication,
+  JobShift,
   Post,
   PostPayload,
   publishPost,
@@ -47,6 +48,15 @@ const statusLabels: Record<string, string> = {
   REJECTED: 'Đã từ chối',
   ARCHIVED: 'Lưu hồ sơ',
 };
+
+// Danh sách ca chuẩn để admin chọn khi tạo bài tuyển dụng.
+// 1 ca → ứng viên được tự gán; ≥2 ca → form ứng tuyển bắt buộc chọn.
+const JOB_SHIFT_OPTIONS: JobShift[] = [
+  { id: 'morning', name: 'Ca sáng', start_time: '07:00', end_time: '12:00' },
+  { id: 'afternoon', name: 'Ca chiều', start_time: '12:00', end_time: '17:00' },
+  { id: 'evening', name: 'Ca tối', start_time: '17:00', end_time: '22:00' },
+  { id: 'office', name: 'Giờ hành chính', start_time: '08:00', end_time: '17:00' },
+];
 
 const emptyForm: PostPayload = {
   title: '',
@@ -179,7 +189,7 @@ const ContentAdmin: React.FC = () => {
       const next = { ...prev, [field]: value };
       if (field === 'title' && !editingId && !prev.slug) next.slug = slugify(value);
       if (field === 'post_type' && value === 'recruitment' && !next.job_post) {
-        next.job_post = { job_title: next.title, employment_type: 'shift', allow_online_application: true, branch_ids: [] };
+        next.job_post = { job_title: next.title, employment_type: 'shift', allow_online_application: true, branch_ids: [], shifts: [] };
         next.allow_application_form = true;
       }
       if (field === 'post_type' && value !== 'recruitment') {
@@ -194,7 +204,7 @@ const ContentAdmin: React.FC = () => {
     setForm(prev => ({
       ...prev,
       job_post: {
-        ...(prev.job_post || { allow_online_application: true, branch_ids: [] }),
+        ...(prev.job_post || { allow_online_application: true, branch_ids: [], shifts: [] }),
         [field]: value,
       },
     }));
@@ -555,7 +565,6 @@ const ContentAdmin: React.FC = () => {
                     <input placeholder="Tên vị trí" value={form.job_post?.job_title || ''} onChange={e => updateJob('job_title', e.target.value)} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <input placeholder="Phòng ban" value={form.job_post?.department || ''} onChange={e => updateJob('department', e.target.value)} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <select value={form.job_post?.employment_type || ''} onChange={e => updateJob('employment_type', e.target.value)} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs bg-white"><option value="">Hình thức</option><option value="full_time">Toàn thời gian</option><option value="part_time">Bán thời gian</option><option value="shift">Theo ca</option><option value="seasonal">Thời vụ</option><option value="internship">Thực tập</option></select>
-                    <input placeholder="Ca làm việc" value={form.job_post?.shift_name || ''} onChange={e => updateJob('shift_name', e.target.value)} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <input placeholder="Mức lương" value={form.job_post?.salary_text || ''} onChange={e => updateJob('salary_text', e.target.value)} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <input type="number" placeholder="Số lượng" value={form.job_post?.quantity || ''} onChange={e => updateJob('quantity', Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <input type="date" value={form.job_post?.application_deadline || ''} onChange={e => updateJob('application_deadline', e.target.value)} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
@@ -566,6 +575,33 @@ const ContentAdmin: React.FC = () => {
                     <textarea placeholder="Quyền lợi" value={form.job_post?.benefits || ''} onChange={e => updateJob('benefits', e.target.value)} rows={3} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <textarea placeholder="Mô tả công việc" value={form.job_post?.responsibilities || ''} onChange={e => updateJob('responsibilities', e.target.value)} rows={3} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <textarea placeholder="Yêu cầu công việc" value={form.job_post?.requirements || ''} onChange={e => updateJob('requirements', e.target.value)} rows={3} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-slate-600">Ca tuyển dụng</div>
+                    <p className="text-[10px] text-slate-400">Chọn một hoặc nhiều ca. Nếu chỉ chọn 1 ca, ứng viên được tự gán ca đó; từ 2 ca trở lên, form ứng tuyển sẽ bắt buộc ứng viên chọn ca mong muốn.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+                      {JOB_SHIFT_OPTIONS.map(shift => {
+                        const checked = (form.job_post?.shifts || []).some(s => s.id === shift.id);
+                        return (
+                          <label key={shift.id} className="flex items-center gap-2 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e => {
+                                const current = form.job_post?.shifts || [];
+                                updateJob('shifts', e.target.checked
+                                  ? [...current, shift]
+                                  : current.filter(s => s.id !== shift.id));
+                              }}
+                            />
+                            <span>{shift.name} <span className="text-slate-400">{shift.start_time}–{shift.end_time}</span></span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {form.job_post?.employment_type === 'shift' && (form.job_post?.shifts || []).length === 0 && (
+                      <p className="text-[10px] font-semibold text-amber-600">Vị trí làm việc theo ca cần chọn ít nhất một ca trước khi xuất bản.</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-slate-600">Cơ sở tuyển dụng</div>

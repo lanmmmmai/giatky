@@ -8,6 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, EmailStr, Field
 
+from app.common.db_features import has_column
 from app.common.dependencies import get_current_user, require_role
 from app.config import settings
 from app.database import supabase
@@ -106,11 +107,89 @@ def ensure_unique_slug(base_slug: str, exclude_id: Optional[str] = None) -> str:
         counter += 1
 
 
+TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+SHIFT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+
+
+class ShiftPayload(BaseModel):
+    """Một ca tuyển dụng có cấu trúc: id ổn định + tên + khung giờ."""
+    id: str
+    name: str
+    start_time: str
+    end_time: str
+
+
+def validate_shifts(shifts: List["ShiftPayload"]) -> List[dict]:
+    cleaned = []
+    seen_ids = set()
+    for shift in shifts or []:
+        sid = shift.id.strip().lower()
+        name = shift.name.strip()
+        if not SHIFT_ID_RE.match(sid):
+            raise HTTPException(status_code=400, detail="Mã ca không hợp lệ (chỉ chữ thường, số, gạch ngang).")
+        if sid in seen_ids:
+            raise HTTPException(status_code=400, detail="Danh sách ca tuyển dụng bị trùng mã ca.")
+        if not name:
+            raise HTTPException(status_code=400, detail="Tên ca không được để trống.")
+        if not TIME_RE.match(shift.start_time) or not TIME_RE.match(shift.end_time):
+            raise HTTPException(status_code=400, detail="Giờ ca phải theo định dạng HH:MM.")
+        seen_ids.add(sid)
+        cleaned.append({"id": sid, "name": name, "start_time": shift.start_time, "end_time": shift.end_time})
+    return cleaned
+
+
+def shift_label(shift: dict) -> str:
+    return f"{shift.get('name')} {shift.get('start_time')}-{shift.get('end_time')}"
+
+
+def resolve_application_branch(job: dict, preferred_branch_id: Optional[str]) -> tuple[Optional[str], str]:
+    """Xác định cơ sở ứng tuyển từ bài tuyển dụng (nguồn tin cậy duy nhất).
+
+    Trả về (branch_id, branch_name). Không tin ID client khi bài chỉ có 1 cơ sở.
+    Raise 422 khi bài có ≥2 cơ sở mà client không chọn hoặc chọn ngoài danh sách.
+    """
+    job_branches = job.get("branches") or []
+    branch_by_id = {b["branch_id"]: b for b in job_branches}
+    if len(job_branches) == 1:
+        return job_branches[0]["branch_id"], job_branches[0].get("branch_name") or ""
+    if len(job_branches) >= 2:
+        if not preferred_branch_id:
+            raise HTTPException(status_code=422, detail="Vui lòng chọn cơ sở mong muốn.")
+        if preferred_branch_id not in branch_by_id:
+            raise HTTPException(status_code=422, detail="Cơ sở đã chọn không thuộc tin tuyển dụng này.")
+        return preferred_branch_id, branch_by_id[preferred_branch_id].get("branch_name") or ""
+    return None, ""  # bài không gắn cơ sở → không nhận cơ sở từ client
+
+
+def resolve_application_shift(
+    job: dict, preferred_shift_id: Optional[str], legacy_shift_text: Optional[str]
+) -> tuple[Optional[str], Optional[str]]:
+    """Xác định ca ứng tuyển từ bài tuyển dụng.
+
+    Trả về (shift_id, shift_label). Tự gán khi bài có đúng 1 ca; raise 422 khi bài
+    có ≥2 ca mà client không chọn hoặc chọn ngoài danh sách. Bài cũ chưa có ca cấu
+    trúc thì giữ text tự do làm nhãn tham khảo, shift_id = None.
+    """
+    job_shifts = job.get("shifts") or []
+    shift_by_id = {s["id"]: s for s in job_shifts if isinstance(s, dict) and s.get("id")}
+    if len(shift_by_id) == 1:
+        only_shift = next(iter(shift_by_id.values()))
+        return only_shift["id"], shift_label(only_shift)
+    if len(shift_by_id) >= 2:
+        if not preferred_shift_id:
+            raise HTTPException(status_code=422, detail="Vui lòng chọn ca làm việc mong muốn.")
+        if preferred_shift_id not in shift_by_id:
+            raise HTTPException(status_code=422, detail="Ca đã chọn không thuộc tin tuyển dụng này.")
+        return preferred_shift_id, shift_label(shift_by_id[preferred_shift_id])
+    return None, (legacy_shift_text or "").strip() or (job.get("shift_name") or "").strip() or None
+
+
 class JobPostPayload(BaseModel):
     job_title: Optional[str] = None
     department: Optional[str] = None
     employment_type: Optional[str] = None
     shift_name: Optional[str] = None
+    shifts: List[ShiftPayload] = Field(default_factory=list)
     salary_text: Optional[str] = None
     quantity: Optional[int] = Field(default=None, ge=0)
     experience: Optional[str] = None
@@ -164,17 +243,30 @@ def validate_post_payload(payload: PostPayload) -> None:
         raise HTTPException(status_code=400, detail="Trạng thái bài viết không hợp lệ.")
     if payload.post_type == "recruitment" and not payload.job_post:
         raise HTTPException(status_code=400, detail="Bài tuyển dụng cần thông tin tuyển dụng.")
+    # Vị trí làm việc theo ca bắt buộc phải chọn ca trước khi xuất bản
+    if (
+        payload.post_type == "recruitment"
+        and payload.status == "published"
+        and payload.job_post
+        and payload.job_post.employment_type == "shift"
+        and not payload.job_post.shifts
+        and not (payload.job_post.shift_name or "").strip()
+    ):
+        raise HTTPException(status_code=400, detail="Vị trí làm việc theo ca cần chọn ít nhất một ca tuyển dụng trước khi xuất bản.")
 
 
 def save_job_post(post_id: str, job_payload: Optional[JobPostPayload]) -> None:
     if not job_payload:
         supabase.table("job_posts").delete().eq("post_id", post_id).execute()
         return
-    data = job_payload.model_dump(exclude={"branch_ids"})
+    data = job_payload.model_dump(exclude={"branch_ids", "shifts"})
     data["post_id"] = post_id
     data["receiving_email"] = str(job_payload.receiving_email) if job_payload.receiving_email else None
     if data.get("application_deadline"):
         data["application_deadline"] = data["application_deadline"].isoformat()
+    # Ca tuyển dụng có cấu trúc — cột chỉ tồn tại sau job_post_shifts_migration.sql
+    if has_column("job_posts", "shifts"):
+        data["shifts"] = validate_shifts(job_payload.shifts)
 
     existing = supabase.table("job_posts").select("id").eq("post_id", post_id).limit(1).execute()
     if existing.data:
@@ -316,6 +408,7 @@ def submit_job_application(
     address: Optional[str] = Form(None),
     preferred_branch_id: Optional[str] = Form(None),
     preferred_shift: Optional[str] = Form(None),
+    preferred_shift_id: Optional[str] = Form(None),
     experience: Optional[str] = Form(None),
     education: Optional[str] = Form(None),
     available_date: Optional[str] = Form(None),
@@ -326,10 +419,16 @@ def submit_job_application(
 ):
     if not agreed_terms:
         raise HTTPException(status_code=400, detail="Bạn cần đồng ý điều khoản xử lý dữ liệu.")
-    if not full_name.strip():
-        raise HTTPException(status_code=400, detail="Họ tên là bắt buộc.")
+    if len(full_name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Họ tên phải có ít nhất 2 ký tự.")
     if not re.match(r"^(0|\+84)[0-9]{8,10}$", phone.replace(" ", "")):
         raise HTTPException(status_code=400, detail="Số điện thoại không đúng định dạng.")
+    if date_of_birth:
+        try:
+            if date.fromisoformat(date_of_birth) >= date.today():
+                raise HTTPException(status_code=400, detail="Ngày sinh không hợp lệ.")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ngày sinh không đúng định dạng.")
 
     post_res = supabase.table("posts").select(public_post_select()).eq("id", post_id).is_("deleted_at", "null").limit(1).execute()
     if not post_res.data:
@@ -342,6 +441,10 @@ def submit_job_application(
         raise HTTPException(status_code=400, detail="Tin tuyển dụng này không nhận hồ sơ trực tuyến.")
     if job.get("application_deadline") and date.fromisoformat(job["application_deadline"]) < date.today():
         raise HTTPException(status_code=400, detail="Tin tuyển dụng đã hết hạn ứng tuyển.")
+
+    # Cơ sở & ca: dữ liệu chính thức lấy từ bài tuyển dụng, không tin ID/text client
+    preferred_branch_id, branch_name = resolve_application_branch(job, preferred_branch_id)
+    preferred_shift_id, resolved_shift_label = resolve_application_shift(job, preferred_shift_id, preferred_shift)
 
     cv_content = validate_cv(cv)
     application_code = f"GKCV-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
@@ -356,7 +459,8 @@ def submit_job_application(
         "email": str(email) if email else None,
         "address": address,
         "preferred_branch_id": preferred_branch_id,
-        "preferred_shift": preferred_shift,
+        # preferred_shift lưu label đã resolve từ dữ liệu bài — không phải text client
+        "preferred_shift": resolved_shift_label,
         "experience": experience,
         "education": education,
         "available_date": available_date or None,
@@ -368,6 +472,8 @@ def submit_job_application(
         "created_at": now,
         "updated_at": now,
     }
+    if has_column("job_applications", "preferred_shift_id"):
+        insert_data["preferred_shift_id"] = preferred_shift_id
     res = supabase.table("job_applications").insert(insert_data).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="Không thể lưu hồ sơ ứng tuyển.")
@@ -380,15 +486,12 @@ def submit_job_application(
         "created_at": now,
     }).execute()
 
-    branch_name = ""
-    if preferred_branch_id:
-        branch_res = supabase.table("branches").select("name").eq("id", preferred_branch_id).limit(1).execute()
-        branch_name = branch_res.data[0]["name"] if branch_res.data else ""
     email_data = {
         "full_name": full_name,
         "application_code": application_code,
         "job_title": job.get("job_title") or post["title"],
         "branch_name": branch_name,
+        "shift_name": resolved_shift_label or "",
         "application_date": datetime.utcnow().strftime("%d/%m/%Y"),
         "job_url": f"{settings.FRONTEND_URL}/bai-viet/{post['slug']}",
         "support_email": settings.MAIL_FROM_EMAIL or "",
@@ -417,6 +520,9 @@ def submit_job_application(
     return {
         "message": "Gửi hồ sơ ứng tuyển thành công. Bộ phận tuyển dụng sẽ liên hệ với bạn trong thời gian sớm nhất.",
         "application": application,
+        "job_title": job.get("job_title") or post["title"],
+        "branch_name": branch_name,
+        "shift_name": resolved_shift_label or "",
     }
 
 

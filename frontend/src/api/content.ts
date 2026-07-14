@@ -3,12 +3,21 @@ import apiClient from './client';
 export type PostType = 'news' | 'recruitment' | 'announcement' | 'guide' | 'other';
 export type PostStatus = 'draft' | 'pending' | 'published' | 'hidden' | 'expired';
 
+export interface JobShift {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+}
+
 export interface JobPost {
   id?: string;
   job_title?: string;
   department?: string;
   employment_type?: 'full_time' | 'part_time' | 'shift' | 'seasonal' | 'internship' | '';
   shift_name?: string;
+  /** Ca tuyển dụng có cấu trúc — nguồn duy nhất cho form ứng tuyển */
+  shifts?: JobShift[];
   salary_text?: string;
   quantity?: number;
   experience?: string;
@@ -69,6 +78,7 @@ export interface JobApplication {
   post_title?: string;
   branch_name?: string;
   preferred_shift?: string;
+  preferred_shift_id?: string;
   status: string;
   submitted_at: string;
   internal_note?: string;
