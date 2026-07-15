@@ -206,18 +206,33 @@ def _ensure_no_overlap(staff_id: str, work_date_value: date, check_in_at: Option
         if check_in_at < end and check_out_at > start:
             raise HTTPException(status_code=400, detail="Phiên chấm công bị chồng giờ với phiên đã có.")
 
+def _hydrate_attendance_staff(records: List[dict]) -> List[dict]:
+    staff_ids = sorted({row.get("staff_id") for row in records if row.get("staff_id")})
+    if not staff_ids:
+        return records
+    try:
+        user_res = supabase.table("users").select("id, full_name, username, role").in_("id", staff_ids).execute()
+        users_by_id = {row["id"]: row for row in (user_res.data or [])}
+    except Exception as exc:
+        logger.warning("Không thể hydrate users cho attendance theo staff_id: %s", exc)
+        return records
+
+    hydrated = []
+    for row in records:
+        item = dict(row)
+        staff = users_by_id.get(item.get("staff_id")) or {}
+        item["staff_name"] = staff.get("full_name")
+        item["staff_username"] = staff.get("username")
+        item["staff_role"] = staff.get("role")
+        hydrated.append(item)
+    return hydrated
+
+
 def _format_admin_attendance(record: dict):
-    staff = record.get("users") or {}
     branch = record.get("branches") or {}
-    updated_by_user = record.get("updated_by_user") or {}
     item = dict(record)
-    item["staff_name"] = staff.get("full_name")
-    item["staff_username"] = staff.get("username")
     item["branch_name"] = branch.get("name")
-    item["updated_by_name"] = updated_by_user.get("full_name")
-    item.pop("users", None)
     item.pop("branches", None)
-    item.pop("updated_by_user", None)
     return item
 
 def _recalculate_draft_payrolls(staff_id: str, work_date_value: date):
@@ -363,7 +378,7 @@ def get_attendance_list(
 ):
     """Retrieve attendance lists for managers and admin."""
     role = current_user["role"]
-    query = supabase.table("attendance").select("*, branches(name), users!staff_id(full_name, role)").order("check_in_time", desc=True)
+    query = supabase.table("attendance").select("*, branches(name)").order("check_in_time", desc=True)
     
     if role == "manager":
         # Get manager's branches
@@ -390,18 +405,15 @@ def get_attendance_list(
     formatted = []
     for att in (response.data or []):
         b_name = att.get("branches", {}).get("name") if att.get("branches") else None
-        staff_name = att.get("users", {}).get("full_name") if att.get("users") else None
         
         att_copy = dict(att)
         att_copy["branch_name"] = b_name
-        att_copy["staff_name"] = staff_name
         
         if "branches" in att_copy: del att_copy["branches"]
-        if "users" in att_copy: del att_copy["users"]
         
         formatted.append(att_copy)
         
-    return formatted
+    return _hydrate_attendance_staff(formatted)
 
 @router.get("/summary")
 def get_attendance_summary(current_user: dict = Depends(get_current_user)):
@@ -457,7 +469,7 @@ def get_admin_attendance(
     current_user: dict = Depends(get_current_user)
 ):
     query = supabase.table("attendance")\
-        .select("*, branches(name), users!staff_id(full_name, username)")\
+        .select("*, branches(name)")\
         .order("work_date", desc=True)\
         .range(max(page - 1, 0) * page_size, max(page, 1) * page_size - 1)
 
@@ -491,7 +503,7 @@ def get_admin_attendance(
         query = query.eq("source", source)
 
     response = query.execute()
-    records = [_format_admin_attendance(row) for row in (response.data or [])]
+    records = _hydrate_attendance_staff([_format_admin_attendance(row) for row in (response.data or [])])
     if search:
         needle = search.lower().strip()
         records = [
@@ -577,12 +589,13 @@ def create_manual_attendance(payload: ManualAttendancePayload, current_user: dic
 @admin_router.get("/{id}", dependencies=[Depends(require_role(["admin", "manager"]))])
 def get_admin_attendance_detail(id: str):
     response = supabase.table("attendance")\
-        .select("*, branches(name), users!staff_id(full_name, username)")\
+        .select("*, branches(name)")\
         .eq("id", id)\
         .execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="Không tìm thấy bản ghi chấm công.")
-    return _format_admin_attendance(response.data[0])
+    records = _hydrate_attendance_staff([_format_admin_attendance(response.data[0])])
+    return records[0]
 
 @admin_router.put("/{id}", dependencies=[Depends(require_role(["admin", "manager"]))])
 def update_admin_attendance(id: str, payload: AttendanceUpdatePayload, current_user: dict = Depends(get_current_user)):

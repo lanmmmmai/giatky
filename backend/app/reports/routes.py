@@ -121,17 +121,23 @@ def get_dashboard_summary(current_user: dict = Depends(get_current_user)):
             branch_res = supabase.table("branches").select("id").eq("manager_id", current_user["id"]).execute()
             m_branch_ids = [b["id"] for b in (branch_res.data or [])]
         if m_branch_ids:
-            att_res = supabase.table("attendance").select("staff_id", "users!staff_id(full_name)")\
+            att_res = supabase.table("attendance").select("staff_id")\
                 .in_("branch_id", m_branch_ids)\
                 .eq("work_date", today_str)\
                 .eq("status", "checked_in")\
                 .execute()
-                
+            staff_ids = sorted({att["staff_id"] for att in (att_res.data or []) if att.get("staff_id")})
+            users_by_id = {}
+            if staff_ids:
+                user_res = supabase.table("users").select("id, full_name").in_("id", staff_ids).execute()
+                users_by_id = {row["id"]: row for row in (user_res.data or [])}
+
             active_staff = []
             for att in (att_res.data or []):
+                staff = users_by_id.get(att["staff_id"]) or {}
                 active_staff.append({
                     "id": att["staff_id"],
-                    "full_name": att.get("users", {}).get("full_name") if att.get("users") else "Nhân viên"
+                    "full_name": staff.get("full_name") or "Nhân viên"
                 })
             summary["active_staff"] = active_staff
 

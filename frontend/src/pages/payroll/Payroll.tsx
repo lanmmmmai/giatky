@@ -23,6 +23,7 @@ const Payroll: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'payroll' | 'attendance'>('payroll');
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceError, setAttendanceError] = useState('');
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceErrors, setAttendanceErrors] = useState<Record<string, string>>({});
 
@@ -104,6 +105,7 @@ const Payroll: React.FC = () => {
 
   const loadAttendanceData = async () => {
     setAttendanceLoading(true);
+    setAttendanceError('');
     try {
       const data = await getAdminAttendance({
         date_from: attendanceFilters.date_from || undefined,
@@ -115,7 +117,10 @@ const Payroll: React.FC = () => {
       });
       setAttendanceRecords(data);
     } catch (err: any) {
-      addToast(err.response?.data?.detail || 'Không thể tải dữ liệu chấm công.', 'error');
+      const detail = err.response?.data?.detail || 'Không thể tải dữ liệu chấm công.';
+      setAttendanceRecords([]);
+      setAttendanceError(detail);
+      addToast(detail, 'error');
     } finally {
       setAttendanceLoading(false);
     }
@@ -558,6 +563,10 @@ const Payroll: React.FC = () => {
 
           {attendanceLoading ? (
             <LoadingSpinner />
+          ) : attendanceError ? (
+            <div className="rounded-[20px] border border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-700">
+              {attendanceError}
+            </div>
           ) : attendanceRecords.length === 0 ? (
             <EmptyState message="Không có bản ghi chấm công nào được tìm thấy." />
           ) : (
