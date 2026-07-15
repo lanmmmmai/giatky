@@ -86,6 +86,35 @@ def get_payrolls(
 
 @router.post("/generate", dependencies=[Depends(require_role(["admin", "manager"]))])
 def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depends(get_current_user)):
+    try:
+        return _generate_payroll_impl(payload, current_user)
+    except HTTPException as exc:
+        logger.warning(
+            "Payroll generation rejected: user_id=%s role=%s branch_id=%s staff_id=%s month=%s year=%s status=%s detail=%s",
+            current_user.get("id"),
+            current_user.get("role"),
+            payload.branch_id,
+            payload.staff_id,
+            payload.month,
+            payload.year,
+            exc.status_code,
+            exc.detail,
+        )
+        raise
+    except Exception as exc:
+        logger.exception(
+            "Payroll generation failed: user_id=%s role=%s branch_id=%s staff_id=%s month=%s year=%s",
+            current_user.get("id"),
+            current_user.get("role"),
+            payload.branch_id,
+            payload.staff_id,
+            payload.month,
+            payload.year,
+        )
+        raise HTTPException(status_code=500, detail="Không thể tính lương. Vui lòng kiểm tra log hệ thống.") from exc
+
+
+def _generate_payroll_impl(payload: PayrollGenerateRequest, current_user: dict):
     """Generate or regenerate draft payroll for all staff in a branch for a given month/year."""
     # If manager, verify access to branch
     if current_user["role"] == "manager":
