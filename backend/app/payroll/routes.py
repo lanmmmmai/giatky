@@ -8,6 +8,11 @@ import logging
 from app.common.dependencies import get_current_user, require_role
 from app.database import supabase
 from app.email.email_service import send_template_email
+from app.payroll.calculation import (
+    PAYROLL_ATTENDANCE_STATUSES,
+    calculate_payroll_amount,
+    decimal_to_payload,
+)
 
 logger = logging.getLogger("app.payroll")
 router = APIRouter(prefix="/payrolls", tags=["Payroll"])
@@ -121,10 +126,10 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
             raise HTTPException(status_code=400, detail="Bảng lương của nhân viên này trong tháng đã tồn tại.")
 
         # Real attendance data for the selected month
-        att_res = supabase.table("attendance").select("total_hours, work_minutes")\
+        att_res = supabase.table("attendance").select("status, total_hours, check_in_time, check_out_time")\
             .eq("staff_id", staff["id"])\
             .eq("branch_id", payload.branch_id)\
-            .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
+            .in_("status", list(PAYROLL_ATTENDANCE_STATUSES))\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
             .execute()
@@ -132,7 +137,9 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
         if not att_rows:
             raise HTTPException(status_code=400, detail="Nhân viên chưa có dữ liệu chấm công trong tháng này.")
 
-        total_hours = sum((float(a.get("work_minutes") or 0) / 60) if a.get("work_minutes") is not None else float(a.get("total_hours") or 0) for a in att_rows)
+        total_hours, total_salary, warnings = calculate_payroll_amount(att_rows, staff["hourly_rate"] or 0)
+        if total_hours == 0:
+            raise HTTPException(status_code=400, detail="Nhân viên chưa có giờ làm hợp lệ để tính lương.")
         hourly_rate = staff["hourly_rate"] or 0
         insert_data = {
             "staff_id": staff["id"],
@@ -140,8 +147,8 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
             "month": payload.month,
             "year": payload.year,
             "hourly_rate_snapshot": hourly_rate,
-            "total_hours": total_hours,
-            "total_salary": int(total_hours * hourly_rate),
+            "total_hours": decimal_to_payload(total_hours),
+            "total_salary": total_salary,
             "generated_by": current_user["id"],
             "status": "draft"
         }
@@ -149,8 +156,9 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
         if not res.data:
             raise HTTPException(status_code=500, detail="Không thể tạo bảng lương.")
         return {
-            "message": f"Đã tạo bảng lương nháp cho {staff['full_name']} ({total_hours:g} giờ).",
-            "payrolls": res.data
+            "message": f"Đã tạo bảng lương nháp cho {staff['full_name']} ({decimal_to_payload(total_hours)} giờ).",
+            "payrolls": res.data,
+            "warnings": warnings,
         }
 
     # 1. Fetch all staff in the branch
@@ -177,28 +185,29 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
         .execute()
         
     payrolls_created = []
+    payroll_warnings = []
     
     for staff in staff_members:
         # Sum completed attendance total_hours in this date range
         att_res = supabase.table("attendance")\
-            .select("total_hours, work_minutes")\
+            .select("status, total_hours, check_in_time, check_out_time")\
             .eq("staff_id", staff["id"])\
             .eq("branch_id", payload.branch_id)\
-            .in_("status", ["completed", "on_time", "late", "early_leave", "manual_adjusted"])\
+            .in_("status", list(PAYROLL_ATTENDANCE_STATUSES))\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
             .execute()
             
-        total_hours = sum((float(a.get("work_minutes") or 0) / 60) if a.get("work_minutes") is not None else float(a.get("total_hours") or 0) for a in (att_res.data or []))
+        total_hours, total_salary, warnings = calculate_payroll_amount(att_res.data or [], staff["hourly_rate"] or 0)
         
         # Calculate salary
         hourly_rate = staff["hourly_rate"] or 0
-        total_salary = int(total_hours * hourly_rate)
         
         # Check if confirmed/paid record exists
         lock_res = supabase.table("payrolls")\
             .select("id")\
             .eq("staff_id", staff["id"])\
+            .eq("branch_id", payload.branch_id)\
             .eq("month", payload.month)\
             .eq("year", payload.year)\
             .in_("status", ["confirmed", "paid"])\
@@ -214,19 +223,26 @@ def generate_payroll(payload: PayrollGenerateRequest, current_user: dict = Depen
             "month": payload.month,
             "year": payload.year,
             "hourly_rate_snapshot": hourly_rate,
-            "total_hours": total_hours,
+            "total_hours": decimal_to_payload(total_hours),
             "total_salary": total_salary,
             "generated_by": current_user["id"],
-            "status": "draft"
+            "status": "draft",
         }
         
         res = supabase.table("payrolls").insert(insert_data).execute()
         if res.data:
             payrolls_created.append(res.data[0])
+            if warnings:
+                payroll_warnings.append({
+                    "staff_id": staff["id"],
+                    "staff_name": staff.get("full_name"),
+                    "warnings": warnings,
+                })
             
     return {
         "message": f"Tính lương thành công. Đã tạo {len(payrolls_created)} bảng lương nháp.",
-        "payrolls": payrolls_created
+        "payrolls": payrolls_created,
+        "warnings": payroll_warnings,
     }
 
 @router.patch("/{id}/confirm", dependencies=[Depends(require_role(["admin", "manager"]))])

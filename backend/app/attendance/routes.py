@@ -6,6 +6,11 @@ import logging
 
 from app.common.dependencies import get_current_user, require_role
 from app.database import supabase
+from app.payroll.calculation import (
+    PAYROLL_ATTENDANCE_STATUSES,
+    calculate_payroll_amount,
+    decimal_to_payload,
+)
 
 logger = logging.getLogger("app.attendance")
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
@@ -92,14 +97,14 @@ def _calculate_attendance(
     expected_start = _combine_work_datetime(work_date, shift_start_time)
     expected_end = _combine_work_datetime(work_date, shift_end_time, overnight_shift)
 
-    work_minutes = 0
+    worked_minutes = 0
     late_minutes = 0
     early_leave_minutes = 0
     overtime_minutes = 0
     status_value = "completed"
 
     if check_in_at and check_out_at:
-        work_minutes = max(0, int((check_out_at - check_in_at).total_seconds() // 60) - break_minutes)
+        worked_minutes = max(0, int((check_out_at - check_in_at).total_seconds() // 60) - break_minutes)
         if expected_start and check_in_at > expected_start:
             late_minutes = int((check_in_at - expected_start).total_seconds() // 60)
         if expected_end:
@@ -116,15 +121,14 @@ def _calculate_attendance(
         status_value = "manual_adjusted"
 
     return {
-        "work_minutes": work_minutes,
-        "total_hours": round(work_minutes / 60, 2),
+        "total_hours": round(worked_minutes / 60, 2),
         "late_minutes": late_minutes,
         "early_leave_minutes": early_leave_minutes,
         "overtime_minutes": overtime_minutes,
         "status": status_value,
     }
 
-COMPLETED_ATTENDANCE_STATUSES = ["completed", "on_time", "late", "early_leave", "manual_adjusted"]
+COMPLETED_ATTENDANCE_STATUSES = list(PAYROLL_ATTENDANCE_STATUSES)
 
 def _ensure_no_overlap(staff_id: str, work_date_value: date, check_in_at: Optional[datetime], check_out_at: Optional[datetime], exclude_id: Optional[str] = None):
     if not check_in_at or not check_out_at:
@@ -169,17 +173,20 @@ def _recalculate_draft_payrolls(staff_id: str, work_date_value: date):
     for payroll in (payroll_res.data or []):
         start_date = f"{payroll['year']}-{payroll['month']:02d}-01"
         end_date = f"{payroll['year']}-{payroll['month']:02d}-31"
-        att_res = supabase.table("attendance").select("total_hours")\
+        att_res = supabase.table("attendance").select("status, total_hours, check_in_time, check_out_time")\
             .eq("staff_id", staff_id)\
             .eq("branch_id", payroll.get("branch_id"))\
             .in_("status", COMPLETED_ATTENDANCE_STATUSES)\
             .gte("work_date", start_date)\
             .lte("work_date", end_date)\
             .execute()
-        total_hours = sum(float(a.get("total_hours") or 0) for a in (att_res.data or []))
+        total_hours, total_salary, _warnings = calculate_payroll_amount(
+            att_res.data or [],
+            payroll.get("hourly_rate_snapshot") or 0,
+        )
         supabase.table("payrolls").update({
-            "total_hours": total_hours,
-            "total_salary": int(total_hours * float(payroll.get("hourly_rate_snapshot") or 0))
+            "total_hours": decimal_to_payload(total_hours),
+            "total_salary": total_salary,
         }).eq("id", payroll["id"]).execute()
 
 @router.post("/check-in")
@@ -253,12 +260,9 @@ def check_out(payload: AttendanceCheckOut, current_user: dict = Depends(get_curr
     
     # Standard hour calculation (rounded to 2 decimal places)
     total_hours = round(max(0.0, total_seconds / 3600.0), 2)
-    work_minutes = max(0, int(total_seconds // 60))
-    
     update_data = {
         "check_out_time": now.isoformat(),
         "check_out_at": now.isoformat(),
-        "work_minutes": work_minutes,
         "total_hours": total_hours,
         "status": "completed",
         "source": "STAFF_CHECK_OUT",
@@ -472,7 +476,6 @@ def create_manual_attendance(payload: ManualAttendancePayload, current_user: dic
         "check_out_at": payload.check_out_at.isoformat() if payload.check_out_at else None,
         "break_minutes": payload.break_minutes,
         "total_hours": calculated["total_hours"],
-        "work_minutes": calculated["work_minutes"],
         "late_minutes": calculated["late_minutes"],
         "early_leave_minutes": calculated["early_leave_minutes"],
         "overtime_minutes": calculated["overtime_minutes"],
@@ -552,7 +555,6 @@ def update_admin_attendance(id: str, payload: AttendanceUpdatePayload, current_u
         "check_out_at": check_out_at.isoformat() if check_out_at else None,
         "break_minutes": break_minutes,
         "total_hours": calculated["total_hours"],
-        "work_minutes": calculated["work_minutes"],
         "late_minutes": calculated["late_minutes"],
         "early_leave_minutes": calculated["early_leave_minutes"],
         "overtime_minutes": calculated["overtime_minutes"],

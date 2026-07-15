@@ -592,7 +592,7 @@ const Payroll: React.FC = () => {
                         <td className="p-4 text-slate-600">{rec.shift_name || '-'}</td>
                         <td className="p-4 text-slate-600">{formatTime(rec.check_in_at || rec.check_in_time)}</td>
                         <td className="p-4 text-slate-600">{formatTime(rec.check_out_at || rec.check_out_time)}</td>
-                        <td className="p-4 font-bold text-slate-700">{rec.work_minutes ? (rec.work_minutes / 60).toFixed(2) : rec.total_hours || 0}</td>
+                        <td className="p-4 font-bold text-slate-700">{rec.total_hours || 0}</td>
                         <td className="p-4">{rec.late_minutes || 0} phút</td>
                         <td className="p-4">{rec.early_leave_minutes || 0} phút</td>
                         <td className="p-4">{rec.overtime_minutes || 0} phút</td>

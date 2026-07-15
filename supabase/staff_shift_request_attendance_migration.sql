@@ -28,7 +28,6 @@ ALTER TABLE attendance ADD COLUMN IF NOT EXISTS shift_end_time TIME;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS check_in_at TIMESTAMPTZ;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMPTZ;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS break_minutes INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE attendance ADD COLUMN IF NOT EXISTS work_minutes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS late_minutes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS early_leave_minutes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER NOT NULL DEFAULT 0;
@@ -44,10 +43,7 @@ UPDATE attendance
 SET
   check_in_at = COALESCE(check_in_at, check_in_time),
   check_out_at = COALESCE(check_out_at, check_out_time),
-  work_minutes = CASE
-    WHEN COALESCE(work_minutes, 0) = 0 AND COALESCE(total_hours, 0) > 0 THEN ROUND(total_hours * 60)::INTEGER
-    ELSE work_minutes
-  END
+  total_hours = COALESCE(total_hours, 0)
 WHERE TRUE;
 
 DO $$

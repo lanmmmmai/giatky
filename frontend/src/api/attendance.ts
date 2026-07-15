@@ -17,7 +17,6 @@ export interface AttendanceRecord {
   shift_start_time?: string;
   shift_end_time?: string;
   break_minutes?: number;
-  work_minutes?: number;
   late_minutes?: number;
   early_leave_minutes?: number;
   overtime_minutes?: number;
