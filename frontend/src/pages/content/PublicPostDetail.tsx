@@ -15,7 +15,17 @@ const CV_TYPES = [
 const contentToParagraphs = (content?: string) =>
   (content || '').split(/\n{2,}/).map(item => item.trim()).filter(Boolean);
 
+// PHẢI khớp shift_label() ở backend (backend/app/content/routes.py) — cùng dấu gạch nối "–".
 const shiftLabel = (shift: JobShift) => `${shift.name} ${shift.start_time}–${shift.end_time}`;
+
+// Không dùng toISOString() để so ngày local (nó quy đổi UTC, lệch ngày quanh nửa đêm giờ VN).
+const todayLocalISODate = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 const emptyApplicationForm = {
   full_name: '',
@@ -51,16 +61,21 @@ const ApplicationModal: React.FC<{
   const job = post.job_post!;
   const jobBranches = job.branches || [];
   const jobShifts = job.shifts || [];
+  // Ca cấu trúc CHỈ áp dụng cho bài employment_type === 'shift' — bài full_time/part_time
+  // dù lỡ mang theo shifts (dữ liệu cũ) cũng không bị bắt chọn ca. Phải khớp
+  // resolve_application_shift() ở backend.
+  const isShiftEmployment = job.employment_type === 'shift';
   const singleBranch = jobBranches.length === 1 ? jobBranches[0] : null;
-  const singleShift = jobShifts.length === 1 ? jobShifts[0] : null;
+  const singleShift = isShiftEmployment && jobShifts.length === 1 ? jobShifts[0] : null;
   const needBranchChoice = jobBranches.length >= 2;
-  const needShiftChoice = jobShifts.length >= 2;
+  const needShiftChoice = isShiftEmployment && jobShifts.length >= 2;
 
-  const [form, setForm] = useState<ApplicationForm>({
+  const initialForm = useRef<ApplicationForm>({
     ...emptyApplicationForm,
     preferred_branch_id: singleBranch?.branch_id || '',
     preferred_shift_id: singleShift?.id || '',
   });
+  const [form, setForm] = useState<ApplicationForm>(initialForm.current);
   const [cv, setCv] = useState<File | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [apiError, setApiError] = useState('');
@@ -72,10 +87,17 @@ const ApplicationModal: React.FC<{
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const isDirty = useMemo(
-    () => !!(form.full_name || form.phone || form.email || form.introduction || cv),
-    [form, cv],
-  );
+  // Kiểm tra TOÀN BỘ field của form (không chỉ vài field) — dữ liệu ở bất kỳ field
+  // nào cũng phải kích hoạt cảnh báo xác nhận đóng. So với giá trị khởi tạo (không
+  // phải rỗng cứng) để không tính nhầm ca/cơ sở tự gán (auto-assign khi bài chỉ có
+  // 1 lựa chọn) là "đã nhập".
+  const isDirty = useMemo(() => {
+    const initial = initialForm.current;
+    const fieldChanged = (Object.keys(emptyApplicationForm) as (keyof ApplicationForm)[]).some(
+      key => form[key] !== initial[key],
+    );
+    return fieldChanged || !!cv;
+  }, [form, cv]);
 
   // Focus vào field đầu tiên khi mở; khóa scroll nền
   useEffect(() => {
@@ -95,13 +117,22 @@ const ApplicationModal: React.FC<{
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.stopPropagation();
-      requestClose();
+      // Dialog xác nhận đóng đang mở thì Escape CHỈ đóng dialog đó — không được
+      // "xuyên" xuống đóng luôn modal chính, kẻo người dùng dùng bàn phím bị mất
+      // control (2 lớp dialog cùng đóng một lúc, không thể huỷ ý định đóng).
+      if (showCloseConfirm) {
+        setShowCloseConfirm(false);
+      } else {
+        requestClose();
+      }
       return;
     }
     if (e.key === 'Tab' && dialogRef.current) {
-      const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
-        'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])',
-      );
+      const focusables = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(el => !el.hasAttribute('disabled') && el.getAttribute('aria-disabled') !== 'true');
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
@@ -140,7 +171,7 @@ const ApplicationModal: React.FC<{
     if (form.full_name.trim().length < 2) next.full_name = 'Họ tên phải có ít nhất 2 ký tự.';
     if (!/^(0|\+84)[0-9]{8,10}$/.test(form.phone.replace(/\s/g, ''))) next.phone = 'Số điện thoại không đúng định dạng Việt Nam.';
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) next.email = 'Email không đúng định dạng.';
-    if (form.date_of_birth && form.date_of_birth >= new Date().toISOString().slice(0, 10)) next.date_of_birth = 'Ngày sinh không hợp lệ.';
+    if (form.date_of_birth && form.date_of_birth >= todayLocalISODate()) next.date_of_birth = 'Ngày sinh không hợp lệ.';
     if (needShiftChoice && !form.preferred_shift_id) next.preferred_shift_id = 'Vui lòng chọn ca làm việc mong muốn.';
     if (needBranchChoice && !form.preferred_branch_id) next.preferred_branch_id = 'Vui lòng chọn cơ sở mong muốn.';
     if (!form.agreed_terms) next.agreed_terms = 'Bạn cần đồng ý điều khoản xử lý dữ liệu để gửi hồ sơ.';
@@ -420,7 +451,7 @@ const PublicPostDetail: React.FC = () => {
   const deadlinePassed = useMemo(() => {
     const deadline = post?.job_post?.application_deadline;
     if (!deadline) return false;
-    return deadline < new Date().toISOString().slice(0, 10);
+    return deadline < todayLocalISODate();
   }, [post]);
   // Chỉ hiện nút khi: bài đã published (API public chỉ trả published), là tuyển dụng,
   // bật ứng tuyển online và chưa quá hạn nộp

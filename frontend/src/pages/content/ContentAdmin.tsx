@@ -201,13 +201,18 @@ const ContentAdmin: React.FC = () => {
   };
 
   const updateJob = (field: string, value: any) => {
-    setForm(prev => ({
-      ...prev,
-      job_post: {
+    setForm(prev => {
+      const nextJob: any = {
         ...(prev.job_post || { allow_online_application: true, branch_ids: [], shifts: [] }),
         [field]: value,
-      },
-    }));
+      };
+      // Đổi sang hình thức khác "theo ca" thì bỏ ca đã chọn, tránh bài
+      // full_time/part_time lỡ mang theo danh sách ca cũ.
+      if (field === 'employment_type' && value !== 'shift') {
+        nextJob.shifts = [];
+      }
+      return { ...prev, job_post: nextJob };
+    });
   };
 
   const handleFeaturedImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -576,33 +581,35 @@ const ContentAdmin: React.FC = () => {
                     <textarea placeholder="Mô tả công việc" value={form.job_post?.responsibilities || ''} onChange={e => updateJob('responsibilities', e.target.value)} rows={3} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                     <textarea placeholder="Yêu cầu công việc" value={form.job_post?.requirements || ''} onChange={e => updateJob('requirements', e.target.value)} rows={3} className="px-3 py-2 border border-slate-200 rounded-2xl text-xs" />
                   </div>
-                  <div className="space-y-2">
-                    <div className="text-xs font-semibold text-slate-600">Ca tuyển dụng</div>
-                    <p className="text-[10px] text-slate-400">Chọn một hoặc nhiều ca. Nếu chỉ chọn 1 ca, ứng viên được tự gán ca đó; từ 2 ca trở lên, form ứng tuyển sẽ bắt buộc ứng viên chọn ca mong muốn.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                      {JOB_SHIFT_OPTIONS.map(shift => {
-                        const checked = (form.job_post?.shifts || []).some(s => s.id === shift.id);
-                        return (
-                          <label key={shift.id} className="flex items-center gap-2 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={e => {
-                                const current = form.job_post?.shifts || [];
-                                updateJob('shifts', e.target.checked
-                                  ? [...current, shift]
-                                  : current.filter(s => s.id !== shift.id));
-                              }}
-                            />
-                            <span>{shift.name} <span className="text-slate-400">{shift.start_time}–{shift.end_time}</span></span>
-                          </label>
-                        );
-                      })}
+                  {form.job_post?.employment_type === 'shift' && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-slate-600">Ca tuyển dụng</div>
+                      <p className="text-[10px] text-slate-400">Chọn một hoặc nhiều ca. Nếu chỉ chọn 1 ca, ứng viên được tự gán ca đó; từ 2 ca trở lên, form ứng tuyển sẽ bắt buộc ứng viên chọn ca mong muốn.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+                        {JOB_SHIFT_OPTIONS.map(shift => {
+                          const checked = (form.job_post?.shifts || []).some(s => s.id === shift.id);
+                          return (
+                            <label key={shift.id} className="flex items-center gap-2 text-xs bg-white border border-slate-200 rounded-xl px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={e => {
+                                  const current = form.job_post?.shifts || [];
+                                  updateJob('shifts', e.target.checked
+                                    ? [...current, shift]
+                                    : current.filter(s => s.id !== shift.id));
+                                }}
+                              />
+                              <span>{shift.name} <span className="text-slate-400">{shift.start_time}–{shift.end_time}</span></span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {(form.job_post?.shifts || []).length === 0 && (
+                        <p className="text-[10px] font-semibold text-amber-600">Vị trí làm việc theo ca cần chọn ít nhất một ca trước khi xuất bản.</p>
+                      )}
                     </div>
-                    {form.job_post?.employment_type === 'shift' && (form.job_post?.shifts || []).length === 0 && (
-                      <p className="text-[10px] font-semibold text-amber-600">Vị trí làm việc theo ca cần chọn ít nhất một ca trước khi xuất bản.</p>
-                    )}
-                  </div>
+                  )}
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-slate-600">Cơ sở tuyển dụng</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">

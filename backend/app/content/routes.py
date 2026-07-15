@@ -8,7 +8,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, EmailStr, Field
 
-from app.common.db_features import has_column
 from app.common.dependencies import get_current_user, require_role
 from app.config import settings
 from app.database import supabase
@@ -139,7 +138,8 @@ def validate_shifts(shifts: List["ShiftPayload"]) -> List[dict]:
 
 
 def shift_label(shift: dict) -> str:
-    return f"{shift.get('name')} {shift.get('start_time')}-{shift.get('end_time')}"
+    """Định dạng nhãn ca — PHẢI khớp shiftLabel() ở frontend (PublicPostDetail.tsx)."""
+    return f"{shift.get('name')} {shift.get('start_time')}–{shift.get('end_time')}"
 
 
 def resolve_application_branch(job: dict, preferred_branch_id: Optional[str]) -> tuple[Optional[str], str]:
@@ -166,10 +166,18 @@ def resolve_application_shift(
 ) -> tuple[Optional[str], Optional[str]]:
     """Xác định ca ứng tuyển từ bài tuyển dụng.
 
+    Ca cấu trúc CHỈ áp dụng cho bài employment_type == 'shift' — các loại hình khác
+    (full_time, part_time, ...) không bao giờ bắt ứng viên chọn ca dù bài lỡ có
+    nhiều ca được gắn (dữ liệu thừa/cũ).
+
     Trả về (shift_id, shift_label). Tự gán khi bài có đúng 1 ca; raise 422 khi bài
-    có ≥2 ca mà client không chọn hoặc chọn ngoài danh sách. Bài cũ chưa có ca cấu
-    trúc thì giữ text tự do làm nhãn tham khảo, shift_id = None.
+    có ≥2 ca mà client không chọn hoặc chọn ngoài danh sách. Bài theo ca nhưng 0 ca
+    cấu trúc và không có shift_name cũ là lỗi cấu hình (422) — không âm thầm bỏ qua.
     """
+    legacy_label = (legacy_shift_text or "").strip() or (job.get("shift_name") or "").strip() or None
+    if job.get("employment_type") != "shift":
+        return None, legacy_label
+
     job_shifts = job.get("shifts") or []
     shift_by_id = {s["id"]: s for s in job_shifts if isinstance(s, dict) and s.get("id")}
     if len(shift_by_id) == 1:
@@ -181,7 +189,14 @@ def resolve_application_shift(
         if preferred_shift_id not in shift_by_id:
             raise HTTPException(status_code=422, detail="Ca đã chọn không thuộc tin tuyển dụng này.")
         return preferred_shift_id, shift_label(shift_by_id[preferred_shift_id])
-    return None, (legacy_shift_text or "").strip() or (job.get("shift_name") or "").strip() or None
+    # employment_type == 'shift' nhưng chưa có ca cấu trúc: chỉ chấp nhận nếu còn
+    # shift_name cũ (dữ liệu legacy) — nếu không thì đây là lỗi cấu hình bài viết.
+    if not legacy_label:
+        raise HTTPException(
+            status_code=422,
+            detail="Tin tuyển dụng theo ca chưa cấu hình ca làm việc. Vui lòng liên hệ bộ phận tuyển dụng.",
+        )
+    return None, legacy_label
 
 
 class JobPostPayload(BaseModel):
@@ -264,9 +279,10 @@ def save_job_post(post_id: str, job_payload: Optional[JobPostPayload]) -> None:
     data["receiving_email"] = str(job_payload.receiving_email) if job_payload.receiving_email else None
     if data.get("application_deadline"):
         data["application_deadline"] = data["application_deadline"].isoformat()
-    # Ca tuyển dụng có cấu trúc — cột chỉ tồn tại sau job_post_shifts_migration.sql
-    if has_column("job_posts", "shifts"):
-        data["shifts"] = validate_shifts(job_payload.shifts)
+    # Ca tuyển dụng có cấu trúc — job_post_shifts_migration.sql là bắt buộc, không
+    # còn tương thích ngược: nếu cột shifts thiếu, insert/update dưới đây sẽ lỗi rõ
+    # ràng thay vì âm thầm bỏ qua lưu ca.
+    data["shifts"] = validate_shifts(job_payload.shifts)
 
     existing = supabase.table("job_posts").select("id").eq("post_id", post_id).limit(1).execute()
     if existing.data:
@@ -382,6 +398,16 @@ def upload_cv(file: Optional[UploadFile], content: Optional[bytes], application_
         raise HTTPException(status_code=500, detail="Không thể lưu file CV. Vui lòng thử lại.")
 
 
+def cleanup_cv(cv_path: Optional[str]) -> None:
+    """Best-effort xóa CV vừa upload khi bước lưu hồ sơ sau đó thất bại."""
+    if not cv_path:
+        return
+    try:
+        supabase.storage.from_(APPLICATION_BUCKET).remove([cv_path])
+    except Exception as e:
+        logger.warning(f"Failed to clean up orphaned CV {cv_path}: {str(e)}")
+
+
 def send_application_email(trigger_code: str, to_email: str, data: dict) -> None:
     template = get_active_template_by_trigger(trigger_code)
     if not template:
@@ -429,6 +455,11 @@ def submit_job_application(
                 raise HTTPException(status_code=400, detail="Ngày sinh không hợp lệ.")
         except ValueError:
             raise HTTPException(status_code=400, detail="Ngày sinh không đúng định dạng.")
+    if available_date:
+        try:
+            date.fromisoformat(available_date)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Ngày có thể bắt đầu không đúng định dạng (YYYY-MM-DD).")
 
     post_res = supabase.table("posts").select(public_post_select()).eq("id", post_id).is_("deleted_at", "null").limit(1).execute()
     if not post_res.data:
@@ -446,6 +477,8 @@ def submit_job_application(
     preferred_branch_id, branch_name = resolve_application_branch(job, preferred_branch_id)
     preferred_shift_id, resolved_shift_label = resolve_application_shift(job, preferred_shift_id, preferred_shift)
 
+    # Toàn bộ form đã qua hết validate ở trên — chỉ kiểm tra & upload CV sau cùng,
+    # để không tạo file mồ côi trên storage khi phần còn lại của form không hợp lệ.
     cv_content = validate_cv(cv)
     application_code = f"GKCV-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
     cv_path = upload_cv(cv, cv_content, application_code)
@@ -461,6 +494,7 @@ def submit_job_application(
         "preferred_branch_id": preferred_branch_id,
         # preferred_shift lưu label đã resolve từ dữ liệu bài — không phải text client
         "preferred_shift": resolved_shift_label,
+        "preferred_shift_id": preferred_shift_id,
         "experience": experience,
         "education": education,
         "available_date": available_date or None,
@@ -472,10 +506,14 @@ def submit_job_application(
         "created_at": now,
         "updated_at": now,
     }
-    if has_column("job_applications", "preferred_shift_id"):
-        insert_data["preferred_shift_id"] = preferred_shift_id
-    res = supabase.table("job_applications").insert(insert_data).execute()
+    try:
+        res = supabase.table("job_applications").insert(insert_data).execute()
+    except Exception as e:
+        cleanup_cv(cv_path)
+        logger.error(f"Failed to insert job application: {str(e)}")
+        raise HTTPException(status_code=500, detail="Không thể lưu hồ sơ ứng tuyển.")
     if not res.data:
+        cleanup_cv(cv_path)
         raise HTTPException(status_code=500, detail="Không thể lưu hồ sơ ứng tuyển.")
     application = res.data[0]
     supabase.table("job_application_logs").insert({
